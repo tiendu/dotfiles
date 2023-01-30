@@ -4,10 +4,9 @@ set atblanks # wrap line at blanks.
 set cutfromcursor # CTRL+K cuts from cursor position to end of line.
 set nohelp # disable the help information (CTRL+G to view the help screen).
 set softwrap # enable softwrap of lines.
-set suspend # enables CTRL+Z to suspend nano.
-set tabsize 4 # set tab-to-spaces size to 4.
-set tabstospaces # convert tab key press to spaces.
-include "/usr/share/nano/*.nanorc" # enable the syntax highlighting.
+# set tabsize 4 # set tab-to-spaces size to 4.
+# set tabstospaces # convert tab key press to spaces.
+# include "/usr/share/nano/*.nanorc" # enable the syntax highlighting.
 set speller "aspell -x -c" # set what spelling utility to use.
 set constantshow # display useful information e.g. line number and position in the bottom bar.
 set linenumbers # lines are numbered.
@@ -21,7 +20,6 @@ set minibar # display file name and other information in the bottom bar, and rem
 
 # Enable and set a working backup directory
 set backup # create backups of your current file.
-set backupdir "~/.cache/nano/backups/" # the location of the backups.
 
 # Shortcut key bindings
 bind ^C copy main # CTRC+C - Copy
