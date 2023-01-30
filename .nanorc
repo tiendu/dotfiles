@@ -6,8 +6,6 @@ set nohelp # disable the help information (CTRL+G to view the help screen).
 set softwrap # enable softwrap of lines.
 # set tabsize 4 # set tab-to-spaces size to 4.
 # set tabstospaces # convert tab key press to spaces.
-# include "/usr/share/nano/*.nanorc" # enable the syntax highlighting.
-set speller "aspell -x -c" # set what spelling utility to use.
 set constantshow # display useful information e.g. line number and position in the bottom bar.
 set linenumbers # lines are numbered.
 set casesensitive # case insensitive search.
