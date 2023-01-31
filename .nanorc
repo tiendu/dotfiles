@@ -15,6 +15,7 @@ set zap # allows highlighting text (CTRL+SHIFT+ARROW) and delete it with backspa
 set autoindent # a new line will have the same number of leading spaces as the previous one.
 set indicator # display a scroll bar on the right that shows the position and size of the current view port.
 set minibar # display file name and other information in the bottom bar, and remove the top bar.
+set regexp # use regular expression for searching.
 
 # Enable and set a working backup directory
 set backup # create backups of your current file.
