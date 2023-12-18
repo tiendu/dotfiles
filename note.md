@@ -493,8 +493,8 @@ Codespace style prompt:
 function __setprompt() {
     local exit_status=$?
     local arrow_color="\[\033[1;37m\]"
+    local conda_env="\[\033[1;33m\]$CONDA_DEFAULT_ENV\[\033[1;33m\]"
     local git_branch=""
-    local git_info=""
 
     if [[ $exit_status != 0 ]]; then
         arrow_color="\[\033[1;31m\]"
@@ -503,11 +503,18 @@ function __setprompt() {
     if command -v git &>/dev/null; then
         git_branch=$(git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/')
     fi
+
     if [[ ! -z $git_branch ]]; then
-        git_info=" \[\033[0;36m\](\[\033[1;31m\]${git_branch}\[\033[0;36m\])"
+        git_branch="\[\033[1;33m\]${git_branch}\[\033[1;33m\]"
     fi
 
-    PS1="\[\033[0;32m\]\u@\h ${arrow_color}➜ \[\033[1;34m\]\w${git_info} \[\033[1;37m\]$ \[\033[00m\]"
+    if [[ $conda_env != "" && $git_branch != "" ]]; then
+        env_branch="\[\033[0;37m\](${conda_env}\[\033[0;37m\]:${git_branch}\[\033[0;37m\])"
+    else
+        env_branch="\[\033[0;37m\](${conda_env}${git_branch}\[\033[0;37m\])"
+    fi
+
+    PS1="\[\033[0;32m\]\u@\h ${arrow_color}➜ \[\033[1;34m\]\w ${env_branch} \[\033[1;37m\]$ \[\033[00m\]"
 }
 
 PROMPT_COMMAND="__setprompt; $PROMPT_COMMAND"
