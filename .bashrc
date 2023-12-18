@@ -197,35 +197,35 @@ function __setprompt {
     local NOCOLOR="\033[0m"
 
     # Show error exit code if there is one
-    if [[ $LAST_COMMAND != 0 ]]; then
+    if [[ $LAST_COMMAND -ne 0 ]]; then
         PS1="\[${DARKGRAY}\](\[${LIGHTRED}\]ERROR\[${DARKGRAY}\])-(\[${RED}\]Exit Code \[${LIGHTRED}\]${LAST_COMMAND}\[${DARKGRAY}\])-(\[${RED}\]"
-        if [[ $LAST_COMMAND == 1 ]]; then
+        if [[ $LAST_COMMAND -eq 1 ]]; then
             PS1+="General error"
-        elif [ $LAST_COMMAND == 2 ]; then
+        elif [ $LAST_COMMAND -eq 2 ]; then
             PS1+="Missing keyword, command, or permission problem"
-        elif [ $LAST_COMMAND == 126 ]; then
+        elif [ $LAST_COMMAND -eq 126 ]; then
             PS1+="Permission problem or command is not an executable"
-        elif [ $LAST_COMMAND == 127 ]; then
+        elif [ $LAST_COMMAND -eq 127 ]; then
             PS1+="Command not found"
-        elif [ $LAST_COMMAND == 128 ]; then
+        elif [ $LAST_COMMAND -eq 128 ]; then
             PS1+="Invalid argument to exit"
-        elif [ $LAST_COMMAND == 129 ]; then
+        elif [ $LAST_COMMAND -eq 129 ]; then
             PS1+="Fatal error signal 1"
-        elif [ $LAST_COMMAND == 130 ]; then
+        elif [ $LAST_COMMAND -eq 130 ]; then
             PS1+="Script terminated by Control-C"
-        elif [ $LAST_COMMAND == 131 ]; then
+        elif [ $LAST_COMMAND -eq 131 ]; then
             PS1+="Fatal error signal 3"
-        elif [ $LAST_COMMAND == 132 ]; then
+        elif [ $LAST_COMMAND -eq 132 ]; then
             PS1+="Fatal error signal 4"
-        elif [ $LAST_COMMAND == 133 ]; then
+        elif [ $LAST_COMMAND -eq 133 ]; then
             PS1+="Fatal error signal 5"
-        elif [ $LAST_COMMAND == 134 ]; then
+        elif [ $LAST_COMMAND -eq 134 ]; then
             PS1+="Fatal error signal 6"
-        elif [ $LAST_COMMAND == 135 ]; then
+        elif [ $LAST_COMMAND -eq 135 ]; then
             PS1+="Fatal error signal 7"
-        elif [ $LAST_COMMAND == 136 ]; then
+        elif [ $LAST_COMMAND -eq 136 ]; then
             PS1+="Fatal error signal 8"
-        elif [ $LAST_COMMAND == 137 ]; then
+        elif [ $LAST_COMMAND -eq 137 ]; then
             PS1+="Fatal error signal 9"
         elif [ $LAST_COMMAND -gt 255 ]; then
             PS1+="Exit status out of range"
