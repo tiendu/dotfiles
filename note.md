@@ -345,7 +345,11 @@ sudo chgrp -R mambaforge /opt/mambaforge
 
 4. Adjust Permissions: Make sure the group has read, write, and execute permissions to the `mambaforge` directory. This allows any member of the group to install and modify packages.
 
-`sudo chmod 777 -R /opt/mambaforge`
+```
+sudo chmod 777 -R /opt/mambaforge
+sudo chmod 777 -R /opt/mambaforge/share
+sudo chown -R :mambaforge /opt/mambaforge/share
+```
 
 5. Add Users to the Group: If you have specific users in mind, replace user with their username. This adds them to the `mambaforge` group.
 
@@ -364,6 +368,10 @@ conda init
 sudo chown :mambaforge /opt/mambaforge/pkgs/cache/
 sudo chmod g+s /opt/mambaforge/pkgs/cache/
 ```
+
+* Permission problem insistence would prevent installation.
+
+`sudo rm -rf /opt/mambaforge/pkgs/cache/`
 
 8. Clean Up: Remove the installer script.
 
