@@ -489,6 +489,8 @@ logout
 
 Codespace style prompt:
 
+`nano /data/data/com.termux/files/usr/etc/bash.bashrc`
+
 ```
 function __setprompt() {
     local exit_status=$?
