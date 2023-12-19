@@ -359,7 +359,7 @@ sudo chown -R :mambaforge /opt/mambaforge/share
 
 ```
 source /opt/mambaforge/bin/activate
-conda init
+mamba init
 ```
 
 7. Set Cache Permissions: To ensure that all files created in the cache directory are accessible by all users in the `mambaforge` group:
