@@ -607,6 +607,8 @@ ps aux | grep <command>
 while ps -p <pid> > /dev/null; do sleep 1; done && <command>
 ```
 
+* Swap Ctrl and Caps: `sudo nano /etc/default/keyboard` and add `XKBOPTIONS="ctrl:nocaps"`.
+
 # Start a script at system boot up
 
   1. Create a systemd service unit file: `sudo nano /etc/systemd/system/my-script.service`
