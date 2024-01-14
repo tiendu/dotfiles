@@ -685,3 +685,38 @@ from your@gmail.com
 ```
 
 * Try sending a test email with: `echo "This is a test email" | msmtp -a gmail your@gmail.com`
+
+# VSCode 
+
+* Override default keybindings to use bash shortcuts
+
+```
+// Place your key bindings in this file to override the defaults
+[
+    {
+        "key": "ctrl+e",
+        "command": "ctrl+e",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+a",
+        "command": "ctrl+a",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+x",
+        "command": "ctrl+x",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+s",
+        "command": "ctrl+s",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+b",
+        "command": "ctrl+b",
+        "when": "terminalFocus"
+    },
+]
+```
