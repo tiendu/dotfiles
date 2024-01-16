@@ -244,38 +244,57 @@ _Should there be any errors for multi-node configuration, please ensure..._
 
 # User management
 
-Add new user and add that user to a group.
+  1. New user
+     
+      * Add new user and add that user to a group.
 
-```
-sudo useradd guest
-sudo usermod -aG guests guest
-```
+      ```
+      sudo useradd guest
+      sudo usermod -aG guests guest
+      ```
 
-Change password of that user with `sudo passwd user`.
+      * Change the password of that user with `sudo passwd user`.
+      
+      * Prompt password change on first login with `sudo chage -d 0 user`.
 
-Prompt password change on first login with `sudo chage -d 0 user`.
+  2. Check how each user occupies the disk space (in Gb) with `sudo find . -type f -printf "%u  %s\n" | awk '{user[$1]+=$2} END {for (i in user) print i, int(user[i]/(1024^3))}'`.
 
-Check how each user occupies the disk space (in Gb) with `sudo find . -type f -printf "%u  %s\n" | awk '{user[$1]+=$2} END {for (i in user) print i, int(user[i]/(1024^3))}'`.
+  3. List all users with `awk -F: '$3 >= 1000 {print $1}' /etc/passwd`.
 
-List all users with `awk -F: '$3 >= 1000 {print $1}' /etc/passwd`.
+  4. Change group access permission of a directory.
 
-Change group access of a directory.
+  ```
+  sudo chgrp -R group /<directory>
+  sudo chmod -R g+s /<directory>
+  ```
 
-```
-sudo chgrp -R group /<directory>
-sudo chmod -R g+s /<directory>
-```
+  5. Set default permission for the group and others.
 
-Set default permission for group and other.
+  ```
+  setfacl -d -m g::rwx /<directory>
+  setfacl -d -m o::rx /<directory>
+  ```
 
-```
-setfacl -d -m g::rwx /<directory>
-setfacl -d -m o::rx /<directory>
-```
+  6. Set primary group for user `sudo usermod -g group user` and add user to other group(s) `sudo usermod -aG group user`.
 
-Set primary group for user `sudo usermod -g group user` and add user to other group(s) `sudo usermod -aG group user`.
+  7. Add user to group `sudo adduser user group` and remove from group `sudo deluser user group`.
 
-Add user to group `sudo adduser user group` and remove from group `sudo deluser user group`.
+  8. System-wide resource limit.
+
+     * Edit limit config `sudo nano /etc/security/limits.conf`.
+
+     * Add limit config:
+
+       ```
+       username soft as 8192 # Set RAM soft limit for a user
+       username hard as 8192 # Set RAM hard limit for a user
+       * soft nproc 100
+       * hard nproc 200
+       ```
+       
+       **Use soft for limits that can be increased by the user and hard for limits that cannot be increased.**
+
+     * User can adjust the soft limit with `ulimit -S -v 16384`. This will set the virtual memory soft limit to 16GB.
 
 # Install RAID (software)
 
