@@ -47,6 +47,8 @@ Uncomment `WaylandEnable=false`.
 
 # Slurm configs
 
+## Single node configs
+
 Install packages with `sudo apt install slurm slurmd slurmctld`.
 
 Edit `/lib/systemd/system/slurmctld.service` with below.
@@ -155,7 +157,7 @@ sudo mkdir -p /var/log/slurm-llnl && sudo chmod -R 777 /var/log/; sudo mkdir -p 
 
 Reload with `sudo systemctl daemon-reload` and start the services `sudo systemctl start slurmd.service` and `sudo systemctl start slurmctld.service`.
 
-**_Multi-node configuration_**
+## Multi nodes configs
 
 1) Edit the `/etc/hosts` on the controller node to include the IP and the hostname of the worker nodes and on the worker nodes, the `hosts` must contain the IP and hostname of the controlller node.
 
@@ -233,7 +235,7 @@ _Should there be any errors for multi-node configuration, please ensure..._
     * `sudo ufw reload`.
 * Use telnet to check the communication between nodes with `telnet hpc01 6817`.
 
-**_Network filesystem with `nfs-kernel` and `nfs-common` for distributing blocks of data_**
+# Shared filesystem with `nfs-kernel` and `nfs-common`
 
 1) Create shared directory with `sudo mkdir /shared_directory`.
 2) Add `/shared_directory hpc02(rw,sync,no_root_squash)` to `/etc/exports`.
@@ -296,7 +298,7 @@ _Should there be any errors for multi-node configuration, please ensure..._
 
      * User can adjust the soft limit with `ulimit -S -v 16384`. This will set the virtual memory soft limit to 16GB.
 
-# Install RAID (software)
+# Software RAID
 
 Install package `sudo apt install mdadm`.
 
@@ -345,7 +347,13 @@ Run the container fastqc with `podman run -v /home/user:/home/user --rm quay.io/
 
 These are important packages for R, install with `sudo apt install r-base-dev build-essential libnlopt-dev libfontconfig1 libxml2-dev libgsl-dev cmake libssl-dev libcurl4-openssl-dev`.
 
-# `mambaforge` for multiple users
+# `mambaforge`
+
+## Single user
+
+`wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh && sh Mambaforge-Linux-x86_64.sh -b -u -p $HOME/mambaforge && echo 'export PATH="$HOME/mambaforge/bin:$PATH"' >> ~/."$(basename $SHELL)"rc && source ~/."$(basename $SHELL)"rc && rm Mambaforge-Linux-x86_64.sh*`
+
+## Multi users
 
 1. Download Mambaforge:
 
@@ -396,11 +404,9 @@ sudo chmod g+s /opt/mambaforge/pkgs/cache/
 
 `rm Mambaforge-Linux-x86_64.sh`
 
-# `mambaforge` for one user
+# Nextflow
 
-`wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh && sh Mambaforge-Linux-x86_64.sh -b -u -p $HOME/mambaforge && echo 'export PATH="$HOME/mambaforge/bin:$PATH"' >> ~/."$(basename $SHELL)"rc && source ~/."$(basename $SHELL)"rc && rm Mambaforge-Linux-x86_64.sh*`
-
-# `nextflow` for multiple users
+## `nextflow` for multiple users
 
 Start with Java 17 installation by `sudo apt install openjdk-17-source`. Download and install nextflow `curl -fsSL get.nextflow.io | bash` then `sudo mv nextflow /usr/local/bin`.
 
@@ -408,7 +414,7 @@ Change the group of users to the group that all users are assigned to by `sudo c
 
 Now `sudo nano /etc/bash.bashrc` and add the following line `export PATH="/usr/local/bin/:$PATH"`.
 
-# Run `nextflow` pipeline locally
+## Run `nextflow` pipeline locally
 
 1) Download Necessary Files:
 
@@ -454,7 +460,7 @@ Now `sudo nano /etc/bash.bashrc` and add the following line `export PATH="/usr/l
   
     * Once you've got the Docker image, if you're running Nextflow locally, you need to update the `process.container` directive in your Nextflow configuration to use the correct image ID. Also, ensure you're adding `-with-docker` as a parameter when initiating a Nextflow run.
 
-7) Running the Workflow:
+7) Running the workflow:
 
 With everything set up, you're now ready to execute the Nextflow workflow:
 
@@ -739,3 +745,15 @@ from your@gmail.com
     },
 ]
 ```
+
+# GitHub
+
+## Process to control access to private repositories between two organizations
+
+1) Ownership Requirement: The owner of the first organization must also be the owner of the second organization. This ensures that the same entity controls both organizations.
+
+2) Enable Repository Forking: Turn on the option to allow forking of private repositories. This setting enables users to fork private repositories from one organization to another.
+
+3) Forking Private Repositories: The owner, who controls both organizations, initiates the process of forking private repositories from the first organization to the second organization. This allows the owner to maintain control over the repositories being transferred.
+
+4) Adding Users to the Second Organization: After forking the repositories, the owner adds users to the second organization. These users are granted access to view the forked private repositories in the second organization without being able to access or view the private repositories of the first organization. This step ensures that access to sensitive information is limited only to authorized individuals within the second organization.PRJNA637390
