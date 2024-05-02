@@ -292,19 +292,19 @@ function __setprompt {
     parse_git_branch() {
         git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'
     }
-    [[ $CONDA_DEFAULT_ENV != "" && $(parse_git_branch) != "" ]] && \            
+    [[ $CONDA_DEFAULT_ENV != "" && $(parse_git_branch) != "" ]] && \
     PS1+="\[${DARKGRAY}\](\[${YELLOW}\]$CONDA_DEFAULT_ENV\[${DARKGRAY}\]:\[${YELLOW}\]$(parse_git_branch)\[${DARKGRAY}\])\[${NOCOLOR}\] " || \
     PS1+="\[${DARKGRAY}\](\[${YELLOW}\]$CONDA_DEFAULT_ENV$(parse_git_branch)\[${DARKGRAY}\])\[${NOCOLOR}\] "
 }
 PROMPT_COMMAND="__setprompt; $PROMPT_COMMAND"
 
 # Auto-init tmux
-[ -t 1 ] && [ -x "$(command -v tmux)" ] && \                                      
-    [[ -f ~/.tmux.conf && \                                                     
-        $PPID != 1 && \                                                         
-        $$ != 1 && \                                                            
-        $TERM != dumb && \                                                      
-        $TERM != linux && \                                                     
-        $TERM != screen* && \                                                   
-        -z $TMUX ]] && \                                                        
+[ -t 1 ] && [ -x "$(command -v tmux)" ] && \
+    [[ -f ~/.tmux.conf && \
+        $PPID != 1 && \
+        $$ != 1 && \
+        $TERM != dumb && \
+        $TERM != linux && \
+        $TERM != screen* && \
+        -z $TMUX ]] && \
     exec tmux
