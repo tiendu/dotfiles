@@ -634,7 +634,26 @@ while ps -p <pid> > /dev/null; do sleep 1; done && <command>
 
 * Swap Ctrl and Caps: `sudo nano /etc/default/keyboard` and add `XKBOPTIONS="ctrl:nocaps"`.
 
-# Start a script at system boot up
+* Increase limits for `Too many open files` error:
+
+  * Check limit with `ulimit -n`, then increase with `ulimit -n <limit>`
+ 
+  * For permanent setting:
+      
+      * Edit `/etc/security/limits.conf` and add this to the end:
+      
+        ```
+        * soft nofile 4096
+        * hard nofile 4096
+        ```
+
+      * Edit `/etc/pam.d/common-session` and `/etc/pam.d/common-session-noninteractive` and add this to the end:
+   
+        ```
+        session required pam_limits.so
+        ```
+
+# Start a script at system booting up
 
   1. Create a systemd service unit file: `sudo nano /etc/systemd/system/my-script.service`
 
