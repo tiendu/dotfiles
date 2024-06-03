@@ -520,6 +520,8 @@ sleep 1 && \
 logout
 ```
 
+Use `termux-setup-storage` to get permission for storage.
+
 Codespace style prompt:
 
 `nano /data/data/com.termux/files/usr/etc/bash.bashrc`
