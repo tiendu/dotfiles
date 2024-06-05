@@ -486,7 +486,8 @@ pkg update && \
 pkg upgrade -y && \
 pkg autoclean && \
 pkg clean && \
-pkg install curl wget git zip unzip gawk nano exa ripgrep htop openssh zsh tmux tree python3 nmap jq pup bat aria2 fzf
+pkg install curl wget git zip unzip gawk nano eza ripgrep htop ruby openssh zsh tmux tree python3 nmap jq pup bat aria2 fzf && \
+gem install lolcat
 ```
 
 Set up `Oh-My-Zsh`
