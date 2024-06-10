@@ -503,7 +503,7 @@ cd termux-style && \
 Improve `zsh`
 
 ```
-echo -e 'export ZSH="$HOME/.oh-my-zsh"\nZSH_THEME="robbyrussell"\nsource $ZSH/oh-my-zsh.sh\nplugins=(git z zsh-autosuggestions zsh-syntax-highlighting)\nalias ll="ls -l"\nalias la="ls -A"\nHISTSIZE=10000\nSAVEHIST=10000\nsetopt appendhistory\nsetopt sharehistory\nzstyle ":completion:*" matcher-list "m:{a-zA-Z}={A-Za-z}"\nsetopt correct' > $HOME/.zshrc && \
+echo -e 'export ZSH="$HOME/.oh-my-zsh"\nZSH_THEME="junkfood"\nplugins=(git z zsh-autosuggestions zsh-syntax-highlighting)\nsource $ZSH/oh-my-zsh.sh\nalias ll="ls -l"\nalias la="ls -A"\nHISTSIZE=10000\nSAVEHIST=10000\nsetopt appendhistory\nsetopt sharehistory\nzstyle ":completion:*" matcher-list "m:{a-zA-Z}={A-Za-z}"\nsetopt correct' > $HOME/.zshrc && \
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting && \
 echo "source $HOME/.zshrc" > $HOME/.zprofile && \
