@@ -18,6 +18,8 @@ alias gl="git log --oneline --graph --all"
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
+alias tree="exa --tree --level=2"
+alias v="nvim ."
 
 # History settings
 HISTSIZE=10000
@@ -33,32 +35,31 @@ setopt correct
 bindkey -v
 
 # Custom key bindings
-bindkey '^A' beginning-of-line  # Ctrl + A to move to the beginning of the line
-bindkey '^E' end-of-line        # Ctrl + E to move to the end of the line
-bindkey '^K' kill-line          # Ctrl + K to kill the line
-bindkey '^U' unix-line-discard  # Ctrl + U to cut from the beginning of the line
+bindkey '^A' beginning-of-line       # Ctrl + A to move to the beginning of the line
+bindkey '^E' end-of-line             # Ctrl + E to move to the end of the line
+bindkey '^K' kill-line               # Ctrl + K to kill the line
+bindkey '^U' unix-line-discard       # Ctrl + U to cut from the beginning of the line
 
-# Create a function to handle jj, jk, and kj mapping to Esc
+# Function to handle jj, jk, and kj mapping to Esc
 function zle-jj-to-escape {
-  LBUFFER=${LBUFFER%?} # Remove the last character from the buffer
-  zle vi-cmd-mode      # Switch to command mode
+  LBUFFER=${LBUFFER%?}  # Remove the last character from the buffer
+  zle vi-cmd-mode       # Switch to command mode
 }
 zle -N zle-jj-to-escape
 bindkey -M viins 'jj' zle-jj-to-escape
 bindkey -M viins 'jk' zle-jj-to-escape
 bindkey -M viins 'kj' zle-jj-to-escape
 
+# Add keybindings for reverse search function
+bindkey '^R' history-incremental-search-backward  # Ctrl + R to reverse search in insert mode
+bindkey -M vicmd '^R' history-incremental-search-backward  # Ctrl + R to reverse search in normal mode
+
 # Auto-update Oh My Zsh every 2 weeks
 if [ -x "$(command -v omz-update)" ]; then
   omz-update --auto
 fi
 
-# Display a directory tree using exa
-alias tree="exa --tree --level=2"
-# Open Neovim in the current directory
-alias v="nvim ."
-
-# Set up fzf (fuzzy finder) if installed
+# Setup fzf (fuzzy finder) if installed
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 # Enable better auto-completion with zsh-completions
