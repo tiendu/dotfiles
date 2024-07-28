@@ -14,6 +14,18 @@ vim.opt.wrap = false                           -- Disable line wrapping
 vim.opt.cursorline = true                      -- Highlight the current line
 vim.opt.clipboard = "unnamedplus"              -- Use system clipboard for yanking and pasting
 
+-- Enable list mode to show whitespace characters
+vim.opt.list = true
+
+-- Customize list characters
+vim.opt.listchars = {
+  tab = '▸ ',
+  trail = '·',
+  extends = '>',
+  precedes = '<',
+  eol = '↴',
+}
+
 -- Key Mappings
 vim.g.mapleader = " "                          -- Set the leader key to space
 
@@ -35,4 +47,3 @@ vim.api.nvim_set_keymap('i', 'kj', '<Esc>', { noremap = true })
 
 -- Map 'jj' to Esc
 vim.api.nvim_set_keymap('i', 'jj', '<Esc>', { noremap = true })
-
