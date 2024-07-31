@@ -27,7 +27,8 @@ vim.opt.listchars = {
 }
 
 -- Key Mappings
-vim.g.mapleader = " "                          -- Set the leader key to space
+-- Set the leader key to space
+vim.g.mapleader = " "
 
 -- Save and quit
 vim.api.nvim_set_keymap('n', '<leader>w', ':w<CR>', { noremap = true })
@@ -47,3 +48,15 @@ vim.api.nvim_set_keymap('i', 'kj', '<Esc>', { noremap = true })
 
 -- Map 'jj' to Esc
 vim.api.nvim_set_keymap('i', 'jj', '<Esc>', { noremap = true })
+
+-- Move up in insert mode
+vim.api.nvim_set_keymap('i', '<C-k>', '<Esc>ka', { noremap = true, silent = true })
+
+-- Move down in insert mode
+vim.api.nvim_set_keymap('i', '<C-j>', '<Esc>ja', { noremap = true, silent = true })
+
+-- Move left in insert mode
+vim.api.nvim_set_keymap('i', '<C-h>', '<Esc>ha', { noremap = true, silent = true })
+
+-- Move right in insert mode
+vim.api.nvim_set_keymap('i', '<C-l>', '<Esc>la', { noremap = true, silent = true })
