@@ -1,5 +1,4 @@
 # sudo nano ~/.nanorc
-# sudo nano ~/.nanorc
 # Non-default settings
 set atblanks        # Wrap lines at blanks
 set cutfromcursor   # Ctrl+K cuts from cursor position to end of line
@@ -9,7 +8,7 @@ set tabsize 4       # Set tab-to-spaces size to 4
 set tabstospaces    # Convert tab key press to spaces
 set constantshow    # Display useful information (e.g., line number) in the bottom bar
 set linenumbers     # Enable line numbering
-set nocasesensitive # Case-insensitive search
+set casesensitive   # Case-sensitive search
 set historylog      # Save the last 100 history searches for later use
 set positionlog     # Save the cursor position between editing sessions
 set zap             # Allow highlighting text (Ctrl+Shift+Arrow) and delete it with backspace
@@ -17,6 +16,7 @@ set autoindent      # New line will have the same number of leading spaces as th
 set indicator       # Display a scroll bar on the right
 set minibar         # Display file name and other information in the bottom bar, and remove the top bar
 set regexp          # Use regular expression for searching
+set guidestripe 80  # Set line length marker
 set backup          # Create backups of your current file
 set trimblanks      # Remove trailing white space when saving
 set smarthome       # Home key jumps to start of line first, then to true home
