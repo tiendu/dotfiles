@@ -16,7 +16,6 @@ set autoindent      # New line will have the same number of leading spaces as th
 set indicator       # Display a scroll bar on the right
 set minibar         # Display file name and other information in the bottom bar, and remove the top bar
 set regexp          # Use regular expression for searching
-set guidestripe 80  # Set line length marker
 set backup          # Create backups of your current file
 set trimblanks      # Remove trailing white space when saving
 set smarthome       # Home key jumps to start of line first, then to true home
