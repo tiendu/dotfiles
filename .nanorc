@@ -1,39 +1,50 @@
 # sudo nano ~/.nanorc
+# sudo nano ~/.nanorc
 # Non-default settings
-set atblanks           # Wrap lines at blanks.
-set cutfromcursor      # Ctrl+K cuts from cursor position to end of line.
-set nohelp             # Disable the help information (Ctrl+G to view the help screen).
-set softwrap           # Enable softwrap of lines.
-set tabsize 4          # Set tab-to-spaces size to 4.
-set tabstospaces       # Convert tab key press to spaces.
-set constantshow       # Display useful information e.g., line number and position in the bottom bar.
-set linenumbers        # Lines are numbered.
-set casesensitive      # Case sensitive search.
-set historylog         # Save the last 100 history searches for later use.
-set positionlog        # Save the cursor position between editing sessions.
-set zap                # Allows highlighting text (Ctrl+Shift+Arrow) and delete it with backspace.
-set autoindent         # A new line will have the same number of leading spaces as the previous one.
-set indicator          # Display a scroll bar on the right that shows the position and size of the current view port.
-set minibar            # Display file name and other information in the bottom bar, and remove the top bar.
-set regexp             # Use regular expression for searching.
-set guidestripe 80     # Set line length marker.
-set backup             # Create backups of your current file.
-set trimblanks         # Remove trailing white space when saving.
-set smarthome          # Smart home key behavior.
+set atblanks        # Wrap lines at blanks
+set cutfromcursor   # Ctrl+K cuts from cursor position to end of line
+set nohelp          # Disable help information (Ctrl+G to view the help screen)
+set softwrap        # Enable softwrap of lines
+set tabsize 4       # Set tab-to-spaces size to 4
+set tabstospaces    # Convert tab key press to spaces
+set constantshow    # Display useful information (e.g., line number) in the bottom bar
+set linenumbers     # Enable line numbering
+set nocasesensitive # Case-insensitive search
+set historylog      # Save the last 100 history searches for later use
+set positionlog     # Save the cursor position between editing sessions
+set zap             # Allow highlighting text (Ctrl+Shift+Arrow) and delete it with backspace
+set autoindent      # New line will have the same number of leading spaces as the previous one
+set indicator       # Display a scroll bar on the right
+set minibar         # Display file name and other information in the bottom bar, and remove the top bar
+set regexp          # Use regular expression for searching
+set backup          # Create backups of your current file
+set trimblanks      # Remove trailing white space when saving
+set smarthome       # Home key jumps to start of line first, then to true home
+set afterends       # Ctrl+Right moves to word ends instead of word starts
+set numbercolor yellow,normal  # Set color for line numbers
+set scrollercolor grey,normal  # Set color for scroll bar
+set multibuffer     # Read files into separate buffers instead of inserting
 
 # Shortcut key bindings
-bind ^C copy main            # Ctrl+C - Copy
-bind ^V paste all            # Ctrl+V - Paste
-bind ^F whereis all          # Ctrl+F - Find
-bind ^S savefile main        # Ctrl+S - Save
-bind M-R replace main        # Alt+R - Replace
-bind ^W whereis main         # Ctrl+W - Search
-bind ^\ replace main         # Ctrl+\ - Replace
+bind ^Q exit all           # Ctrl+Q to exit
+bind ^Z suspend main       # Ctrl+Z to suspend
+bind M-R redo main         # Alt+R to redo
+bind ^C copy main          # Ctrl+C to copy
+bind ^V paste main         # Ctrl+V to paste
+bind ^X cut main           # Ctrl+X to cut
+bind ^K zap main           # Ctrl+K to delete the line
+bind ^H chopwordleft all   # Ctrl+H to delete word to the left
+bind M-/ comment main      # Alt+/ to comment/uncomment
+bind ^Space complete main  # Ctrl+Space to autocomplete
 
-# Custom keybindings for navigation
-bind M-f nextword main       # Alt+F - Move to the start of the next word
-bind M-b prevword main       # Alt+B - Move to the start of the previous word
-
-# Clipboard handling
-bind ^K cut main               # Ctrl+K - Cut the current line
-bind ^U undo main              # Ctrl+U - Undo the last action
+bind M-C location main     # Alt+C to show cursor position
+bind ^E wherewas all       # Ctrl+E to search backwards
+bind M-E findprevious all  # Alt+E to search backwards without prompt
+bind ^R replace main       # Ctrl+R to replace
+bind ^_ gotoline main      # Ctrl+_ to go to line number
+bind ^G firstline all      # Ctrl+G to go to the first line
+bind M-G lastline all      # Alt+G to go to the last line
+bind ^B pageup all         # Ctrl+B to page up (vim-like support)
+bind ^F pagedown all       # Ctrl+F to page down (vim-like support)
+bind M-F nextword all      # Alt+F to move to the next word
+bind M-B prevword all      # Alt+B to move to the previous word
