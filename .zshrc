@@ -15,13 +15,16 @@ alias ga="git add"
 alias gc="git commit"
 alias gp="git push"
 alias gl="git log --oneline --graph --all"
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....="cd ../../.."
-alias tree="exa --tree --level=2"
+alias tree="eza --tree --level=2"
 alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
+alias c="clear"
+alias h="history"
+alias j="autojump"
+alias ..1="cd .."
+alias ..2="cd ../.."
+alias ..3="cd ../../.."
 
 # History settings
 HISTSIZE=10000
@@ -39,12 +42,6 @@ setopt menucomplete  # Show a menu for completions
 setopt auto_menu  # Automatically show the completion menu
 setopt list_packed  # Pack the completion list
 
-# Setup fzf (fuzzy finder) if installed
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-# Load autojump if installed
-[ -s /usr/share/autojump/autojump.zsh ] && source /usr/share/autojump/autojump.zsh
-
 # Enable colored output in `less` and other pagers
 export LESS='-R'
 export LESSOPEN='|~/.lessfilter %s'
@@ -59,6 +56,19 @@ setopt interactive_comments  # Allow comments in interactive shell
 setopt long_list_jobs  # Use long format for job lists
 setopt no_beep  # Disable the bell/beep sound
 setopt globdots  # Include dotfiles in globbing
+setopt auto_cd  # Auto cd when typing directory name
+
+# Add useful functions
+mkcd () { mkdir -p "$1" && cd "$1"; }  # Make directory and change to it
 
 # Path settings
 export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
+
+# Check if commands exist before sourcing
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+[ -s /usr/share/autojump/autojump.zsh ] && source /usr/share/autojump/autojump.zsh
+
+# Auto-update Oh My Zsh every 2 weeks
+if [ -x "$(command -v omz-update)" ]; then
+  omz-update --auto
+fi
