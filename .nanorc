@@ -1,28 +1,52 @@
 # sudo nano ~/.nanorc
 # Non-default settings
-set atblanks # wrap line at blanks.
-set cutfromcursor # CTRL+K cuts from cursor position to end of line.
-set nohelp # disable the help information (CTRL+G to view the help screen).
-set softwrap # enable softwrap of lines.
-set tabsize 4 # set tab-to-spaces size to 4.
-set tabstospaces # convert tab key press to spaces.
-set constantshow # display useful information e.g. line number and position in the bottom bar.
-set linenumbers # lines are numbered.
-set casesensitive # case insensitive search.
-set historylog # save the last 100 history searches for later use.
-set positionlog # save the cursor position between editing sessions.
-set zap # allows highlighting text (CTRL+SHIFT+ARROW) and delete it with backspace.
-set autoindent # a new line will have the same number of leading spaces as the previous one.
-set indicator # display a scroll bar on the right that shows the position and size of the current view port.
-set minibar # display file name and other information in the bottom bar, and remove the top bar.
-set regexp # use regular expression for searching.
-set guidestripe 80 # set line length marker.
-
-# Enable and set a working backup directory
-set backup # create backups of your current file.
+set atblanks           # Wrap lines at blanks.
+set cutfromcursor      # Ctrl+K cuts from cursor position to end of line.
+set nohelp             # Disable the help information (Ctrl+G to view the help screen).
+set softwrap           # Enable softwrap of lines.
+set tabsize 4          # Set tab-to-spaces size to 4.
+set tabstospaces       # Convert tab key press to spaces.
+set constantshow       # Display useful information e.g., line number and position in the bottom bar.
+set linenumbers        # Lines are numbered.
+set casesensitive      # Case sensitive search.
+set historylog         # Save the last 100 history searches for later use.
+set positionlog        # Save the cursor position between editing sessions.
+set zap                # Allows highlighting text (Ctrl+Shift+Arrow) and delete it with backspace.
+set autoindent         # A new line will have the same number of leading spaces as the previous one.
+set indicator          # Display a scroll bar on the right that shows the position and size of the current view port.
+set minibar            # Display file name and other information in the bottom bar, and remove the top bar.
+set regexp             # Use regular expression for searching.
+set guidestripe 80     # Set line length marker.
+set backup             # Create backups of your current file.
+set trimblanks         # Remove trailing white space when saving.
+set smarthome          # Smart home key behavior.
 
 # Shortcut key bindings
-bind ^C copy main # CTRC+C - Copy
-bind ^V paste all # CTRL+V - Paste
-bind ^F whereis all # CTRL+F - Find
-bind ^S savefile main # CTRL+S - Save 
+bind ^C copy main            # Ctrl+C - Copy
+bind ^V paste all            # Ctrl+V - Paste
+bind ^F whereis all          # Ctrl+F - Find
+bind ^S savefile main        # Ctrl+S - Save
+bind M-R replace main        # Alt+R - Replace
+bind ^W whereis main         # Ctrl+W - Search
+bind ^\ replace main         # Ctrl+\ - Replace
+
+# Custom keybindings for word navigation
+bind M-f nextword main       # Alt+F - Move to the start of the next word
+bind M-b prevword main       # Alt+B - Move to the start of the previous word
+
+# Additional custom keybindings
+bind ^A beginning-of-line main  # Ctrl+A - Move to the beginning of the line
+bind ^E end-of-line main        # Ctrl+E - Move to the end of the line
+bind ^P prev-line main          # Ctrl+P - Move up one line
+bind ^N next-line main          # Ctrl+N - Move down one line
+bind ^B backward main           # Ctrl+B - Move left one character
+bind ^F forward main            # Ctrl+F - Move right one character
+bind M-A beginning-of-file main # Alt+A - Move to the beginning of the file
+bind M-E end-of-file main       # Alt+E - Move to the end of the file
+
+# Clipboard handling
+bind ^K cut main               # Ctrl+K - Cut the current line
+bind ^U undo main              # Ctrl+U - Undo the last action
+
+# Incremental search
+set isearch                    # Enable incremental search
