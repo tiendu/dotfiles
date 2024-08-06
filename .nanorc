@@ -30,23 +30,10 @@ bind M-R replace main        # Alt+R - Replace
 bind ^W whereis main         # Ctrl+W - Search
 bind ^\ replace main         # Ctrl+\ - Replace
 
-# Custom keybindings for word navigation
+# Custom keybindings for navigation
 bind M-f nextword main       # Alt+F - Move to the start of the next word
 bind M-b prevword main       # Alt+B - Move to the start of the previous word
-
-# Additional custom keybindings
-bind ^A beginning-of-line main  # Ctrl+A - Move to the beginning of the line
-bind ^E end-of-line main        # Ctrl+E - Move to the end of the line
-bind ^P prev-line main          # Ctrl+P - Move up one line
-bind ^N next-line main          # Ctrl+N - Move down one line
-bind ^B backward main           # Ctrl+B - Move left one character
-bind ^F forward main            # Ctrl+F - Move right one character
-bind M-A beginning-of-file main # Alt+A - Move to the beginning of the file
-bind M-E end-of-file main       # Alt+E - Move to the end of the file
 
 # Clipboard handling
 bind ^K cut main               # Ctrl+K - Cut the current line
 bind ^U undo main              # Ctrl+U - Undo the last action
-
-# Incremental search
-set isearch                    # Enable incremental search
