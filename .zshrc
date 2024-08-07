@@ -73,7 +73,9 @@ setopt globdots  # Include dotfiles in globbing
 export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
 
 # Setup Zoxide (fuzzy directory finder)
-eval "$(zoxide init zsh)"
+if command -v zoxide > /dev/null 2>&1; then
+  eval "$(zoxide init zsh)"
+fi
 
 # Auto-update Oh My Zsh every 2 weeks
 if [ -x "$(command -v omz-update)" ]; then
