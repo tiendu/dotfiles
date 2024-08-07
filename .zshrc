@@ -90,5 +90,8 @@ bindkey '^R' history-incremental-search-backward  # Ctrl+R to search history
 bindkey '^P' up-line-or-history                   # Ctrl+P to move up in history
 bindkey '^N' down-line-or-history                 # Ctrl+N to move down in history
 
-# Map jj to Esc in insert mode
+# Map jj, jk, kj to Esc in insert mode
 bindkey -M viins 'jj' vi-cmd-mode
+bindkey -M viins 'jk' vi-cmd-mode
+bindkey -M viins 'kj' vi-cmd-mode
+
