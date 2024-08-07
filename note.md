@@ -486,7 +486,7 @@ pkg update && \
 pkg upgrade -y && \
 pkg autoclean && \
 pkg clean && \
-pkg install curl wget git zip unzip gawk nano eza ripgrep htop ruby openssh zsh tmux tree python3 nmap jq pup bat aria2 fzf && \
+pkg install curl wget git zip unzip gawk nano eza ripgrep htop ruby openssh zsh tmux tree python3 nmap jq pup bat aria2 fzf entr && \
 gem install lolcat
 ```
 
@@ -600,7 +600,7 @@ PROMPT_COMMAND="__setprompt; $PROMPT_COMMAND"
 * Essential tools for Ubuntu terminal:
 
    ```
-   sudo apt install curl aria2 git zip unzip gawk htop zsh openssh-server tmux nmap jq exa ripgrep bat fzf mc zoxide
+   sudo apt install curl aria2 git zip unzip gawk htop zsh openssh-server tmux nmap jq eza ripgrep bat fzf mc zoxide entr
    ```
 
    Add `eval "$(zoxide init bash)"` to the `.bashrc` to initialize `zoxide`.
