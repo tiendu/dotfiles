@@ -600,7 +600,7 @@ PROMPT_COMMAND="__setprompt; $PROMPT_COMMAND"
 * Essential tools for Ubuntu terminal:
 
    ```
-   sudo apt install curl aria2 git zip unzip gawk trash-cli htop btop openssh-server tmux nmap jq exa ripgrep entr bat fzf mc zoxide ncdu
+   sudo apt install curl aria2 git zip unzip gawk htop zsh openssh-server tmux nmap jq exa ripgrep bat fzf mc zoxide
    ```
 
    Add `eval "$(zoxide init bash)"` to the `.bashrc` to initialize `zoxide`.
