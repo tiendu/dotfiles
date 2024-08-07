@@ -1,10 +1,26 @@
 # Set the location of the Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
+# Path settings
+export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
+
 # Load Oh My Zsh plugins and theme
 plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)
 ZSH_THEME="junkfood"
 source $ZSH/oh-my-zsh.sh
+
+# Setup Zoxide (fuzzy directory finder)
+if command -v zoxide > /dev/null 2>&1; then
+  eval "$(zoxide init zsh)"
+fi
+
+# Setup fzf (fuzzy finder) if installed
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+# Auto-update Oh My Zsh every 2 weeks
+if [ -x "$(command -v omz-update)" ]; then
+  omz-update --auto
+fi
 
 # Aliases for convenience
 alias ll="ls -l"
@@ -23,16 +39,16 @@ alias mv="mv -i"  # Prompt before overwriting files
 
 # Replace grep with ripgrep if available
 if command -v rg > /dev/null 2>&1; then
-    alias grep="rg"
+  alias grep="rg"
 fi
 
 # Replace ls with eza if available
 if command -v eza > /dev/null 2>&1; then
-    alias ls="eza"
-    alias tree="eza --tree --level=2"
+  alias ls="eza"
+  alias tree="eza --tree --level=2"
 else
-    alias ls="ls"
-    alias tree="ls -R"
+  alias ls="ls"
+  alias tree="ls -R"
 fi
 
 # History settings
@@ -51,9 +67,6 @@ setopt menucomplete  # Show a menu for completions
 setopt auto_menu  # Automatically show the completion menu
 setopt list_packed  # Pack the completion list
 
-# Setup fzf (fuzzy finder) if installed
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
 # Enable colored output in `less` and other pagers
 export LESS='-R'
 export LESSOPEN='|~/.lessfilter %s'
@@ -69,15 +82,18 @@ setopt long_list_jobs  # Use long format for job lists
 setopt no_beep  # Disable the bell/beep sound
 setopt globdots  # Include dotfiles in globbing
 
-# Path settings
-export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
+# Enable vim mode
+bindkey -v
 
-# Setup Zoxide (fuzzy directory finder)
-if command -v zoxide > /dev/null 2>&1; then
-  eval "$(zoxide init zsh)"
-fi
+# Configure key bindings for vim mode
+bindkey '^R' history-incremental-search-backward  # Ctrl+R to search history
+bindkey '^P' up-line-or-history                   # Ctrl+P to move up in history
+bindkey '^N' down-line-or-history                 # Ctrl+N to move down in history
 
-# Auto-update Oh My Zsh every 2 weeks
-if [ -x "$(command -v omz-update)" ]; then
-  omz-update --auto
-fi
+# Map jj to Esc in insert mode
+bindkey -M viins 'jj' vi-cmd-mode
+
+# Set Zsh options for better shell behavior in vim mode
+setopt vi
+setopt vi-cmd-mode-string="[N]"  # Show in normal mode
+setopt vi-ins-mode-string="[I]"  # Show in insert mode
