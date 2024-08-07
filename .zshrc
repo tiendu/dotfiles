@@ -94,4 +94,3 @@ bindkey '^N' down-line-or-history                 # Ctrl+N to move down in histo
 bindkey -M viins 'jj' vi-cmd-mode
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
-
