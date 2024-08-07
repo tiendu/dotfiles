@@ -7,7 +7,6 @@ ZSH_THEME="junkfood"
 source $ZSH/oh-my-zsh.sh
 
 # Aliases for convenience
-alias ls="eza"
 alias ll="ls -l"
 alias la="ls -A"
 alias gs="git status"
@@ -18,10 +17,23 @@ alias gl="git log --oneline --graph --all"
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
-alias tree="eza --tree --level=2"
 alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
+
+# Replace grep with ripgrep if available
+if command -v rg > /dev/null 2>&1; then
+    alias grep="rg"
+fi
+
+# Replace ls with eza if available
+if command -v eza > /dev/null 2>&1; then
+    alias ls="eza"
+    alias tree="eza --tree --level=2"
+else
+    alias ls="ls"
+    alias tree="ls -R"
+fi
 
 # History settings
 HISTSIZE=10000
