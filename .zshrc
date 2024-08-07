@@ -92,8 +92,3 @@ bindkey '^N' down-line-or-history                 # Ctrl+N to move down in histo
 
 # Map jj to Esc in insert mode
 bindkey -M viins 'jj' vi-cmd-mode
-
-# Set Zsh options for better shell behavior in vim mode
-setopt vi
-setopt vi-cmd-mode-string="[N]"  # Show in normal mode
-setopt vi-ins-mode-string="[I]"  # Show in insert mode
