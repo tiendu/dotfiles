@@ -36,6 +36,8 @@ alias ....="cd ../../.."
 alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
+alias vi="nvim"
+alias vim="nvim"
 
 # Replace grep with ripgrep if available
 if command -v rg > /dev/null 2>&1; then
