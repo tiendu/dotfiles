@@ -1,4 +1,3 @@
--- vi ~/.config/nvim/init.lua
 -- Basic Settings
 vim.opt.number = true                          -- Show line numbers
 vim.opt.relativenumber = true                  -- Show relative line numbers
@@ -27,8 +26,7 @@ vim.opt.listchars = {
 }
 
 -- Key Mappings
--- Set the leader key to space
-vim.g.mapleader = " "
+vim.g.mapleader = " "                          -- Set the leader key to space
 
 -- Save and quit
 vim.api.nvim_set_keymap('n', '<leader>w', ':w<CR>', { noremap = true })
@@ -60,3 +58,25 @@ vim.api.nvim_set_keymap('i', '<C-h>', '<Esc>ha', { noremap = true, silent = true
 
 -- Move right in insert mode
 vim.api.nvim_set_keymap('i', '<C-l>', '<Esc>la', { noremap = true, silent = true })
+
+-- Enable the status line
+vim.o.laststatus = 2
+
+-- Define the status line format
+vim.o.statusline = table.concat({
+  "%f",                            -- File path
+  "%h",                            -- Help flag
+  "%m",                            -- Modified flag
+  "%r",                            -- Read-only flag
+  "%=",                            -- Right-align the rest
+  "%y",                            -- File type
+  "%{&fileencoding?&fileencoding:&encoding}", -- File encoding
+  "%{&fileformat}",                -- File format (e.g., unix, dos)
+  " [%p%%]",                       -- File percentage through
+  " %l,%c",                        -- Line and column number
+})
+
+-- Set color for line numbers
+vim.o.termguicolors = true
+vim.cmd[[highlight LineNr guifg=#FF0000]]   -- Red color for line numbers
+vim.cmd[[highlight CursorLineNr guifg=#00FF00]]  -- Green color for the current line number
