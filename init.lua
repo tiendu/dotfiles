@@ -19,9 +19,7 @@ vim.opt.list = true
 -- Customize list characters
 vim.opt.listchars = {
   tab = '▸ ',
-  trail = '·',
-  extends = '>',
-  precedes = '<',
+  space = '·',
   eol = '↴',
 }
 
@@ -80,3 +78,8 @@ vim.o.statusline = table.concat({
 vim.o.termguicolors = true
 vim.cmd[[highlight LineNr guifg=#FF0000]]   -- Red color for line numbers
 vim.cmd[[highlight CursorLineNr guifg=#00FF00]]  -- Green color for the current line number
+
+-- Customize the highlight groups for list characters
+vim.api.nvim_set_hl(0, 'Whitespace', { fg = '#808080' }) -- Grey color
+vim.api.nvim_set_hl(0, 'TabLine', { fg = '#808080' })   -- Grey color
+vim.api.nvim_set_hl(0, 'EndOfLine', { fg = '#808080' }) -- Grey color
