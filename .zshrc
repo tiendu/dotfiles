@@ -22,6 +22,14 @@ if [ -x "$(command -v omz-update)" ]; then
   omz-update --auto
 fi
 
+# Open file in nvim, create it if it doesn't exist
+nvim_open_or_create() {
+  if [ ! -e "$1" ]; then
+    touch "$1"  # Create the file if it doesn't exist
+  fi
+  nvim "$1"  # Open the file in nvim
+}
+
 # Aliases for convenience
 alias ll="ls -l"
 alias la="ls -A"
@@ -36,8 +44,7 @@ alias ....="cd ../../.."
 alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
-alias vi="nvim"
-alias vim="nvim"
+alias e="nvim_open_or_create"
 
 # Replace grep with ripgrep if available
 if command -v rg > /dev/null 2>&1; then
