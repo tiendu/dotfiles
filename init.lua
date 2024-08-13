@@ -62,16 +62,18 @@ vim.o.laststatus = 2
 
 -- Define the status line format
 vim.o.statusline = table.concat({
-  "%F",                            -- File path
-  "%h",                            -- Help flag
-  "%m",                            -- Modified flag
-  "%r",                            -- Read-only flag
-  "%=",                            -- Right-align the rest
-  "%y",                            -- File type
+  "%#StatusLine#",              -- Highlight group for the main section
+  "%F",                         -- File path
+  "%h",                         -- Help flag
+  "%m",                         -- Modified flag
+  "%r",                         -- Read-only flag
+  "%#StatusLineNC#",            -- Highlight group for secondary sections
+  "%=",                         -- Right-align the rest
+  "%y",                         -- File type
   "%{&fileencoding?&fileencoding:&encoding}", -- File encoding
-  "%{&fileformat}",                -- File format (e.g., unix, dos)
-  " [%p%%]",                       -- File percentage through
-  " %l,%c",                        -- Line and column number
+  "%{&fileformat}",             -- File format (e.g., unix, dos)
+  " [%p%%]",                    -- File percentage through
+  " %l/%L:%c",                  -- Line number/Total lines: Column number
 })
 
 -- Set color for line numbers
