@@ -62,7 +62,7 @@ vim.o.laststatus = 2
 
 -- Define the status line format
 vim.o.statusline = table.concat({
-  "%f",                            -- File path
+  "%F",                            -- File path
   "%h",                            -- Help flag
   "%m",                            -- Modified flag
   "%r",                            -- Read-only flag
