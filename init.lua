@@ -1,3 +1,4 @@
+-- vi ~/.config/nvim/init.lua
 -- Basic Settings
 vim.opt.number = true                          -- Show line numbers
 vim.opt.relativenumber = true                  -- Show relative line numbers
@@ -85,3 +86,4 @@ vim.cmd[[highlight CursorLineNr guifg=#00FF00]]  -- Green color for the current 
 vim.api.nvim_set_hl(0, 'Whitespace', { fg = '#808080' }) -- Grey color
 vim.api.nvim_set_hl(0, 'TabLine', { fg = '#808080' })   -- Grey color
 vim.api.nvim_set_hl(0, 'EndOfLine', { fg = '#808080' }) -- Grey color
+vim.api.nvim_set_hl(0, 'CursorLine', { underline = true }) 
