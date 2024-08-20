@@ -9,7 +9,7 @@ config.font = wezterm.font_with_fallback {  -- Set font with fallback options
   'Noto Color Emoji',                       -- Emoji support
 }
 config.font_size = 16.0                     -- Font size
-config.window_background_opacity = 0.9      -- Background transparency
+config.window_background_opacity = 0.8      -- Background transparency
 
 -- Tab bar customization
 config.hide_tab_bar_if_only_one_tab = true  -- Hide tab bar when only one tab
@@ -23,6 +23,8 @@ config.scrollback_lines = 10000             -- Set scrollback buffer size
 config.keys = {
   { key = 't', mods = 'CTRL|SHIFT', action = wezterm.action.SpawnTab 'CurrentPaneDomain' },  -- New tab
   { key = 'w', mods = 'CTRL|SHIFT', action = wezterm.action.CloseCurrentTab { confirm = true } },  -- Close tab
+  { key = '"', mods = 'CTRL|SHIFT', action = wezterm.action.SplitVertical { domain = 'CurrentPaneDomain' } }, -- Split pane vertically
+  { key = '%', mods = 'CTRL|SHIFT', action = wezterm.action.SplitHorizontal { domain = 'CurrentPaneDomain' } }, -- Split pane horizontally
   { key = 'h', mods = 'CTRL|SHIFT', action = wezterm.action.ActivatePaneDirection 'Left' },  -- Move to left pane
   { key = 'l', mods = 'CTRL|SHIFT', action = wezterm.action.ActivatePaneDirection 'Right' }, -- Move to right pane
   { key = 'j', mods = 'CTRL|SHIFT', action = wezterm.action.ActivatePaneDirection 'Down' },  -- Move to lower pane
