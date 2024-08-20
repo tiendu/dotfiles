@@ -103,12 +103,3 @@ bindkey '^N' down-line-or-history                 # Ctrl+N to move down in histo
 bindkey -M viins 'jj' vi-cmd-mode
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
-
-# Automatically start tmux if it's available and not already running
-if command -v tmux > /dev/null 2>&1; then
-  # Only start tmux if not already inside a tmux session
-  if [ -z "$TMUX" ]; then
-    tmux attach-session -t default || tmux new-session -s default
-  fi
-fi
-
