@@ -1,3 +1,4 @@
+# vi ~/.zshrc
 # Set the location of the Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
