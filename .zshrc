@@ -50,6 +50,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   alias pbcopy="pbcopy"  # macOS
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   alias pbcopy="xclip -sel clip"  # Linux
+fi
 
 # Replace grep with ripgrep if available
 if command -v rg > /dev/null 2>&1; then
