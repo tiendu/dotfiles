@@ -46,6 +46,10 @@ alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
 alias e="nvim_open_or_create"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  alias pbcopy="pbcopy"  # macOS
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  alias pbcopy="xclip -sel clip"  # Linux
 
 # Replace grep with ripgrep if available
 if command -v rg > /dev/null 2>&1; then
