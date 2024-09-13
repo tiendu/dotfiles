@@ -1,6 +1,9 @@
 # Set the location of the Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
+# Path settings
+export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
+
 # Load Oh My Zsh plugins
 plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)
 source $ZSH/oh-my-zsh.sh
@@ -126,27 +129,5 @@ function zle-line-init zle-keymap-select {
 zle -N zle-line-init
 zle -N zle-keymap-select
 
-# Function to get the current Git branch and indicate unstaged changes
-git_branch() {
-  local branch branch_status
-  # Get the current branch name
-  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-  
-  # Check if the git repository exists and if there's a branch
-  if [[ -n "$branch" ]]; then
-    # Check for unstaged changes
-    if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
-      # If there are unstaged changes, add an asterisk (*) to the branch name
-      branch_status="%{$fg[red]%}*$branch%{$reset_color%}"
-    else
-      branch_status="%{$fg[cyan]%}$branch%{$reset_color%}"
-    fi
-    echo "$branch_status"
-  fi
-}
-
 # Set the prompt (current directory + git branch)
-PROMPT='%{$fg_bold[magenta]%}%~%{$reset_color%} $(git_branch) '
-
-# Path settings
-export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
+PROMPT="%{$fg_bold[magenta]%}%~%{$reset_color%} $(git_prompt_info) "
