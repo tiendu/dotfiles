@@ -1,13 +1,8 @@
-# vi ~/.zshrc
 # Set the location of the Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
-# Path settings
-export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
-
-# Load Oh My Zsh plugins and theme
+# Load Oh My Zsh plugins
 plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)
-ZSH_THEME="junkfood"
 source $ZSH/oh-my-zsh.sh
 
 # Setup Zoxide (fuzzy directory finder)
@@ -109,3 +104,49 @@ bindkey '^N' down-line-or-history                 # Ctrl+N to move down in histo
 bindkey -M viins 'jj' vi-cmd-mode
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
+
+# Custom prompt based on Vim mode
+function zle-line-init zle-keymap-select {
+    local VIM_PROMPT=""
+    
+    case $KEYMAP in
+        vicmd)  VIM_PROMPT="%{$fg_bold[yellow]%} [NORMAL]%{$reset_color%}" ;;
+        viins)  VIM_PROMPT="%{$fg_bold[green]%} [INSERT]%{$reset_color%}" ;;
+    esac
+
+    # Optional time display in the right prompt
+    local PROMPT_TIME="[%D{%H:%M:%S}]"
+    
+    # Set right prompt (RPS1)
+    RPS1="$VIM_PROMPT $PROMPT_TIME"
+
+    zle reset-prompt
+}
+
+zle -N zle-line-init
+zle -N zle-keymap-select
+
+# Function to get the current Git branch and indicate unstaged changes
+git_branch() {
+  local branch branch_status
+  # Get the current branch name
+  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  
+  # Check if the git repository exists and if there's a branch
+  if [[ -n "$branch" ]]; then
+    # Check for unstaged changes
+    if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
+      # If there are unstaged changes, add an asterisk (*) to the branch name
+      branch_status="%{$fg[red]%}*$branch%{$reset_color%}"
+    else
+      branch_status="%{$fg[cyan]%}$branch%{$reset_color%}"
+    fi
+    echo "$branch_status"
+  fi
+}
+
+# Set the prompt (current directory + git branch)
+PROMPT='%{$fg_bold[magenta]%}%~%{$reset_color%} $(git_branch) '
+
+# Path settings
+export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
