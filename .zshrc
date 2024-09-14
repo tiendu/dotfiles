@@ -1,8 +1,8 @@
 # Set the location of the Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
-# Path settings
-export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
+# Set theme
+ZSH_THEME="bureau"
 
 # Load Oh My Zsh plugins
 plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)
@@ -108,26 +108,5 @@ bindkey -M viins 'jj' vi-cmd-mode
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
 
-# Custom prompt based on Vim mode
-function zle-line-init zle-keymap-select {
-    local VIM_PROMPT=""
-    
-    case $KEYMAP in
-        vicmd)  VIM_PROMPT="%{$fg_bold[yellow]%} [NORMAL]%{$reset_color%}" ;;
-        viins)  VIM_PROMPT="%{$fg_bold[green]%} [INSERT]%{$reset_color%}" ;;
-    esac
-
-    # Optional time display in the right prompt
-    local PROMPT_TIME="[%D{%H:%M:%S}]"
-    
-    # Set right prompt (RPS1)
-    RPS1="$VIM_PROMPT $PROMPT_TIME"
-
-    zle reset-prompt
-}
-
-zle -N zle-line-init
-zle -N zle-keymap-select
-
-# Set the prompt (current directory + git branch)
-PROMPT="%{$fg_bold[magenta]%}%~%{$reset_color%} $(git_prompt_info) "
+# Path settings
+export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
