@@ -4,9 +4,8 @@ export ZSH="$HOME/.oh-my-zsh"
 # Path settings
 export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
 
-# Load Oh My Zsh plugins and theme
+# Load Oh My Zsh plugins
 plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)
-ZSH_THEME="robbyrussell"
 source $ZSH/oh-my-zsh.sh
 
 # Setup Zoxide (fuzzy directory finder)
@@ -108,7 +107,7 @@ bindkey -M viins 'kj' vi-cmd-mode
 ## Add vim status to the rprompt
 function zle-line-init zle-keymap-select {
     VIM_PROMPT="%{$fg_bold[yellow]%} [NORMAL]%{$reset_color%}"  # Normal mode
-    INSERT_PROMPT="%{$fg_bold[green]%} [INSERT]%{$reset_color%}"  # Insert mode
+    INSERT_PROMPT="%{$fg_bold[cyan]%} [INSERT]%{$reset_color%}"  # Insert mode
 
     if [[ $KEYMAP == vicmd ]]; then
         VIM_MODE=$VIM_PROMPT  # Display NORMAL mode in rprompt
@@ -219,3 +218,34 @@ gresetremote() {
     echo "Reset aborted."
   fi
 }
+
+# Git prompt info
+git_prompt_info() {
+  # Get the current Git branch
+  local git_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+  # If not inside a git repository, return an empty string
+  if [[ -z "$git_branch" ]]; then
+    return
+  fi
+
+  # ANSI escape codes for bold red and bold green
+  local bold_red="%{\e[1;31m%}"  # Bold red
+  local bold_green="%{\e[1;32m%}"  # Bold green
+  local reset_color="%{\e[0m%}"  # Reset color to default
+
+  # Check for changes in the working directory
+  if [[ -n $(git status --porcelain) ]]; then
+    local git_status="${bold_red}✘${reset_color}"  # Changes exist
+  else
+    local git_status="${bold_green}✔${reset_color}"  # No changes
+  fi
+
+  # Return the branch name with status symbol
+  echo "$git_branch $git_status"
+}
+
+# Zsh prompt
+PROMPT=$'%{\e[0;34m%}%B┌─%b%{\e[0;34m%}%B[%b%{\e[1;37m%}%~%{\e[0;34m%}%B]%b%{\e[0m%} - %{\e[0;34m%}%B[%b%{\e[0;33m%}%!%{\e[0;34m%}%B]%b%{\e[0m%} - %{\e[0;34m%}%B[%b%{\e[1;36m%}$(git_prompt_info)%{\e[0;34m%}%B]%b%{\e[0m%}
+%{\e[0;34m%}%B└─%B[%{\e[1;35m%}$%{\e[0;34m%}%B]%{\e[0m%}%b '
+PS2=$' \e[0;34m%}%B>%{\e[0m%}%b '
