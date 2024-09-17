@@ -1,11 +1,12 @@
 # Set the location of the Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
-# Set theme
-ZSH_THEME="bureau"
+# Path settings
+export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
 
-# Load Oh My Zsh plugins
+# Load Oh My Zsh plugins and theme
 plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)
+ZSH_THEME="robbyrussell"
 source $ZSH/oh-my-zsh.sh
 
 # Setup Zoxide (fuzzy directory finder)
@@ -44,11 +45,6 @@ alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
 alias e="nvim_open_or_create"
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  alias pbcopy="pbcopy"  # macOS
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  alias pbcopy="xclip -sel clip"  # Linux
-fi
 
 # Replace grep with ripgrep if available
 if command -v rg > /dev/null 2>&1; then
@@ -95,18 +91,97 @@ setopt long_list_jobs  # Use long format for job lists
 setopt no_beep  # Disable the bell/beep sound
 setopt globdots  # Include dotfiles in globbing
 
-# Enable vim mode
+# vim mode
+## Enable vim mode
 bindkey -v
 
-# Configure key bindings for vim mode
+## Configure key bindings for vim mode
 bindkey '^R' history-incremental-search-backward  # Ctrl+R to search history
 bindkey '^P' up-line-or-history                   # Ctrl+P to move up in history
 bindkey '^N' down-line-or-history                 # Ctrl+N to move down in history
 
-# Map jj, jk, kj to Esc in insert mode
+## Map jj, jk, kj to Esc in insert mode
 bindkey -M viins 'jj' vi-cmd-mode
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
 
-# Path settings
-export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
+## Add vim status to the rprompt
+function zle-line-init zle-keymap-select {
+    VIM_PROMPT="%{$fg_bold[yellow]%} [NORMAL]%{$reset_color%}"  # Normal mode
+    INSERT_PROMPT="%{$fg_bold[green]%} [INSERT]%{$reset_color%}"  # Insert mode
+
+    if [[ $KEYMAP == vicmd ]]; then
+        VIM_MODE=$VIM_PROMPT  # Display NORMAL mode in rprompt
+    else
+        VIM_MODE=$INSERT_PROMPT  # Display INSERT mode in rprompt
+    fi
+
+    # Add the current time in the right prompt
+    PROMPT_TIME="[%D{%H:%M:%S}]"
+    
+    RPS1="${VIM_MODE} ${PROMPT_TIME}"  # Set rprompt with vim mode and time
+    zle reset-prompt  # Redraw the prompt
+}
+
+zle -N zle-line-init
+zle -N zle-keymap-select
+
+# Git utilities
+## Create a new branch and push it to origin
+gnew() {
+  if [[ -z "$1" ]]; then
+    echo "Error: Please provide a branch name."
+    return 1
+  fi
+  git checkout -b "$1" && git push -u origin "$1"
+}
+
+## Quickly stage, commit, and push changes with a message
+gquick() {
+  if [[ -z "$1" ]]; then
+    echo "Error: Please provide a commit message."
+    return 1
+  fi
+  git add . && git commit -m "$1" && git push
+}
+
+## Rebase current branch onto the latest version of main
+grebase() {
+  echo "Rebasing onto main... Continue? (y/n)"
+  read answer
+  if [[ "$answer" == "y" ]]; then
+    git checkout main && git pull origin main && git checkout - && git rebase main
+  else
+    echo "Rebase aborted."
+  fi
+}
+
+## Undo last commit but keep changes
+gundo() {
+  echo "Undo the last commit? (y/n)"
+  read answer
+  if [[ "$answer" == "y" ]]; then
+    git reset --soft HEAD~1
+  else
+    echo "Undo aborted."
+  fi
+}
+
+## Squash the last n commits into one
+gsquash() {
+  if [[ -z "$1" ]]; then
+    echo "Error: Please provide the number of commits to squash."
+    return 1
+  fi
+  git reset --soft HEAD~"$1" && git commit --amend
+}
+
+## Interactive rebase for the last n commits
+grebasei() {
+  if [[ -z "$1" ]]; then
+    echo "Error: Please provide the number of commits to rebase."
+    return 1
+  fi
+  git rebase -i HEAD~"$1"
+}
+
