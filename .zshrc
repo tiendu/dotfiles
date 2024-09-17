@@ -4,6 +4,24 @@ export ZSH="$HOME/.oh-my-zsh"
 # Path settings
 export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
 
+# Global color variables with hex color codes
+RESET="%f"
+RESET_BOLD="%f%b"
+BOLD_PINK="%B%F{#ff69b4}"
+BOLD_ORANGE="%B%F{#ff8000}"
+BOLD_RED="%B%F{#ff0000}"
+BOLD_TEAL="%B%F{#008080}"
+BOLD_GREEN="%B%F{#00ff00}"
+BOLD_YELLOW="%B%F{#ffff00}"
+BOLD_BLUE="%B%F{#0000ff}"
+BOLD_MAGENTA="%B%F{#ff00ff}"
+BOLD_GRAY="%B%F{#808080}"
+BOLD_CYAN="%B%F{#00ffff}"
+BOLD_WHITE="%B%F{#ffffff}"
+WHITE="%F{#ffffff}"
+BLUE="%F{#0000ff}"
+BROWN="%F{#a52a2a}"
+
 # Load Oh My Zsh plugins
 plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)
 source $ZSH/oh-my-zsh.sh
@@ -106,8 +124,8 @@ bindkey -M viins 'kj' vi-cmd-mode
 
 ## Add vim status to the rprompt
 function zle-line-init zle-keymap-select {
-    VIM_PROMPT="%{$fg_bold[yellow]%} [NORMAL]%{$reset_color%}"  # Normal mode
-    INSERT_PROMPT="%{$fg_bold[cyan]%} [INSERT]%{$reset_color%}"  # Insert mode
+    VIM_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}NORMAL${RESET_BOLD}${WHITE}]${RESET}"  # Normal mode
+    INSERT_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}INSERT${WHITE}]${RESET}"  # Insert mode
 
     if [[ $KEYMAP == vicmd ]]; then
         VIM_MODE=$VIM_PROMPT  # Display NORMAL mode in rprompt
@@ -115,8 +133,7 @@ function zle-line-init zle-keymap-select {
         VIM_MODE=$INSERT_PROMPT  # Display INSERT mode in rprompt
     fi
 
-    # Add the current time in the right prompt
-    PROMPT_TIME="[%D{%H:%M:%S}]"
+    PROMPT_TIME="${WHITE}[${RESET}${BOLD_MAGENTA}%D{%H:%M:%S}${RESET}${WHITE}]${RESET}"
     
     RPS1="${VIM_MODE} ${PROMPT_TIME}"  # Set rprompt with vim mode and time
     zle reset-prompt  # Redraw the prompt
@@ -219,33 +236,36 @@ gresetremote() {
   fi
 }
 
-# Git prompt info
-git_prompt_info() {
-  # Get the current Git branch
-  local git_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+# Get Git branch and status
+git_info() {
+  local git_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
 
-  # If not inside a git repository, return an empty string
   if [[ -z "$git_branch" ]]; then
-    return
-  fi
-
-  # ANSI escape codes for bold red and bold green
-  local bold_red="%{\e[1;31m%}"  # Bold red
-  local bold_green="%{\e[1;32m%}"  # Bold green
-  local reset_color="%{\e[0m%}"  # Reset color to default
-
-  # Check for changes in the working directory
-  if [[ -n $(git status --porcelain) ]]; then
-    local git_status="${bold_red}✘${reset_color}"  # Changes exist
+    echo ""
   else
-    local git_status="${bold_green}✔${reset_color}"  # No changes
+    local git_status=$(git status --porcelain)
+    if [[ -n "$git_status" ]]; then
+      git_status="${BOLD_RED}✘${RESET_BOLD}"  # Changes exist
+    else
+      git_status="${BOLD_GREEN}✔${RESET_BOLD}"  # No changes
+    fi
+    echo "${BOLD_TEAL}$git_branch${RESET_BOLD} $git_status"
   fi
-
-  # Return the branch name with status symbol
-  echo "$git_branch $git_status"
 }
 
-# Zsh prompt
-PROMPT=$'%{\e[0;34m%}%B┌─%b%{\e[0;34m%}%B[%b%{\e[1;37m%}%~%{\e[0;34m%}%B]%b%{\e[0m%} - %{\e[0;34m%}%B[%b%{\e[0;33m%}%!%{\e[0;34m%}%B]%b%{\e[0m%} - %{\e[0;34m%}%B[%b%{\e[1;36m%}$(git_prompt_info)%{\e[0;34m%}%B]%b%{\e[0m%}
-%{\e[0;34m%}%B└─%B[%{\e[1;35m%}$%{\e[0;34m%}%B]%{\e[0m%}%b '
-PS2=$' \e[0;34m%}%B>%{\e[0m%}%b '
+# Update prompt
+update_prompt() {
+  PROMPT="${BOLD_BLUE}┌─${RESET_BOLD}${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET} ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_ORANGE}%!${RESET_BOLD}${WHITE}]${RESET} ${BROWN}-${RESET}"
+  PROMPT+="${WHITE}[${RESET}$(git_info)${WHITE}]${RESET}"
+  PROMPT+="
+${BOLD_BLUE}└─${RESET_BOLD}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
+  PS2=" ${BOLD_BLUE}>${RESET_BOLD} "
+}
+
+# Hooks to update the prompt
+precmd() {
+  update_prompt
+}
+
+# Initial prompt setup
+update_prompt
