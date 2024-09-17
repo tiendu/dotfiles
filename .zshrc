@@ -185,3 +185,37 @@ grebasei() {
   git rebase -i HEAD~"$1"
 }
 
+## Show Git log with a tree graph
+glogtree() {
+  git log --graph --abbrev-commit --decorate --format=format:"%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %s %C(bold red)%d%C(reset)" --all
+}
+
+## Reset current branch to match the remote
+gresetremote() {
+  # Check for uncommitted changes
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "Warning: You have uncommitted changes."
+    echo "Resetting will discard these changes. Do you want to continue? (y/n)"
+    read answer
+    if [[ "$answer" != "y" ]]; then
+      echo "Reset aborted."
+      return 1
+    fi
+  fi
+
+  # Fetch the latest from origin
+  git fetch origin
+
+  # Get current branch name
+  branch="$(git rev-parse --abbrev-ref HEAD)"
+
+  # Confirm resetting to the remote
+  echo "Are you sure you want to hard reset '$branch' to match 'origin/$branch'? (y/n)"
+  read answer
+  if [[ "$answer" == "y" ]]; then
+    git reset --hard origin/"$branch"
+    echo "Branch '$branch' reset to 'origin/$branch'."
+  else
+    echo "Reset aborted."
+  fi
+}
