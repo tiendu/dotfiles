@@ -8,6 +8,8 @@ export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
 # Add a dir to PATH
 add2path() {
   local dir="$1"
+  # Convert to absolute path
+  dir=$(realpath "$dir")
   # Check if directory exists
   if [ -d "$dir" ]; then
     # Check if directory is already in PATH
