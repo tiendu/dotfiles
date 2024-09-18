@@ -4,6 +4,33 @@ export ZSH="$HOME/.oh-my-zsh"
 # Path settings
 export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
 
+# Add a dir to PATH
+add2path() {
+  local dir="$1"
+  # Check if directory exists
+  if [ -d "$dir" ]; then
+    # Check if directory is already in PATH
+    if [[ ":$PATH:" != *":$dir:"* ]]; then
+      # Add directory to PATH
+      export PATH="$dir:$PATH"
+      echo "Directory '$dir' added to PATH."
+    else
+      echo "Directory '$dir' is already in PATH."
+    fi
+    # Change permissions to make all files in the directory executable
+    chmod +x "$dir"/* 2>/dev/null
+    # Verify if permissions were changed
+    for file in "$dir"/*; do
+      if [ -f "$file" ] && [ ! -x "$file" ]; then
+        echo "Failed to make $file executable."
+      fi
+    done
+    echo "All files in '$dir' are now executable (if applicable)."
+  else
+    echo "Directory '$dir' does not exist."
+  fi
+}
+
 # Global color variables with hex color codes
 RESET="%f"
 RESET_BOLD="%f%b"
@@ -40,11 +67,18 @@ if [ -x "$(command -v omz-update)" ]; then
 fi
 
 # Open file in nvim, create it if it doesn't exist
-nvim_open_or_create() {
-  if [ ! -e "$1" ]; then
-    touch "$1"  # Create the file if it doesn't exist
+_nvim_open_or_create() {
+  local file="$1"
+  if [ ! -e "$file" ]; then
+    touch "$file"  # Create the file if it doesn't exist
   fi
-  nvim "$1"  # Open the file in nvim
+  # Open the file in nvim
+  nvim "$file"
+  # Check if the file is empty after quitting nvim
+  if [ ! -s "$file" ]; then
+    rm "$file"  # Remove the file if it is empty
+    echo "File '$file' was empty and has been deleted."
+  fi
 }
 
 # Aliases for convenience
@@ -61,7 +95,7 @@ alias ....="cd ../../.."
 alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
-alias e="nvim_open_or_create"
+alias e="_nvim_open_or_create"
 
 # Replace grep with ripgrep if available
 if command -v rg > /dev/null 2>&1; then
@@ -124,19 +158,16 @@ bindkey -M viins 'kj' vi-cmd-mode
 
 ## Add vim status to the rprompt
 function zle-line-init zle-keymap-select {
-    VIM_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}NORMAL${RESET_BOLD}${WHITE}]${RESET}"  # Normal mode
-    INSERT_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}INSERT${WHITE}]${RESET}"  # Insert mode
-
-    if [[ $KEYMAP == vicmd ]]; then
-        VIM_MODE=$VIM_PROMPT  # Display NORMAL mode in rprompt
-    else
-        VIM_MODE=$INSERT_PROMPT  # Display INSERT mode in rprompt
-    fi
-
-    PROMPT_TIME="${WHITE}[${RESET}${BOLD_MAGENTA}%D{%H:%M:%S}${RESET}${WHITE}]${RESET}"
-    
-    RPS1="${VIM_MODE} ${PROMPT_TIME}"  # Set rprompt with vim mode and time
-    zle reset-prompt  # Redraw the prompt
+  VIM_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}NORMAL${RESET_BOLD}${WHITE}]${RESET}"  # Normal mode
+  INSERT_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}INSERT${WHITE}]${RESET}"  # Insert mode
+  if [[ $KEYMAP == vicmd ]]; then
+      VIM_MODE=$VIM_PROMPT  # Display NORMAL mode in rprompt
+  else
+      VIM_MODE=$INSERT_PROMPT  # Display INSERT mode in rprompt
+  fi
+  PROMPT_TIME="${WHITE}[${RESET}${BOLD_MAGENTA}%D{%H:%M:%S}${RESET}${WHITE}]${RESET}"
+  RPS1="${VIM_MODE} ${PROMPT_TIME}"  # Set rprompt with vim mode and time
+  zle reset-prompt  # Redraw the prompt
 }
 
 zle -N zle-line-init
@@ -218,13 +249,10 @@ gresetremote() {
       return 1
     fi
   fi
-
   # Fetch the latest from origin
   git fetch origin
-
   # Get current branch name
   branch="$(git rev-parse --abbrev-ref HEAD)"
-
   # Confirm resetting to the remote
   echo "Are you sure you want to hard reset '$branch' to match 'origin/$branch'? (y/n)"
   read answer
@@ -237,9 +265,8 @@ gresetremote() {
 }
 
 # Get Git branch and status
-git_info() {
+_git_info() {
   local git_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
-
   if [[ -z "$git_branch" ]]; then
     echo ""
   else
@@ -254,9 +281,9 @@ git_info() {
 }
 
 # Update prompt
-update_prompt() {
+_update_prompt() {
   PROMPT="${BOLD_BLUE}┌─${RESET_BOLD}${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET} ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_ORANGE}%!${RESET_BOLD}${WHITE}]${RESET} ${BROWN}-${RESET}"
-  PROMPT+="${WHITE}[${RESET}$(git_info)${WHITE}]${RESET}"
+  PROMPT+=" ${WHITE}[${RESET}$(git_info)${WHITE}]${RESET}"
   PROMPT+="
 ${BOLD_BLUE}└─${RESET_BOLD}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
   PS2=" ${BOLD_BLUE}>${RESET_BOLD} "
@@ -268,4 +295,4 @@ precmd() {
 }
 
 # Initial prompt setup
-update_prompt
+_update_prompt
