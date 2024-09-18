@@ -1,3 +1,4 @@
+
 # Set the location of the Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
@@ -283,7 +284,7 @@ _git_info() {
 # Update prompt
 _update_prompt() {
   PROMPT="${BOLD_BLUE}┌─${RESET_BOLD}${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET} ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_ORANGE}%!${RESET_BOLD}${WHITE}]${RESET} ${BROWN}-${RESET}"
-  PROMPT+=" ${WHITE}[${RESET}$(git_info)${WHITE}]${RESET}"
+  PROMPT+=" ${WHITE}[${RESET}$(_git_info)${WHITE}]${RESET}"
   PROMPT+="
 ${BOLD_BLUE}└─${RESET_BOLD}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
   PS2=" ${BOLD_BLUE}>${RESET_BOLD} "
@@ -291,7 +292,7 @@ ${BOLD_BLUE}└─${RESET_BOLD}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]$
 
 # Hooks to update the prompt
 precmd() {
-  update_prompt
+  _update_prompt
 }
 
 # Initial prompt setup
