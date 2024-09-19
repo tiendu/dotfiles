@@ -1,4 +1,3 @@
-
 # Set the location of the Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
@@ -8,31 +7,64 @@ export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
 # Add a dir to PATH
 add2path() {
   local dir="$1"
-  # Convert to absolute path
   dir=$(realpath "$dir")
   # Check if directory exists
   if [ -d "$dir" ]; then
     # Check if directory is already in PATH
     if [[ ":$PATH:" != *":$dir:"* ]]; then
-      # Add directory to PATH
       export PATH="$dir:$PATH"
+      # Save to file if not already in the list
+      if ! grep -Fxq "$dir" "$HOME/.zsh_added_paths"; then
+        echo "$dir" >> "$HOME/.zsh_added_paths"
+      fi
       echo "Directory '$dir' added to PATH."
     else
       echo "Directory '$dir' is already in PATH."
     fi
-    # Change permissions to make all files in the directory executable
+    # Make all files executable (if applicable)
     chmod +x "$dir"/* 2>/dev/null
-    # Verify if permissions were changed
     for file in "$dir"/*; do
       if [ -f "$file" ] && [ ! -x "$file" ]; then
         echo "Failed to make $file executable."
       fi
     done
-    echo "All files in '$dir' are now executable (if applicable)."
   else
     echo "Directory '$dir' does not exist."
   fi
 }
+
+# Hook: Load previously added directories into PATH at startup
+if [ -f "$HOME/.zsh_added_paths" ]; then
+  while read -r line; do
+    if [ -d "$line" ] && [[ ":$PATH:" != *":$line:"* ]]; then
+      export PATH="$line:$PATH"
+    fi
+  done < "$HOME/.zsh_added_paths"
+fi
+
+# Clean up redundancy in .zsh_added_paths file
+_remove_duplicate_paths() {
+  # Remove duplicates from $PATH
+  local old_path="$PATH"
+  IFS=':' read -rA path_array <<< "$PATH"  # Convert PATH to array
+  # Declare associative array to track unique entries
+  declare -A seen_paths
+  PATH=""
+  
+  for dir in "${path_array[@]}"; do
+    # Only add if directory hasn't been seen before
+    if [[ -n "$dir" && -z "${seen_paths[$dir]}" ]]; then
+      PATH="${PATH:+$PATH:}$dir"  # Rebuild PATH
+      seen_paths["$dir"]=1        # Mark as seen
+    fi
+  done
+  
+  # Clean up .zsh_added_paths
+  if [ -f "$HOME/.zsh_added_paths" ]; then
+    sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"  # Remove duplicates in file
+  fi
+}
+_remove_duplicate_paths
 
 # Global color variables with hex color codes
 RESET="%f"
@@ -100,6 +132,15 @@ alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
 alias e="_nvim_open_or_create"
 
+# Alias for cross-platform pbcopy/pbpaste
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  alias pbcopy="pbcopy"
+  alias pbpaste="pbpaste"
+else
+  alias pbcopy="xclip -selection clipboard"
+  alias pbpaste="xclip -selection clipboard -o"
+fi
+
 # Replace grep with ripgrep if available
 if command -v rg > /dev/null 2>&1; then
   alias grep="rg"
@@ -158,6 +199,7 @@ bindkey '^N' down-line-or-history                 # Ctrl+N to move down in histo
 bindkey -M viins 'jj' vi-cmd-mode
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
+bindkey -M viins 'kk' vi-cmd-mode
 
 ## Add vim status to the rprompt
 function zle-line-init zle-keymap-select {
@@ -291,11 +333,11 @@ _update_prompt() {
 ${BOLD_BLUE}└─${RESET_BOLD}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
   PS2=" ${BOLD_BLUE}>${RESET_BOLD} "
 }
+_update_prompt
 
 # Hooks to update the prompt
 precmd() {
   _update_prompt
+  _remove_duplicate_paths  # Call it once at shell startup
 }
 
-# Initial prompt setup
-_update_prompt
