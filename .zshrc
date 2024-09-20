@@ -99,8 +99,8 @@ fi
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 # Auto-update Oh My Zsh every 2 weeks
-if [ -x "$(command -v omz-update)" ]; then
-  omz-update --auto
+if [ -x "$(command -v omz update)" ]; then
+  omz update --auto
 fi
 
 # Open file in nvim, create it if it doesn't exist
