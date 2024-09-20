@@ -1,6 +1,9 @@
 # Set the location of the Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
+# Path settings
+export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
+
 # Add a dir to PATH
 add2path() {
   local dir="$1"
@@ -29,7 +32,7 @@ add2path() {
   fi
 }
 
-# Hook: Load previously added directories into PATH at startup
+# Load previously added directories into PATH at startup
 if [ -f "$HOME/.zsh_added_paths" ]; then
   while IFS= read -r line; do
     if [ -d "$line" ] && [[ ":$PATH:" != *":$line:"* ]]; then
@@ -93,27 +96,29 @@ if command -v zoxide > /dev/null 2>&1; then
 fi
 
 # Setup fzf (fuzzy finder) if installed
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+if command -v fzf > /dev/null 2>&1; then
+  source <(fzf --zsh)
+fi
+
+# Bind fzf to history search
+export FZF_CTRL_R_OPTS="
+  --preview 'echo {2..} | bat --color=always -pl sh'
+  --preview-window up:hidden:wrap
+  --bind 'ctrl-/:change-preview-window(30%|60%|90%|)'
+  --bind 'ctrl-v:execute(echo {2..} | view - > /dev/tty)'
+  --bind 'ctrl-t:track+clear-query'
+  --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort'
+  --bind 'j:down,k:up,ctrl-j:preview-down,ctrl-k:preview-up'
+  --color header:italic
+  --header 'Press CTRL-Y to copy command into clipboard'"
+
+# Use Vim nav keys in fzf
+export FZF_DEFAULT_OPTS="--bind 'j:down,k:up,ctrl-j:preview-down,ctrl-k:preview-up'"
 
 # Auto-update Oh My Zsh every 2 weeks
 if [ -x "$(command -v omz update)" ]; then
   omz update --auto
 fi
-
-# Open file in nvim, create it if it doesn't exist
-_nvim_open_or_create() {
-  local file="$1"
-  if [ ! -e "$file" ]; then
-    touch "$file"  # Create the file if it doesn't exist
-  fi
-  # Open the file in nvim
-  nvim "$file"
-  # Check if the file is empty after quitting nvim
-  if [ ! -s "$file" ]; then
-    rm "$file"  # Remove the file if it is empty
-    echo "File '$file' was empty and has been deleted."
-  fi
-}
 
 # Aliases for convenience
 alias ll="ls -l"
@@ -129,7 +134,7 @@ alias ....="cd ../../.."
 alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
-alias e="_nvim_open_or_create"
+alias e="nvim"
 
 # Alias for cross-platform pbcopy/pbpaste
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -205,7 +210,6 @@ setopt GLOBDOTS                  # Include dotfiles in globbing
 bindkey -v
 
 ## Configure key bindings for Vim mode
-bindkey '^R' history-incremental-search-backward  # Ctrl+R to search history
 bindkey '^P' up-line-or-history                   # Ctrl+P to move up in history
 bindkey '^N' down-line-or-history                 # Ctrl+N to move down in history
 
@@ -324,10 +328,18 @@ gresetremote() {
 
 # Get Git branch and status
 _git_info() {
-  local git_branch
-  git_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+  local git_branch git_status rebase_commit_msg
+  # Check if we are in the middle of a rebase
+  if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
+    # If rebasing, get the commit message of the next commit
+    rebase_commit_msg=$(cat .git/rebase-merge/message 2>/dev/null || cat .git/rebase-apply/message 2>/dev/null)
+    git_branch="${rebase_commit_msg}"
+  else
+    # Get the current branch name
+    git_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+  fi
   if [[ -n "$git_branch" ]]; then
-    local git_status
+    # Check if there are any changes in the working directory
     if [[ -n $(git status --porcelain) ]]; then
       git_status="${BOLD_RED}✘${RESET_BOLD}"  # Changes exist
     else
