@@ -14,14 +14,13 @@ add2path() {
     if [[ ":$PATH:" != *":$dir:"* ]]; then
       export PATH="$dir:$PATH"
       # Save to file if not already in the list
-      if ! grep -Fxq "$dir" "$HOME/.zsh_added_paths"; then
+      if [ ! -f "$HOME/.zsh_added_paths" ] || ! grep -Fxq "$dir" "$HOME/.zsh_added_paths"; then
         echo "$dir" >> "$HOME/.zsh_added_paths"
       fi
       echo "Directory '$dir' added to PATH."
     else
       echo "Directory '$dir' is already in PATH."
     fi
-    # Make all files executable (if applicable)
     chmod +x "$dir"/* 2>/dev/null
     for file in "$dir"/*; do
       if [ -f "$file" ] && [ ! -x "$file" ]; then
@@ -35,35 +34,38 @@ add2path() {
 
 # Hook: Load previously added directories into PATH at startup
 if [ -f "$HOME/.zsh_added_paths" ]; then
-  while read -r line; do
+  while IFS= read -r line; do
     if [ -d "$line" ] && [[ ":$PATH:" != *":$line:"* ]]; then
       export PATH="$line:$PATH"
     fi
   done < "$HOME/.zsh_added_paths"
 fi
 
-# Clean up redundancy in .zsh_added_paths file
+# Clean up redundancy from PATH and .zsh_added_paths
 _remove_duplicate_paths() {
   # Remove duplicates from $PATH
-  local old_path="$PATH"
-  IFS=':' read -rA path_array <<< "$PATH"  # Convert PATH to array
-  # Declare associative array to track unique entries
-  declare -A seen_paths
-  PATH=""
-  
-  for dir in "${path_array[@]}"; do
-    # Only add if directory hasn't been seen before
-    if [[ -n "$dir" && -z "${seen_paths[$dir]}" ]]; then
-      PATH="${PATH:+$PATH:}$dir"  # Rebuild PATH
-      seen_paths["$dir"]=1        # Mark as seen
+  local IFS=':'
+  local path_array=($PATH)
+  local unique_paths=()
+  local path
+  local -A seen_paths
+
+  for path in "${path_array[@]}"; do
+    if [[ -n "$path" && -z "${seen_paths[$path]}" ]]; then
+      unique_paths+=("$path")
+      seen_paths["$path"]=1
     fi
   done
-  
+
+  PATH=$(printf "%s:" "${unique_paths[@]}")
+  PATH=${PATH%:}  # Remove trailing colon
+
   # Clean up .zsh_added_paths
   if [ -f "$HOME/.zsh_added_paths" ]; then
-    sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"  # Remove duplicates in file
+    sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"
   fi
 }
+# Call the function to remove duplicates
 _remove_duplicate_paths
 
 # Global color variables with hex color codes
@@ -136,9 +138,14 @@ alias e="_nvim_open_or_create"
 if [[ "$OSTYPE" == "darwin"* ]]; then
   alias pbcopy="pbcopy"
   alias pbpaste="pbpaste"
-else
+elif command -v xclip > /dev/null 2>&1; then
   alias pbcopy="xclip -selection clipboard"
   alias pbpaste="xclip -selection clipboard -o"
+elif command -v xsel > /dev/null 2>&1; then
+  alias pbcopy="xsel --clipboard --input"
+  alias pbpaste="xsel --clipboard --output"
+else
+  echo "No clipboard utility found. Install xclip or xsel for pbcopy/pbpaste functionality."
 fi
 
 # Replace grep with ripgrep if available
@@ -146,51 +153,61 @@ if command -v rg > /dev/null 2>&1; then
   alias grep="rg"
 fi
 
-# Replace ls with eza if available
-if command -v eza > /dev/null 2>&1; then
-  alias ls="eza"
+# Replace ls with exa/eza if available
+if command -v exa > /dev/null 2>&1; then
+  alias ls="exa --icons"
+  alias ll="exa -l --icons"
+  alias la="exa -la --icons"
+  alias tree="exa --tree --level=2"
+elif command -v eza > /dev/null 2>&1; then
+  alias ls="eza --icons"
+  alias ll="eza -l --icons"
+  alias la="eza -la --icons"
   alias tree="eza --tree --level=2"
 else
-  alias ls="ls"
+  alias ls="ls --color=auto"
   alias tree="ls -R"
 fi
 
 # History settings
 HISTSIZE=10000
 SAVEHIST=10000
-setopt appendhistory
-setopt sharehistory
-setopt hist_ignore_all_dups  # Ignore duplicate commands
-setopt hist_ignore_space  # Ignore commands that start with a space
-setopt hist_verify  # Verify history expansions before executing
-setopt extended_history  # Save timestamp in history file
+HISTFILE=~/.zsh_history
+setopt APPEND_HISTORY            # Append history to the history file
+setopt SHARE_HISTORY             # Share history between sessions
+setopt HIST_IGNORE_ALL_DUPS      # Ignore duplicate commands
+setopt HIST_IGNORE_SPACE         # Ignore commands that start with a space
+setopt HIST_VERIFY               # Verify history expansions before executing
+setopt EXTENDED_HISTORY          # Save timestamp in history file
 
 # Completion and correction settings
-setopt correct
-setopt menucomplete  # Show a menu for completions
-setopt auto_menu  # Automatically show the completion menu
-setopt list_packed  # Pack the completion list
+autoload -Uz compinit
+compinit
+setopt CORRECT                   # Correct spelling errors
+setopt MENUCOMPLETE              # Use menu completion
+setopt AUTO_MENU                 # Automatically show the completion menu
+setopt LIST_PACKED               # Pack the completion list
 
 # Enable colored output in `less` and other pagers
 export LESS='-R'
 export LESSOPEN='|~/.lessfilter %s'
 
 # Improve directory navigation with pushd/popd
-setopt auto_pushd  # Automatically push directories onto the stack
-setopt pushd_ignore_dups  # Don't add duplicate directories to the stack
-setopt pushd_minus  # Push onto the stack with `-` syntax
+setopt AUTO_PUSHD                # Automatically push directories onto the stack
+setopt PUSHD_IGNORE_DUPS         # Don't add duplicate directories to the stack
+setopt PUSHD_MINUS               # Push onto the stack with `-` syntax
 
 # Enable Zsh options for better shell behavior
-setopt interactive_comments  # Allow comments in interactive shell
-setopt long_list_jobs  # Use long format for job lists
-setopt no_beep  # Disable the bell/beep sound
-setopt globdots  # Include dotfiles in globbing
+setopt INTERACTIVE_COMMENTS      # Allow comments in interactive shell
+setopt LONG_LIST_JOBS            # Use long format for job lists
+setopt NO_BEEP                   # Disable the bell/beep sound
+setopt GLOBDOTS                  # Include dotfiles in globbing
 
-# vim mode
-## Enable vim mode
+# Vim mode
+## Enable Vim mode
 bindkey -v
 
-## Configure key bindings for vim mode
+## Configure key bindings for Vim mode
 bindkey '^R' history-incremental-search-backward  # Ctrl+R to search history
 bindkey '^P' up-line-or-history                   # Ctrl+P to move up in history
 bindkey '^N' down-line-or-history                 # Ctrl+N to move down in history
@@ -201,22 +218,21 @@ bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
 bindkey -M viins 'kk' vi-cmd-mode
 
-## Add vim status to the rprompt
-function zle-line-init zle-keymap-select {
-  VIM_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}NORMAL${RESET_BOLD}${WHITE}]${RESET}"  # Normal mode
-  INSERT_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}INSERT${WHITE}]${RESET}"  # Insert mode
+## Add Vim status to the right prompt (RPROMPT)
+function zle-keymap-select {
+  VIM_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}NORMAL${RESET_BOLD}${WHITE}]${RESET}"
+  INSERT_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}INSERT${WHITE}]${RESET}"
   if [[ $KEYMAP == vicmd ]]; then
-      VIM_MODE=$VIM_PROMPT  # Display NORMAL mode in rprompt
+    VIM_MODE=$VIM_PROMPT
   else
-      VIM_MODE=$INSERT_PROMPT  # Display INSERT mode in rprompt
+    VIM_MODE=$INSERT_PROMPT
   fi
   PROMPT_TIME="${WHITE}[${RESET}${BOLD_MAGENTA}%D{%H:%M:%S}${RESET}${WHITE}]${RESET}"
-  RPS1="${VIM_MODE} ${PROMPT_TIME}"  # Set rprompt with vim mode and time
-  zle reset-prompt  # Redraw the prompt
+  RPROMPT="${VIM_MODE} ${PROMPT_TIME}"
 }
-
-zle -N zle-line-init
 zle -N zle-keymap-select
+zle-line-init() { zle zle-keymap-select }
+zle -N zle-line-init
 
 # Git utilities
 ## Create a new branch and push it to origin
@@ -311,12 +327,11 @@ gresetremote() {
 
 # Get Git branch and status
 _git_info() {
-  local git_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
-  if [[ -z "$git_branch" ]]; then
-    echo ""
-  else
-    local git_status=$(git status --porcelain)
-    if [[ -n "$git_status" ]]; then
+  local git_branch
+  git_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+  if [[ -n "$git_branch" ]]; then
+    local git_status
+    if [[ -n $(git status --porcelain) ]]; then
       git_status="${BOLD_RED}✘${RESET_BOLD}"  # Changes exist
     else
       git_status="${BOLD_GREEN}✔${RESET_BOLD}"  # No changes
@@ -327,7 +342,9 @@ _git_info() {
 
 # Update prompt
 _update_prompt() {
-  PROMPT="${BOLD_BLUE}┌─${RESET_BOLD}${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET} ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_ORANGE}%!${RESET_BOLD}${WHITE}]${RESET} ${BROWN}-${RESET}"
+  PROMPT="${BOLD_BLUE}┌─${RESET_BOLD}${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET}"
+  PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_ORANGE}%!${RESET_BOLD}${WHITE}]${RESET}"
+  PROMPT+=" ${BROWN}-${RESET}"
   PROMPT+=" ${WHITE}[${RESET}$(_git_info)${WHITE}]${RESET}"
   PROMPT+="
 ${BOLD_BLUE}└─${RESET_BOLD}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
@@ -341,3 +358,7 @@ precmd() {
   _remove_duplicate_paths  # Call it once at shell startup
 }
 
+# Ensure that the prompt is updated when the keymap changes (e.g., Vim mode)
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _remove_duplicate_paths
+add-zsh-hook precmd _update_prompt
