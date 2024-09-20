@@ -1,9 +1,6 @@
 # Set the location of the Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
-# Path settings
-export PATH="$HOME/mambaforge/bin:$HOME/.local/bin:$PATH"
-
 # Add a dir to PATH
 add2path() {
   local dir="$1"
