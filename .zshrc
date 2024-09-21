@@ -117,6 +117,22 @@ if [ -x "$(command -v omz update)" ]; then
   omz update --auto
 fi
 
+# Vim to create new file
+_nvim_open_or_create() {
+  local file="$1"
+  if [ ! -e "$file" ]; then
+    touch "$file"  # Create the file if it doesn't exist
+  fi
+  # Open the file in nvim
+  nvim "$file"
+  # Check if the file is empty after quitting nvim
+  if [ ! -s "$file" ]; then
+    rm "$file"  # Remove the file if it is empty
+    echo "File '$file' was empty and has been deleted."
+  fi
+}
+compdef _files _nvim_open_or_create
+
 # Aliases for convenience
 alias ll="ls -l"
 alias la="ls -A"
@@ -131,7 +147,7 @@ alias ....="cd ../../.."
 alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
-alias e="nvim"
+alias e="_nvim_open_or_create"
 
 # Alias for cross-platform pbcopy/pbpaste
 if [[ "$OSTYPE" == "darwin"* ]]; then
