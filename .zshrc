@@ -105,12 +105,11 @@ export FZF_CTRL_R_OPTS="
   --bind 'ctrl-v:execute(echo {2..} | view - > /dev/tty)'
   --bind 'ctrl-t:track+clear-query'
   --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort'
-  --bind 'j:down,k:up,ctrl-j:preview-down,ctrl-k:preview-up'
   --color header:italic
   --header 'Press CTRL-Y to copy command into clipboard'"
 
 # Use Vim nav keys in fzf
-export FZF_DEFAULT_OPTS="--bind 'j:down,k:up,ctrl-j:preview-down,ctrl-k:preview-up'"
+export FZF_DEFAULT_OPTS="--bind 'ctrl-j:down,ctrl-k:up,alt-j:preview-down,alt-k:preview-up'"
 
 # Auto-update Oh My Zsh every 2 weeks
 if [ -x "$(command -v omz update)" ]; then
