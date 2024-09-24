@@ -38,17 +38,15 @@ if [ -f "$HOME/.zsh_added_paths" ]; then
   done < "$HOME/.zsh_added_paths"
 fi
 
-# Clean up redundancy from PATH and .zsh_added_paths
-_remove_duplicate_paths() {
+# Clean up PATH and .zsh_added_paths
+_clean_up_paths() {
   # Remove duplicates from $PATH
-  local IFS=':'
-  local path_array=($PATH)
   local unique_paths=()
-  local path
   local -A seen_paths
+  IFS=":" read -r -A path_array <<< "$PATH"
 
   for path in "${path_array[@]}"; do
-    if [[ -n "$path" && -z "${seen_paths[$path]}" ]]; then
+    if [[ -n "$path" && -z "${seen_paths[$path]}" && -d "$path" ]]; then
       unique_paths+=("$path")
       seen_paths["$path"]=1
     fi
@@ -58,12 +56,10 @@ _remove_duplicate_paths() {
   PATH=${PATH%:}  # Remove trailing colon
 
   # Clean up .zsh_added_paths
-  if [ -f "$HOME/.zsh_added_paths" ]; then
-    sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"
-  fi
+  [ -f "$HOME/.zsh_added_paths" ] && sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"
 }
-# Call the function to remove duplicates
-_remove_duplicate_paths
+# Call the function to clean up PATH
+_clean_up_paths
 
 # Global color variables with hex color codes
 RESET="%f"
@@ -376,10 +372,10 @@ _update_prompt
 # Hooks to update the prompt
 precmd() {
   _update_prompt
-  _remove_duplicate_paths  # Call it once at shell startup
+  _clean_up_paths  # Call it once at shell startup
 }
 
 # Ensure that the prompt is updated when the keymap changes (e.g., Vim mode)
 autoload -Uz add-zsh-hook
-add-zsh-hook precmd _remove_duplicate_paths
+add-zsh-hook precmd _clean_up_paths
 add-zsh-hook precmd _update_prompt
