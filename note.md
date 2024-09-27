@@ -605,6 +605,17 @@ PROMPT_COMMAND="__setprompt; $PROMPT_COMMAND"
 
    Add `eval "$(zoxide init bash)"` to the `.bashrc` to initialize `zoxide`.
 
+* Increase swap.
+
+  ```
+  sudo fallocate -l 16G /swapfile \
+  sudo chmod 600 /swapfile \
+  sudo mkswap /swapfile \
+  sudo swapon /swapfile
+  ```
+
+  Check with `sudo swapon --show`
+
 * Clone the whole GitHub organization.
 
    ```
