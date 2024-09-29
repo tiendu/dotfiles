@@ -13,6 +13,7 @@ vim.opt.softtabstop = 4                        -- Set the number of spaces for a
 vim.opt.wrap = false                           -- Disable line wrapping
 vim.opt.cursorline = true                      -- Highlight the current line
 vim.opt.clipboard = "unnamedplus"              -- Use system clipboard for yanking and pasting
+vim.opt.timeoutlen = 300                       -- Lower keystroke timeout
 
 -- Enable list mode to show whitespace characters
 vim.opt.list = true
