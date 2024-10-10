@@ -198,10 +198,6 @@ setopt MENUCOMPLETE              # Use menu completion
 setopt AUTO_MENU                 # Automatically show the completion menu
 setopt LIST_PACKED               # Pack the completion list
 
-# Enable colored output in `less` and other pagers
-export LESS='-R'
-export LESSOPEN='|~/.lessfilter %s'
-
 # Improve directory navigation with pushd/popd
 setopt AUTO_PUSHD                # Automatically push directories onto the stack
 setopt PUSHD_IGNORE_DUPS         # Don't add duplicate directories to the stack
