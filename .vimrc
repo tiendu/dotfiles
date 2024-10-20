@@ -1,0 +1,55 @@
+" Basic Settings
+set number                          " Show line numbers
+set relativenumber                  " Show relative line numbers
+set hlsearch                        " Highlight search results
+set incsearch                       " Incremental search
+set ignorecase                      " Ignore case in search patterns
+set smartcase                       " Override ignorecase if search pattern contains uppercase
+set expandtab                       " Use spaces instead of tabs
+set tabstop=4                       " Set the width of a tab character to 4 spaces
+set shiftwidth=4                    " Set the number of spaces to use for autoindenting
+set softtabstop=4                   " Set the number of spaces for a Tab in insert mode
+set nowrap                          " Disable line wrapping
+set cursorline                      " Highlight the current line
+set clipboard=unnamedplus           " Use system clipboard for yanking and pasting
+
+" Enable list mode to show whitespace characters
+set list
+
+" Customize list characters
+set listchars=tab:▸\ ,trail:·,extends:>,precedes:<,eol:↴
+
+" Key Mappings
+" Set the leader key to space
+let mapleader=" "
+
+" Save and quit
+nnoremap <leader>w :w<CR>
+nnoremap <leader>q :q<CR>
+
+" Move lines up and down
+nnoremap <A-j> :m .+1<CR>==
+nnoremap <A-k> :m .-2<CR>==
+inoremap <A-j> <Esc>:m .+1<CR>==gi
+inoremap <A-k> <Esc>:m .-2<CR>==gi
+vnoremap <A-j> :m '>+1<CR>gv=gv
+vnoremap <A-k> :m '<-2<CR>gv=gv
+
+" Map 'jk' to Esc
+inoremap jk <Esc>
+inoremap kj <Esc>
+
+" Map 'jj' to Esc
+inoremap jj <Esc>
+
+" Move up in insert mode
+inoremap <C-k> <Esc>ka
+
+" Move down in insert mode
+inoremap <C-j> <Esc>ja
+
+" Move left in insert mode
+inoremap <C-h> <Esc>ha
+
+" Move right in insert mode
+inoremap <C-l> <Esc>la
