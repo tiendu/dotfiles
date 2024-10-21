@@ -61,19 +61,23 @@ alias ga "git add"
 alias gc "git commit"
 alias gp "git push"
 alias gl "git log --oneline --graph --all"
-alias .. "cd .."
-alias ... "cd ../.."
-alias .... "cd ../../.."
 alias rm "rm -i"  # Prompt before removing files
 alias cp "cp -i"  # Prompt before overwriting files
 alias mv "mv -i"  # Prompt before overwriting files
 alias e "nvim"
-alias z "zoxide"
 
 # Set up Zoxide
 if type -q zoxide
     zoxide init fish | source
+    alias z "__zoxide_z"
+    alias cd "z"
 end
+
+# Multi cd
+function multicd
+    echo cd (string repeat -n (math (string length -- $argv[1]) - 1) ../)
+end
+abbr --add dotdot --regex '^\.\.+$' --function multicd
 
 # History settings
 set -g fish_history_size 10000
@@ -98,4 +102,3 @@ else
     alias ls="ls --color=auto"
     alias tree="ls -R"
 end
-
