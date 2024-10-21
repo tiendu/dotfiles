@@ -65,13 +65,7 @@ alias rm "rm -i"  # Prompt before removing files
 alias cp "cp -i"  # Prompt before overwriting files
 alias mv "mv -i"  # Prompt before overwriting files
 alias e "nvim"
-alias z "zoxide"
-alias cd "z"
-
-# Set up Zoxide
-if type -q zoxide
-    zoxide init fish | source
-end
+alias sd "cd ~ && cd (find * -type d | fzf)"
 
 # Multi cd
 function multicd
