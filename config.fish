@@ -65,7 +65,6 @@ alias rm "rm -i"  # Prompt before removing files
 alias cp "cp -i"  # Prompt before overwriting files
 alias mv "mv -i"  # Prompt before overwriting files
 alias e "nvim"
-alias sd "cd ~ && cd (find * -type d | fzf)"
 
 # Multi cd
 function multicd
@@ -75,6 +74,13 @@ abbr --add dotdot --regex '^\.\.+$' --function multicd
 
 # History settings
 set -g fish_history_size 10000
+
+# Set up Zoxide and cd
+if type -q zoxide
+    zoxide init fish | source
+end
+alias cd "z"
+alias sd "cd ~ && cd (find * -type d -perm /u+rx 2> /dev/null | fzf)"
 
 # Replace grep with ripgrep if available
 if type -q rg
