@@ -9,11 +9,18 @@ fish_vi_key_bindings
 # Map Ctrl + J/K to navigate in history search
 function fish_user_key_bindings
     for seq in jk kj
-        bind -M insert $seq 'if commandline -P; commandline -f cancel; else; set fish_bind_mode default; commandline -f backward-char force-repaint; end'
+        bind -M insert $seq 'if commandline -P
+                                commandline -f cancel
+                            else
+                                set fish_bind_mode default
+                                commandline -f backward-char force-repaint
+                            end'
     end
     for mode in insert default visual
-        bind -M $mode \ck 'history --merge; up-or-search'
-        bind -M $mode \cj 'history --merge; down-or-search'
+        bind -M $mode \ck 'history --merge; commandline -f up-line'
+        bind -M $mode \cj 'history --merge; commandline -f down-line'
+        bind -M $mode \ch 'history --merge; commandline -f backward-char'
+        bind -M $mode \cl 'history --merge; commandline -f forward-char'
     end
 end
 fish_user_key_bindings
