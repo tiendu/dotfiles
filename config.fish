@@ -68,6 +68,7 @@ alias rm "rm -i"  # Prompt before removing files
 alias cp "cp -i"  # Prompt before overwriting files
 alias mv "mv -i"  # Prompt before overwriting files
 alias e "nvim"
+alias z "zoxide"
 
 # Set up Zoxide
 if type -q zoxide
