@@ -127,10 +127,10 @@ end
 # Alias for cross-platform pbcopy/pbpaste
 switch (uname)
     case Linux
-        if test -q xclip
+        if type -q xclip
             alias pbcopy "xclip -selection clipboard"
             alias pbpaste "xclip -selection clipboard -o"
-        else if test -q xsel
+        else if type -q xsel
             alias pbcopy "xsel --clipboard --input"
             alias pbpaste "xsel --clipboard --output"
         else
