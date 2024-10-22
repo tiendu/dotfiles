@@ -52,13 +52,16 @@ function add2path
 end
 
 # Clean PATH
-set NEW_PATH '';  # Initialize NEW_PATH as an empty string
-for dir in (echo "$PATH" | sed 's/:/\n/g')  # Loop through each directory in PATH
-    if test -d "$dir"  # Check if the directory exists
-        set NEW_PATH "$NEW_PATH:$dir"  # Append the valid directory to NEW_PATH
+function _clean_path
+    set NEW_PATH '';  # Initialize NEW_PATH as an empty string
+    for dir in (echo "$PATH" | sed 's/:/\n/g')  # Loop through each directory in PATH
+        if test -d "$dir"  # Check if the directory exists
+            set NEW_PATH "$NEW_PATH:$dir"  # Append the valid directory to NEW_PATH
+        end
     end
+    set NEW_PATH (echo "$NEW_PATH" | sed 's/^://g')  # Remove the leading colon from NEW_PATH
 end
-set NEW_PATH (echo "$NEW_PATH" | sed 's/^://g')  # Remove the leading colon from NEW_PATH
+_clean_path
 
 # Aliases for convenience
 alias ll "ls -l"
@@ -83,9 +86,11 @@ abbr --add dotdot --regex '^\.\.+$' --function multicd
 # History settings
 set -g fish_history_size 10000
 
-# Set up Zoxide and cd
-if type -q zoxide
-    zoxide init fish | source
+# Set up Zoxide
+function _init_zoxide --on-event fish_prompt
+    if type -q zoxide
+        zoxide init fish | source  # Automatically load Zoxide on every new tab or session
+    end
 end
 
 # Replace grep with ripgrep if available
