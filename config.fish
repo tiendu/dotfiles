@@ -76,8 +76,6 @@ function _nvim
 end
 
 # Aliases for convenience
-alias ll "ls -l"
-alias la "ls -A"
 alias gs "git status"
 alias ga "git add"
 alias gc "git commit"
@@ -124,4 +122,19 @@ else if type -q eza
 else
     alias ls="ls --color=auto"
     alias tree="ls -R"
+end
+
+# Alias for cross-platform pbcopy/pbpaste
+switch (uname)
+    case Linux
+        if test -q xclip
+            alias pbcopy "xclip -selection clipboard"
+            alias pbpaste "xclip -selection clipboard -o"
+        else if test -q xsel
+            alias pbcopy "xsel --clipboard --input"
+            alias pbpaste "xsel --clipboard --output"
+        else
+            echo "Install xclip or xsel for pbcopy/pbpaste."
+        end
+    case Darwin
 end
