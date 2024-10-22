@@ -63,6 +63,18 @@ function _clean_path
 end
 _clean_path
 
+# Create new file with neovim
+function _nvim
+    set file $argv[1]
+    if test ! -e $file
+        touch $file
+    end
+    nvim $file
+    if test ! -s $file
+        rm -f $file
+    end
+end
+
 # Aliases for convenience
 alias ll "ls -l"
 alias la "ls -A"
@@ -74,7 +86,7 @@ alias gl "git log --oneline --graph --all"
 alias rm "rm -i"  # Prompt before removing files
 alias cp "cp -i"  # Prompt before overwriting files
 alias mv "mv -i"  # Prompt before overwriting files
-alias e "nvim"
+alias e "_nvim"
 alias sd "cd ~ && cd (find * -type d | fzf)"
 
 # Multi cd
