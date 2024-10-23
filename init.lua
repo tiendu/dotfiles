@@ -1,4 +1,4 @@
--- vi ~/.config/nvim/init.lua
+-- ~/.config/nvim/init.lua
 -- Basic Settings
 vim.opt.number = true                          -- Show line numbers
 vim.opt.relativenumber = true                  -- Show relative line numbers
