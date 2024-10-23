@@ -33,6 +33,7 @@ function add2path
         # Check if the directory is already in PATH
         if not contains -- ":$PATH:" ":$dir:"
             set PATH "$dir:$PATH"  # Add the directory to PATH
+            echo "$dir" >> "$HOME/.fish_added_paths"
             echo "Directory '$dir' added to PATH."
         else
             echo "Directory '$dir' is already in PATH."
@@ -50,18 +51,31 @@ function add2path
         echo "Directory '$dir' does not exist."
     end
 end
+if test -f "$HOME/.fish_added_paths"
+    while read -l line
+        if begin test -d "$line"; and ! contains -- "$line" $PATH; end
+            set -g PATH "$line" $PATH
+        end
+    end < $HOME/.fish_added_paths
+end
 
 # Clean PATH
-function _clean_path
-    set NEW_PATH '';  # Initialize NEW_PATH as an empty string
-    for dir in (echo "$PATH" | sed 's/:/\n/g')  # Loop through each directory in PATH
-        if test -d "$dir"  # Check if the directory exists
-            set NEW_PATH "$NEW_PATH:$dir"  # Append the valid directory to NEW_PATH
+function _clean_path --on-event fish_prompt
+    set -l unique_paths
+    set -l path_array (string split ':' $PATH)
+    for path in $path_array
+        if begin test -n "$path"; and test -d "$path"; and ! contains -- "$path" $unique_paths; end
+            set unique_paths $unique_paths $path
         end
     end
-    set NEW_PATH (echo "$NEW_PATH" | sed 's/^://g')  # Remove the leading colon from NEW_PATH
+    # Rebuild the PATH with unique paths
+    set -g PATH (string join ':' $unique_paths)
+    # Clean up ~/.fish_added_paths to remove duplicates
+    if test -e "$HOME/.fish_added_paths"
+        sort -u "$HOME/.fish_added_paths" > "$HOME/.fish_added_paths.tmp"
+        mv -f "$HOME/.fish_added_paths.tmp" "$HOME/.fish_added_paths"
+    end
 end
-_clean_path
 
 # Create new file with neovim
 function _nvim
