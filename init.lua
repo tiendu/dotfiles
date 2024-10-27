@@ -40,11 +40,12 @@ vim.api.nvim_set_keymap('i', '<A-k>', '<Esc>:m .-2<CR>==gi', { noremap = true })
 vim.api.nvim_set_keymap('v', '<A-j>', ':m \'>+1<CR>gv=gv', { noremap = true })
 vim.api.nvim_set_keymap('v', '<A-k>', ':m \'<-2<CR>gv=gv', { noremap = true })
 
--- Map keystrokes to Esc
-vim.api.nvim_set_keymap('i', 'jj', '<Esc>', { noremap = true })
+-- Map 'jk' to Esc
 vim.api.nvim_set_keymap('i', 'jk', '<Esc>', { noremap = true })
 vim.api.nvim_set_keymap('i', 'kj', '<Esc>', { noremap = true })
-vim.api.nvim_set_keymap('i', 'kk', '<Esc>', { noremap = true })
+
+-- Map 'jj' to Esc
+vim.api.nvim_set_keymap('i', 'jj', '<Esc>', { noremap = true })
 
 -- Move up in insert mode
 vim.api.nvim_set_keymap('i', '<C-k>', '<Esc>ka', { noremap = true, silent = true })
@@ -81,6 +82,14 @@ vim.o.statusline = table.concat({
 vim.o.termguicolors = true
 vim.cmd[[highlight LineNr guifg=#FF0000]]   -- Red color for line numbers
 vim.cmd[[highlight CursorLineNr guifg=#00FF00]]  -- Green color for the current line number
+
+-- Set transparent background
+vim.cmd [[
+  highlight Normal guibg=none
+  highlight NonText guibg=none
+  highlight Normal ctermbg=none
+  highlight NonText ctermbg=none
+]]
 
 -- Customize the highlight groups for list characters
 vim.api.nvim_set_hl(0, 'Whitespace', { fg = '#808080' }) -- Grey color
