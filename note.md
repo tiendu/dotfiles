@@ -347,11 +347,11 @@ Run the container fastqc with `podman run -v /home/user:/home/user --rm quay.io/
 
 These are important packages for R, install with `sudo apt install r-base-dev build-essential libnlopt-dev libfontconfig1 libxml2-dev libgsl-dev cmake libssl-dev libcurl4-openssl-dev`.
 
-# `mambaforge`
+# `mamba`
 
 ## Single user
 
-`wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh && sh Mambaforge-Linux-x86_64.sh -b -u -p $HOME/mambaforge && echo 'export PATH="$HOME/mambaforge/bin:$PATH"' >> ~/."$(basename $SHELL)"rc && source ~/."$(basename $SHELL)"rc && rm Mambaforge-Linux-x86_64.sh*`
+`wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh && sh Miniforge3-Linux-x86_64.sh -b -u -p $HOME/miniforge && echo 'export PATH="$HOME/miniforge/bin:$PATH"' >> ~/."$(basename $SHELL)"rc && source ~/."$(basename $SHELL)"rc && rm Miniforge3-Linux-x86_64.sh*`
 
 ## Multi users
 
