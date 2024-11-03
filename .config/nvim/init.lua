@@ -44,9 +44,6 @@ vim.api.nvim_set_keymap('v', '<A-k>', ':m \'<-2<CR>gv=gv', { noremap = true })
 vim.api.nvim_set_keymap('i', 'jk', '<Esc>', { noremap = true })
 vim.api.nvim_set_keymap('i', 'kj', '<Esc>', { noremap = true })
 
--- Map 'jj' to Esc
-vim.api.nvim_set_keymap('i', 'jj', '<Esc>', { noremap = true })
-
 -- Move up in insert mode
 vim.api.nvim_set_keymap('i', '<C-k>', '<Esc>ka', { noremap = true, silent = true })
 
