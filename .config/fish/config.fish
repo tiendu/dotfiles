@@ -90,14 +90,10 @@ function _nvim
 end
 
 # Aliases for convenience
-alias gs "git status"
-alias ga "git add"
-alias gc "git commit"
-alias gp "git push"
-alias gl "git log --oneline --graph --all"
 alias rm "rm -i"  # Prompt before removing files
 alias cp "cp -i"  # Prompt before overwriting files
 alias mv "mv -i"  # Prompt before overwriting files
+alias g "git"
 alias e "_nvim"
 alias sd "cd ~ && cd (find * -type d | fzf)"
 
@@ -119,23 +115,23 @@ end
 
 # Replace grep with ripgrep if available
 if type -q rg
-    alias grep="rg"
+    alias grep "rg"
 end
 
 # Replace ls with exa/eza if available
 if type -q exa
-    alias ls="exa --icons"
-    alias ll="exa -l --icons"
-    alias la="exa -la --icons"
-    alias tree="exa --tree --level=2"
+    alias ls "exa --icons"
+    alias ll "exa -l --icons"
+    alias la "exa -la --icons"
+    alias tree "exa --tree --level=2"
 else if type -q eza
-    alias ls="eza --icons"
-    alias ll="eza -l --icons"
-    alias la="eza -la --icons"
-    alias tree="eza --tree --level=2"
+    alias ls "eza --icons"
+    alias ll "eza -l --icons"
+    alias la "eza -la --icons"
+    alias tree "eza --tree --level=2"
 else
-    alias ls="ls --color=auto"
-    alias tree="ls -R"
+    alias ls "ls --color=auto"
+    alias tree "ls -R"
 end
 
 # Alias for cross-platform pbcopy/pbpaste
