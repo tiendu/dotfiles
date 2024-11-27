@@ -150,13 +150,12 @@ switch (uname)
 end
 
 # miniforge
-source ~/miniforge3/etc/fish/conf.d/conda.fish
-source ~/miniforge3/etc/fish/conf.d/mamba.fish
+source "$HOME/miniforge/etc/fish/conf.d/conda.fish"
+source "$HOME/miniforge/etc/fish/conf.d/mamba.fish"
 
 # bun
 set --export BUN_INSTALL "$HOME/.bun"
 set --export PATH $BUN_INSTALL/bin $PATH
 
 # brew
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
+eval "$($HOME/brew/bin/brew shellenv)"
