@@ -158,4 +158,4 @@ set --export BUN_INSTALL "$HOME/.bun"
 set --export PATH $BUN_INSTALL/bin $PATH
 
 # brew
-eval "$($HOME/brew/bin/brew shellenv)"
+eval ( $HOME/brew/bin/brew shellenv )
