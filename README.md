@@ -601,11 +601,17 @@ PROMPT_COMMAND="__setprompt; $PROMPT_COMMAND"
 
 * Essential tools:
 
-   ```
-   brew install curl aria2 git zip unzip gawk fish openssh-server tmux nmap jq eza ripgrep bat fzf mc zoxide entr
-   ```
+  ```
+  brew install curl aria2 git zip unzip gawk fish openssh-server tmux nmap jq eza ripgrep bat fzf mc zoxide entr
+  ```
 
-   Add `eval "$(zoxide init bash)"` to the `.bashrc` to initialize `zoxide`.
+  To install Python3 under linuxbrew, follow below steps before install it:
+    
+    * Install `util-linux` with `brew install util-linux` or reinstall it with `brew reinstall util-linux`
+      
+    * Create a symbolic link for `uuid.h` which is usually missing if brew is installed without `sudo`: `ln -s "$(brew --prefix util-linux)/include/uuid/uuid.h" "$(brew --prefix)/include/uuid.h"`
+
+  Add `eval "$(zoxide init bash)"` to the `.bashrc` to initialize `zoxide`.
 
 * Increase swap.
 
