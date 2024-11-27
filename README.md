@@ -560,6 +560,8 @@ PROMPT_COMMAND="__setprompt; $PROMPT_COMMAND"
 
 # Misc.
 
+* Install brew without `sudo`: `mkdir brew; curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C ~/brew; eval "$(~/brew/bin/brew shellenv)"; brew update --force --quiet`
+
 * Create fake 5 TB file: `fallocate -l 5T testfile.txt`.
 
 * How to reset git commits to the very beginning.
@@ -597,10 +599,10 @@ PROMPT_COMMAND="__setprompt; $PROMPT_COMMAND"
 
   6) Mount formatted partition: `sudo mount /dev/sda1 /mnt/d4t`.
 
-* Essential tools for Ubuntu terminal:
+* Essential tools:
 
    ```
-   sudo apt install curl aria2 git zip unzip gawk htop zsh openssh-server tmux nmap jq eza ripgrep bat fzf mc zoxide entr
+   brew install curl aria2 git zip unzip gawk fish openssh-server tmux nmap jq eza ripgrep bat fzf mc zoxide entr
    ```
 
    Add `eval "$(zoxide init bash)"` to the `.bashrc` to initialize `zoxide`.
