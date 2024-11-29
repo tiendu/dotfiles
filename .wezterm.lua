@@ -13,9 +13,6 @@ config.window_background_opacity = 0.8
 -- Tab bar customization
 config.hide_tab_bar_if_only_one_tab = true
 config.use_fancy_tab_bar = true
-config.tab_bar_style = {
-  font_size = 19.0,
-}
 config.colors = {
   tab_bar = {
     background = '#282828',
