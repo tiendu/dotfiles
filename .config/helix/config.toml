@@ -6,6 +6,7 @@ line-number = "relative"
 mouse = true
 color-modes = true
 bufferline = "always"
+idle-timeout = 100
 
 [editor.cursor-shape]
 insert = "bar"
@@ -24,11 +25,14 @@ mode.normal = "NORMAL"
 mode.insert = "INSERT"
 mode.select = "SELECT"
 
+[editor.whitespace]
+render = "all"
+
 [editor.whitespace.characters]
-space = "·"
+space = "␣"
 nbsp = "⍽"
 tab = "→"
-newline = "⏎"
+newline = "↩"
 tabpad = "·"
 
 [keys.normal.space]
