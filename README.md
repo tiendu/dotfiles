@@ -602,7 +602,7 @@ PROMPT_COMMAND="__setprompt; $PROMPT_COMMAND"
 * Essential tools:
 
   ```
-  brew install curl aria2 git zip unzip gawk fish openssh-server tmux nmap jq eza ripgrep bat fzf mc zoxide entr
+  brew install curl aria2 git zip unzip gawk fish openssh tmux nmap jq eza ripgrep bat fzf yazi fd zoxide entr
   ```
 
   To install Python3 under linuxbrew, follow below steps before install it:
