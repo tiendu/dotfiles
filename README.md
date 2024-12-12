@@ -613,6 +613,22 @@ PROMPT_COMMAND="__setprompt; $PROMPT_COMMAND"
 
   Add `eval "$(zoxide init bash)"` to the `.bashrc` to initialize `zoxide`.
 
+  Using `nix` for package installation:
+
+   ```
+   #!/bin/sh
+   # List of packages to install (space-separated)
+   packages="curl aria2 git zip unzip gawk fish openssh tmux nmap jq eza ripgrep bat fzf yazi fd zoxide entr"
+   
+   # Loop through each package and install it
+   for pkg in $packages; do
+     echo "Installing $pkg..."
+     nix profile install nixpkgs#$pkg
+   done
+   
+   echo "All packages installed!"
+   ```
+
 * Increase swap.
 
   ```
