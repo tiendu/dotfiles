@@ -27,20 +27,20 @@ fish_user_key_bindings
 
 # Add new directory to PATH
 function add2path
-    set dir (realpath $argv[1])  # Get the absolute path of the provided directory
+    set dir (realpath $argv[1]) # Get the absolute path of the provided directory
     # Check if the directory exists
     if test -d "$dir"
         # Check if the directory is already in PATH
         if not contains -- ":$PATH:" ":$dir:"
-            set PATH "$dir:$PATH"  # Add the directory to PATH
-            echo "$dir" >> "$HOME/.fish_added_paths"
+            set PATH "$dir:$PATH" # Add the directory to PATH
+            echo "$dir" >>"$HOME/.fish_added_paths"
             echo "Directory '$dir' added to PATH."
         else
             echo "Directory '$dir' is already in PATH."
         end
         # Make all files in the directory executable
         for file in "$dir"/*
-            if test -f "$file" 
+            if test -f "$file"
                 chmod +x "$file"
                 if test $status -ne 0
                     echo "Failed to make $file executable."
@@ -53,10 +53,12 @@ function add2path
 end
 if test -f "$HOME/.fish_added_paths"
     while read -l line
-        if begin test -d "$line"; and ! contains -- "$line" $PATH; end
+        if begin
+                test -d "$line"; and ! contains -- "$line" $PATH
+            end
             set -g PATH "$line" $PATH
         end
-    end < $HOME/.fish_added_paths
+    end <$HOME/.fish_added_paths
 end
 
 # Clean PATH
@@ -64,7 +66,9 @@ function _clean_path --on-event fish_prompt
     set -l unique_paths
     set -l path_array (string split ':' $PATH)
     for path in $path_array
-        if begin test -n "$path"; and test -d "$path"; and ! contains -- "$path" $unique_paths; end
+        if begin
+                test -n "$path"; and test -d "$path"; and ! contains -- "$path" $unique_paths
+            end
             set unique_paths $unique_paths $path
         end
     end
@@ -72,29 +76,29 @@ function _clean_path --on-event fish_prompt
     set -g PATH (string join ':' $unique_paths)
     # Clean up ~/.fish_added_paths to remove duplicates
     if test -e "$HOME/.fish_added_paths"
-        sort -u "$HOME/.fish_added_paths" > "$HOME/.fish_added_paths.tmp"
+        sort -u "$HOME/.fish_added_paths" >"$HOME/.fish_added_paths.tmp"
         mv -f "$HOME/.fish_added_paths.tmp" "$HOME/.fish_added_paths"
     end
 end
 
-# Create new file with neovim
-function _nvim
+# Create new file with helix
+function _hx
     set file $argv[1]
     if test ! -e $file
         touch $file
     end
-    nvim $file
-    if test ! -s $file
+    hx $file
+    if test (stat -f '%z' $file) -eq 1
         rm -f $file
     end
 end
 
 # Aliases for convenience
-alias rm "rm -i"  # Prompt before removing files
-alias cp "cp -i"  # Prompt before overwriting files
-alias mv "mv -i"  # Prompt before overwriting files
-alias g "git"
-alias e "_nvim"
+alias rm "rm -i" # Prompt before removing files
+alias cp "cp -i" # Prompt before overwriting files
+alias mv "mv -i" # Prompt before overwriting files
+alias g git
+alias e _hx
 alias sd "cd ~ && cd (find * -type d | fzf)"
 
 # Multi cd
@@ -109,29 +113,29 @@ set -g fish_history_size 10000
 # Set up Zoxide
 function _init_zoxide --on-event fish_prompt
     if type -q zoxide
-        zoxide init fish | source  # Automatically load Zoxide on every new tab or session
+        zoxide init fish | source # Automatically load Zoxide on every new tab or session
     end
 end
 
 # Replace grep with ripgrep if available
 if type -q rg
-    alias grep "rg"
+    alias grep="rg"
 end
 
 # Replace ls with exa/eza if available
 if type -q exa
-    alias ls "exa --icons"
-    alias ll "exa -l --icons"
-    alias la "exa -la --icons"
-    alias tree "exa --tree --level=2"
+    alias ls="exa --icons"
+    alias ll="exa -l --icons"
+    alias la="exa -la --icons"
+    alias tree="exa --tree --level=2"
 else if type -q eza
-    alias ls "eza --icons"
-    alias ll "eza -l --icons"
-    alias la "eza -la --icons"
-    alias tree "eza --tree --level=2"
+    alias ls="eza --icons"
+    alias ll="eza -l --icons"
+    alias la="eza -la --icons"
+    alias tree="eza --tree --level=2"
 else
-    alias ls "ls --color=auto"
-    alias tree "ls -R"
+    alias ls="ls --color=auto"
+    alias tree="ls -R"
 end
 
 # Alias for cross-platform pbcopy/pbpaste
@@ -149,13 +153,16 @@ switch (uname)
     case Darwin
 end
 
-# miniforge
-source "$HOME/miniforge/etc/fish/conf.d/conda.fish"
-source "$HOME/miniforge/etc/fish/conf.d/mamba.fish"
+# mamba
+source $HOME/miniforge/etc/fish/conf.d/conda.fish
+source $HOME/miniforge/etc/fish/conf.d/mamba.fish
 
 # bun
 set --export BUN_INSTALL "$HOME/.bun"
 set --export PATH $BUN_INSTALL/bin $PATH
+
+# cargo
+source "$HOME/.cargo/env.fish"
 
 # brew
 eval ( $HOME/brew/bin/brew shellenv )
