@@ -81,24 +81,12 @@ function _clean_path --on-event fish_prompt
     end
 end
 
-# Create new file with helix
-function _hx
-    set file $argv[1]
-    if test ! -e $file
-        touch $file
-    end
-    hx $file
-    if test (stat -f '%z' $file) -eq 1
-        rm -f $file
-    end
-end
-
 # Aliases for convenience
 alias rm "rm -i" # Prompt before removing files
 alias cp "cp -i" # Prompt before overwriting files
 alias mv "mv -i" # Prompt before overwriting files
 alias g git
-alias e _hx
+alias e hx
 alias sd "cd ~ && cd (find * -type d | fzf)"
 
 # Multi cd
