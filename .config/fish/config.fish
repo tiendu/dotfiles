@@ -154,8 +154,8 @@ switch (uname)
 end
 
 # mamba
-source $HOME/miniforge/etc/fish/conf.d/conda.fish
-source $HOME/miniforge/etc/fish/conf.d/mamba.fish
+source "$HOME/miniforge/etc/fish/conf.d/conda.fish"
+source "$HOME/miniforge/etc/fish/conf.d/mamba.fish"
 
 # bun
 set --export BUN_INSTALL "$HOME/.bun"
