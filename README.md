@@ -1,3 +1,43 @@
+# pixi.sh
+
+Find the manifest `pixi-global.toml` and run `pixi global sync` to set up the development environment.
+
+For a particular environment, please follow:
+
+- Initiate new environment with `pixi init <env>`
+- Edit the `pixi.toml`, example:
+
+```
+[project]
+channels = ["conda-forge", "bioconda"]
+description = "dev env"
+name = "ubuntu"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+start = { cmd="rm -rf dotfiles && git clone https://github.com/tiendu/dotfiles && rm -rf $HOME/.config && mv dotfiles/.config $HOME/ && fish"}
+
+[dependencies]
+python = ">=3.7.0,<3.8"
+fish = ">=3.7.1,<4"
+helix = ">=24.07,<25"
+git = ">=2.47.1,<3"
+curl = ">=8.11.1,<9"
+fd-find = ">=10.2.0,<11"
+zellij = ">=0.41.2,<0.45"
+eza = ">=0.20.13,<0.21"
+ripgrep = ">=14.1.1,<15"
+zoxide = ">=0.9.6,<0.10"
+yazi = ">=0.4.1,<0.5"
+pv = ">=1.6.6,<2"
+zip = ">=3.0,<4"
+unzip = ">=6.0,<7"
+rust = ">=1.83.0,<1.84"
+```
+
+- Run `pixi install` and `pixi shell` to enter the environment
+
 # Fix lid not suspend
 
 Edit `logind.conf` with `sudo nano /etc/systemd/logind.conf`.
