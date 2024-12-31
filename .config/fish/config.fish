@@ -140,17 +140,3 @@ switch (uname)
         end
     case Darwin
 end
-
-# mamba
-source "$HOME/miniforge/etc/fish/conf.d/conda.fish"
-source "$HOME/miniforge/etc/fish/conf.d/mamba.fish"
-
-# bun
-set --export BUN_INSTALL "$HOME/.bun"
-set --export PATH $BUN_INSTALL/bin $PATH
-
-# cargo
-source "$HOME/.cargo/env.fish"
-
-# brew
-eval ( $HOME/brew/bin/brew shellenv )
