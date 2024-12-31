@@ -7,6 +7,10 @@ mouse = true
 color-modes = true
 bufferline = "always"
 idle-timeout = 100
+gutters = ["diff", "line-numbers", "spacer"]
+
+[editor.soft-wrap]
+enable = true
 
 [editor.cursor-shape]
 insert = "bar"
@@ -28,12 +32,10 @@ mode.select = "SELECT"
 [editor.whitespace]
 render = "all"
 
-[editor.whitespace.characters]
-space = "␣"
-nbsp = "⍽"
-tab = "→"
-newline = "↩"
-tabpad = "·"
+[editor.indent-guides]
+render = true
+character = "╎"
+skip-levels = 1
 
 [keys.normal.space]
 w = ":w"
