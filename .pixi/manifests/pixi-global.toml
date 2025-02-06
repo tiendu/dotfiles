@@ -2,5 +2,49 @@ version = 1
 
 [envs.deven]
 channels = ["conda-forge"]
-dependencies = { fish = "*", git = "*", "fd-find" = "*", eza = "*", ripgrep = "*", zoxide = "*", yazi = "*", rust = "*" , pixi-pack = "*" , tmux = "*", neovim = "*" }
-exposed = { fish = "fish", fish_indent = "fish_indent", fish_key_reader = "fish_key_reader", git = "git", git-cvsserver = "git-cvsserver", git-receive-pack = "git-receive-pack", git-shell = "git-shell", git-upload-archive = "git-upload-archive", git-upload-pack = "git-upload-pack", gitk = "gitk", scalar = "scalar", fd = "fd", eza = "eza", rg = "rg", zoxide = "zoxide", ya = "ya", yazi = "yazi", cargo = "cargo", cargo-clippy = "cargo-clippy", cargo-fmt = "cargo-fmt", clippy-driver = "clippy-driver", rls = "rls", rust-analyzer = "rust-analyzer", rust-gdb = "rust-gdb", rust-gdbgui = "rust-gdbgui", rust-lldb = "rust-lldb", rustc = "rustc", rustdoc = "rustdoc", rustfmt = "rustfmt", pixi-pack = "pixi-pack" }
+
+[envs.deven.dependencies]
+fish = "*"
+git = "*"
+"fd-find" = "*"
+eza = "*"
+ripgrep = "*"
+zoxide = "*"
+yazi = "*"
+rust = "*"
+pixi-pack = "*"
+tmux = "*"
+neovim = "*"
+glow-md = "*"
+
+[envs.deven.exposed]
+fish = "fish"
+fish_indent = "fish_indent"
+fish_key_reader = "fish_key_reader"
+git = "git"
+git-cvsserver = "git-cvsserver"
+git-receive-pack = "git-receive-pack"
+git-shell = "git-shell"
+git-upload-archive = "git-upload-archive"
+git-upload-pack = "git-upload-pack"
+gitk = "gitk"
+scalar = "scalar"
+fd = "fd"
+eza = "eza"
+rg = "rg"
+zoxide = "zoxide"
+ya = "ya"
+yazi = "yazi"
+cargo = "cargo"
+cargo-clippy = "cargo-clippy"
+cargo-fmt = "cargo-fmt"
+clippy-driver = "clippy-driver"
+rls = "rls"
+rust-analyzer = "rust-analyzer"
+rust-gdb = "rust-gdb"
+rust-gdbgui = "rust-gdbgui"
+rust-lldb = "rust-lldb"
+rustc = "rustc"
+rustdoc = "rustdoc"
+rustfmt = "rustfmt"
+pixi-pack = "pixi-pack"
