@@ -81,6 +81,18 @@ function _clean_path --on-event fish_prompt
     end
 end
 
+## Create new file with helix
+# function _hx
+#     set file $argv[1]
+#     if test ! -e $file
+#         touch $file
+#     end
+#     hx $file
+#     if test (stat -f '%z' $file) -eq 1
+#         rm -f $file
+#     end
+# end
+
 # Create new file with nvim
 function _nvim
     set file $argv[1]
@@ -88,7 +100,7 @@ function _nvim
         touch $file
     end
     nvim $file
-    if test (stat -f '%z' $file) -eq 1
+    if test ! -s $file
         rm -f $file
     end
 end
