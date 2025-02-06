@@ -16,11 +16,13 @@ pixi-pack = "*"
 tmux = "*"
 nvim = "*"
 glow-md = "*"
+bat = "*"
 
 [envs.deven.exposed]
 fish = "fish"
 fish_indent = "fish_indent"
 fish_key_reader = "fish_key_reader"
+bat = "bat"
 nvim = "nvim"
 git = "git"
 git-cvsserver = "git-cvsserver"
