@@ -17,6 +17,8 @@ tmux = "*"
 nvim = "*"
 glow-md = "*"
 bat = "*"
+lua = "*"
+luarocks = "*"
 
 [envs.deven.exposed]
 fish = "fish"
