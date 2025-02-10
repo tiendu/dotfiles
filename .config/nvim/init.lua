@@ -10,10 +10,13 @@ vim.opt.expandtab = true                       -- Use spaces instead of tabs
 vim.opt.tabstop = 4                            -- Set the width of a tab character to 4 spaces
 vim.opt.shiftwidth = 4                         -- Set the number of spaces to use for autoindenting
 vim.opt.softtabstop = 4                        -- Set the number of spaces for a Tab in insert mode
-vim.opt.wrap = false                           -- Disable line wrapping
+vim.opt.wrap = true                            -- Disable line wrapping
 vim.opt.cursorline = true                      -- Highlight the current line
-vim.opt.clipboard = "unnamedplus"              -- Use system clipboard for yanking and pasting
+vim.opt.clipboard = 'unnamedplus'              -- Use system clipboard for yanking and pasting
 vim.opt.timeoutlen = 300                       -- Lower keystroke timeout
+
+-- Key Mappings
+vim.g.mapleader = ' '                          -- Set the leader key to space
 
 -- Enable list mode to show whitespace characters
 vim.opt.list = true
@@ -24,9 +27,6 @@ vim.opt.listchars = {
   space = '·',
   eol = '↴',
 }
-
--- Key Mappings
-vim.g.mapleader = " "                          -- Set the leader key to space
 
 -- Save and quit
 vim.api.nvim_set_keymap('n', '<leader>w', ':w<CR>', { noremap = true })
@@ -61,23 +61,23 @@ vim.o.laststatus = 2
 
 -- Define the status line format
 vim.o.statusline = table.concat({
-  "%#StatusLine#",              -- Highlight group for the main section
-  "%F",                         -- File path
-  "%h",                         -- Help flag
-  "%m",                         -- Modified flag
-  "%r",                         -- Read-only flag
-  "%#StatusLineNC#",            -- Highlight group for secondary sections
-  "%=",                         -- Right-align the rest
-  "%y",                         -- File type
-  "%{&fileencoding?&fileencoding:&encoding}", -- File encoding
-  "%{&fileformat}",             -- File format (e.g., unix, dos)
-  " [%p%%]",                    -- File percentage through
-  " %l/%L:%c",                  -- Line number/Total lines: Column number
+  '%#StatusLine#',              -- Highlight group for the main section
+  '%F',                         -- File path
+  '%h',                         -- Help flag
+  '%m',                         -- Modified flag
+  '%r',                         -- Read-only flag
+  '%#StatusLineNC#',            -- Highlight group for secondary sections
+  '%=',                         -- Right-align the rest
+  '%y',                         -- File type
+  '%{&fileencoding?&fileencoding:&encoding}', -- File encoding
+  '%{&fileformat}',             -- File format (e.g., unix, dos)
+  ' [%p%%]',                    -- File percentage through
+  ' %l/%L:%c',                  -- Line number/Total lines: Column number
 })
 
 -- Set color for line numbers
 vim.o.termguicolors = true
-vim.cmd[[highlight LineNr guifg=#FF0000]]   -- Red color for line numbers
+vim.cmd[[highlight LineNr guifg=#FF0000]]        -- Red color for line numbers
 vim.cmd[[highlight CursorLineNr guifg=#00FF00]]  -- Green color for the current line number
 
 -- Set transparent background
@@ -90,6 +90,9 @@ vim.cmd [[
 
 -- Customize the highlight groups for list characters
 vim.api.nvim_set_hl(0, 'Whitespace', { fg = '#808080' }) -- Grey color
-vim.api.nvim_set_hl(0, 'TabLine', { fg = '#808080' })   -- Grey color
-vim.api.nvim_set_hl(0, 'EndOfLine', { fg = '#808080' }) -- Grey color
+vim.api.nvim_set_hl(0, 'TabLine', { fg = '#808080' })    -- Grey color
+vim.api.nvim_set_hl(0, 'EndOfLine', { fg = '#808080' })  -- Grey color
 vim.api.nvim_set_hl(0, 'CursorLine', { underline = true }) 
+
+-- Use lazy nvim as plugin manager
+require('config.lazy')
