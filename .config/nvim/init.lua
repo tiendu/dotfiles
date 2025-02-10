@@ -17,6 +17,7 @@ vim.opt.timeoutlen = 300                       -- Lower keystroke timeout
 
 -- Key Mappings
 vim.g.mapleader = ' '                          -- Set the leader key to space
+vim.g.maplocalleader = '\\'
 
 -- Enable list mode to show whitespace characters
 vim.opt.list = true
