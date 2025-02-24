@@ -109,6 +109,7 @@ end
 alias rm "rm -i" # Prompt before removing files
 alias cp "cp -i" # Prompt before overwriting files
 alias mv "mv -i" # Prompt before overwriting files
+alias l ls
 alias g git
 alias e _nvim
 alias sd "cd ~ && cd (find * -type d | fzf)"
