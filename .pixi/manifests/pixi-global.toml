@@ -18,6 +18,7 @@ bat = "*"
 lua = "*"
 luarocks = "*"
 uv = "*"
+python = "3.8.*"
 ruff = "*"
 fzf = "*"
 
