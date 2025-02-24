@@ -114,13 +114,6 @@ alias g git
 alias e _nvim
 alias sd "cd ~ && cd (find * -type d | fzf)"
 
-# Essential Git Aliases
-alias gp "git pull --rebase" # Pull with rebase to maintain a linear history
-alias gs "git status -sb" # Show a concise status overview
-alias gc "git commit -m" # Commit with a message
-alias gl "git log --oneline --graph --decorate --all" # View a visual commit log
-alias gcb "git checkout -b" # Create and switch to a new branch
-
 # Multi cd
 function multicd
     echo cd (string repeat -n (math (string length -- $argv[1]) - 1) ../)
@@ -139,23 +132,23 @@ end
 
 # Replace grep with ripgrep if available
 if type -q rg
-    alias grep="rg"
+    alias grep "rg"
 end
 
 # Replace ls with exa/eza if available
 if type -q exa
-    alias ls="exa --icons"
-    alias ll="exa -l --icons"
-    alias la="exa -la --icons"
-    alias tree="exa --tree --level=2"
+    alias ls "exa --icons"
+    alias ll "exa -l --icons"
+    alias la "exa -la --icons"
+    alias tree "exa --tree --level=2"
 else if type -q eza
-    alias ls="eza --icons"
-    alias ll="eza -l --icons"
-    alias la="eza -la --icons"
-    alias tree="eza --tree --level=2"
+    alias ls "eza --icons"
+    alias ll "eza -l --icons"
+    alias la "eza -la --icons"
+    alias tree "eza --tree --level=2"
 else
-    alias ls="ls --color=auto"
-    alias tree="ls -R"
+    alias ls "ls --color=auto"
+    alias tree "ls -R"
 end
 
 # Alias for cross-platform pbcopy/pbpaste
@@ -172,3 +165,4 @@ switch (uname)
         end
     case Darwin
 end
+
