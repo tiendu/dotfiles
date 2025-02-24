@@ -17,6 +17,9 @@ glow-md = "*"
 bat = "*"
 lua = "*"
 luarocks = "*"
+uv = "*"
+ruff = "*"
+fzf = "*"
 
 [envs.deven.exposed]
 fish = "fish"
