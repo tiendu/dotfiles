@@ -75,6 +75,9 @@ WHITE="%F{#ffffff}"
 BLUE="%F{#0000ff}"
 BROWN="%F{#a52a2a}"
 
+# Modify less
+export LESS="e M q R F X z -3"
+
 # Setup Zoxide (fuzzy directory finder)
 if command -v zoxide > /dev/null 2>&1; then
   eval "$(zoxide init zsh)"
