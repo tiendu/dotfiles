@@ -1,15 +1,14 @@
 version = 1
 
 [envs.deven]
-channels = ["conda-forge"]
+channels = ["conda-forge", "bioconda"]
 
 [envs.deven.dependencies]
-fish = "*"
+zsh = "*"
 "fd-find" = "*"
 eza = "*"
 ripgrep = "*"
 zoxide = "*"
-yazi = "*"
 pixi-pack = "*"
 tmux = "*"
 nvim = "*"
@@ -23,15 +22,11 @@ ruff = "*"
 fzf = "*"
 
 [envs.deven.exposed]
-fish = "fish"
-fish_indent = "fish_indent"
-fish_key_reader = "fish_key_reader"
+zsh = "zsh"
 bat = "bat"
 nvim = "nvim"
 fd = "fd"
 eza = "eza"
 rg = "rg"
 zoxide = "zoxide"
-ya = "ya"
-yazi = "yazi"
 pixi-pack = "pixi-pack"
