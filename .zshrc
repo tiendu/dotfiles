@@ -58,7 +58,6 @@ _clean_up_paths() {
   # Clean up .zsh_added_paths
   [ -f "$HOME/.zsh_added_paths" ] && sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"
 }
-# Call the function to clean up PATH
 _clean_up_paths
 
 # Global color variables with hex color codes
@@ -117,7 +116,19 @@ _nvim() {
     echo "File '$file' was empty and has been deleted."
   fi
 }
-compdef _files _nvim
+
+# Custom tab completion
+_first_tab() {
+  if [[ $#BUFFER == 0 ]]; then
+    BUFFER="cd "
+    CURSOR=3
+    zle list-choices
+  else
+    zle expand-or-complete
+  fi
+}
+zle -N _first_tab
+bindkey -M viins '^I' _first_tab
 
 # Aliases for convenience
 alias rm="rm -i"  # Prompt before removing files
@@ -184,7 +195,11 @@ setopt MENUCOMPLETE              # Use menu completion
 setopt AUTO_MENU                 # Automatically show the completion menu
 setopt LIST_PACKED               # Pack the completion list
 
-# Improve directory navigation with pushd/popd
+# Call compdef after compinit
+compdef _files _nvim
+
+# Improve directory navigation
+setopt AUTOCD
 setopt AUTO_PUSHD                # Automatically push directories onto the stack
 setopt PUSHD_IGNORE_DUPS         # Don't add duplicate directories to the stack
 setopt PUSHD_MINUS               # Push onto the stack with `-` syntax
