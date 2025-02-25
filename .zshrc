@@ -1,6 +1,3 @@
-# Set the location of the Oh My Zsh installation
-export ZSH="$HOME/.oh-my-zsh"
-
 # Add a dir to PATH
 add2path() {
   local dir="$1"
