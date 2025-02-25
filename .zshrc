@@ -1,29 +1,25 @@
 # Add a dir to PATH
-add2path() {
-  local dir="$1"
-  dir=$(realpath "$dir")
-  # Check if directory exists
-  if [ -d "$dir" ]; then
-    # Check if directory is already in PATH
-    if [[ ":$PATH:" != *":$dir:"* ]]; then
-      export PATH="$dir:$PATH"
-      # Save to file if not already in the list
-      if [ ! -f "$HOME/.zsh_added_paths" ] || ! grep -Fxq "$dir" "$HOME/.zsh_added_paths"; then
-        echo "$dir" >> "$HOME/.zsh_added_paths"
-      fi
-      echo "Directory '$dir' added to PATH."
-    else
-      echo "Directory '$dir' is already in PATH."
-    fi
-    chmod +x "$dir"/* 2>/dev/null
-    for file in "$dir"/*; do
-      if [ -f "$file" ] && [ ! -x "$file" ]; then
-        echo "Failed to make $file executable."
-      fi
-    done
-  else
-    echo "Directory '$dir' does not exist."
+a2p() {
+  local dir
+  dir=$(realpath "$1" 2>/dev/null)
+
+  # Exit if realpath fails (directory doesn't exist)
+  if [ -z "$dir" ]; then
+    echo "Directory '$1' does not exist."
+    return
   fi
+
+  # Add directory to PATH if not already included
+  if [[ ":$PATH:" != *":$dir:"* ]]; then
+    export PATH="$dir:$PATH"
+    echo "$dir" >> "$HOME/.zsh_added_paths" 2>/dev/null
+    echo "Directory '$dir' added to PATH."
+  else
+    echo "Directory '$dir' is already in PATH."
+  fi
+
+  # Make all files executable if not already
+  find "$dir" -type f ! -executable -exec chmod +x {} \;
 }
 
 # Load previously added directories into PATH at startup
@@ -224,6 +220,10 @@ bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
 bindkey -M viins 'kk' vi-cmd-mode
 
+# Backspace for backward char deletion
+bindkey -M viins '^H' backward-delete-char
+bindkey -M vicmd '^H' backward-delete-char
+
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
   VIM_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}NORMAL${RESET_BOLD}${WHITE}]${RESET}"
@@ -265,12 +265,27 @@ _git_info() {
 
 # Update prompt
 _update_prompt() {
+  # Get the number of TCP connections
+  local tcp_connections
+  tcp_connections="$(awk 'END {print NR}' /proc/net/tcp)"
+
+  # Get the CPU usage
+  local cpu_usage
+  cpu_usage="$(awk '/cpu/ {use=($2+$4)*100/($2+$4+$5)} END {print use}' /proc/stat)"
+
+  # Update the prompt with additional details
   PROMPT="${BOLD_BLUE}┌─${RESET_BOLD}${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET}"
   PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_ORANGE}%!${RESET_BOLD}${WHITE}]${RESET}"
   PROMPT+=" ${BROWN}-${RESET}"
   PROMPT+=" ${WHITE}[${RESET}$(_git_info)${WHITE}]${RESET}"
+
+  # Add TCP connections and CPU usage
+  PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_GREEN}TCP:${RESET} $tcp_connections${RESET}]"
+  PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_GREEN}CPU:${RESET} $cpu_usage${RESET}]"
+
   PROMPT+="
 ${BOLD_BLUE}└─${RESET_BOLD}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
+
   PS2=" ${BOLD_BLUE}>${RESET_BOLD} "
 }
 _update_prompt
