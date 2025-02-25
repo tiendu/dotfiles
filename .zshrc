@@ -129,20 +129,16 @@ _nvim_open_or_create() {
 compdef _files _nvim_open_or_create
 
 # Aliases for convenience
-alias ll="ls -l"
-alias la="ls -A"
-alias gs="git status"
-alias ga="git add"
-alias gc="git commit"
-alias gp="git push"
-alias gl="git log --oneline --graph --all"
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....="cd ../../.."
 alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
+alias l="ls"
+alias g="git"
 alias e="_nvim_open_or_create"
+alias sd="cd ~ && cd (find * -type d | fzf)"
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
 
 # Alias for cross-platform pbcopy/pbpaste
 if [[ "$OSTYPE" == "darwin"* ]]; then
