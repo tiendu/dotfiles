@@ -79,10 +79,6 @@ WHITE="%F{#ffffff}"
 BLUE="%F{#0000ff}"
 BROWN="%F{#a52a2a}"
 
-# Load Oh My Zsh plugins
-plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)
-source $ZSH/oh-my-zsh.sh
-
 # Setup Zoxide (fuzzy directory finder)
 if command -v zoxide > /dev/null 2>&1; then
   eval "$(zoxide init zsh)"
@@ -107,13 +103,8 @@ export FZF_CTRL_R_OPTS="
 # Use Vim nav keys in fzf
 export FZF_DEFAULT_OPTS="--bind 'ctrl-j:down,ctrl-k:up,alt-j:preview-down,alt-k:preview-up'"
 
-# Auto-update Oh My Zsh every 2 weeks
-if [ -x "$(command -v omz update)" ]; then
-  omz update --auto
-fi
-
 # Vim to create new file
-_nvim_open_or_create() {
+_nvim() {
   local file="$1"
   if [ ! -e "$file" ]; then
     touch "$file"  # Create the file if it doesn't exist
@@ -126,7 +117,7 @@ _nvim_open_or_create() {
     echo "File '$file' was empty and has been deleted."
   fi
 }
-compdef _files _nvim_open_or_create
+compdef _files _nvim
 
 # Aliases for convenience
 alias rm="rm -i"  # Prompt before removing files
@@ -134,7 +125,7 @@ alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
 alias l="ls"
 alias g="git"
-alias e="_nvim_open_or_create"
+alias e="_nvim"
 alias sd="cd ~ && cd (find * -type d | fzf)"
 alias ..="cd .."
 alias ...="cd ../.."
@@ -187,8 +178,7 @@ setopt HIST_VERIFY               # Verify history expansions before executing
 setopt EXTENDED_HISTORY          # Save timestamp in history file
 
 # Completion and correction settings
-autoload -Uz compinit
-compinit
+autoload -Uz compinit && compinit
 setopt CORRECT                   # Correct spelling errors
 setopt MENUCOMPLETE              # Use menu completion
 setopt AUTO_MENU                 # Automatically show the completion menu
