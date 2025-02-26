@@ -220,8 +220,12 @@ bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
 bindkey -M viins 'kk' vi-cmd-mode
 
-# Backspace for backward char deletion
+## For insert mode (viins), ensure backspace deletes the previous character
+bindkey -M viins '^?' backward-delete-char
 bindkey -M viins '^H' backward-delete-char
+
+## For command mode (vicmd), bind backspace to delete the previous character
+bindkey -M vicmd '^?' backward-delete-char
 bindkey -M vicmd '^H' backward-delete-char
 
 ## Add Vim status to the right prompt (RPROMPT)
@@ -265,23 +269,11 @@ _git_info() {
 
 # Update prompt
 _update_prompt() {
-  # Get the number of TCP connections
-  local tcp_connections
-  tcp_connections="$(awk 'END {print NR}' /proc/net/tcp)"
-
-  # Get the CPU usage
-  local cpu_usage
-  cpu_usage="$(awk '/cpu/ {use=($2+$4)*100/($2+$4+$5)} END {print use}' /proc/stat)"
-
   # Update the prompt with additional details
   PROMPT="${BOLD_BLUE}┌─${RESET_BOLD}${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET}"
   PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_ORANGE}%!${RESET_BOLD}${WHITE}]${RESET}"
   PROMPT+=" ${BROWN}-${RESET}"
   PROMPT+=" ${WHITE}[${RESET}$(_git_info)${WHITE}]${RESET}"
-
-  # Add TCP connections and CPU usage
-  PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_GREEN}TCP:${RESET} $tcp_connections${RESET}]"
-  PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_GREEN}CPU:${RESET} $cpu_usage${RESET}]"
 
   PROMPT+="
 ${BOLD_BLUE}└─${RESET_BOLD}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
