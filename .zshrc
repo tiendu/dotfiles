@@ -19,7 +19,7 @@ a2p() {
   fi
 
   # Make all files executable if not already
-  find "$dir" -type f ! -executable -exec chmod +x {} \;
+  find "$dir" -type f ! -perm -u+x -exec chmod +x {} \;
 }
 
 # Load previously added directories into PATH at startup
