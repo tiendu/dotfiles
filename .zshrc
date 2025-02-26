@@ -126,6 +126,27 @@ _first_tab() {
 zle -N _first_tab
 bindkey -M viins '^I' _first_tab
 
+# Replace grep with ripgrep if available
+if command -v rg > /dev/null 2>&1; then
+  alias grep="rg"
+fi
+
+# Replace ls with exa/eza if available
+if command -v exa > /dev/null 2>&1; then
+  alias ls="exa --icons"
+  alias ll="exa -l --icons"
+  alias la="exa -la --icons"
+  alias tree="exa --tree --level=2"
+elif command -v eza > /dev/null 2>&1; then
+  alias ls="eza --icons"
+  alias ll="eza -l --icons"
+  alias la="eza -la --icons"
+  alias tree="eza --tree --level=2"
+else
+  alias ls="ls --color=auto"
+  alias tree="ls -R"
+fi
+
 # Aliases for convenience
 alias rm="rm -i"  # Prompt before removing files
 alias cp="cp -i"  # Prompt before overwriting files
@@ -150,27 +171,6 @@ elif command -v xsel > /dev/null 2>&1; then
   alias pbpaste="xsel --clipboard --output"
 else
   echo "No clipboard utility found. Install xclip or xsel for pbcopy/pbpaste functionality."
-fi
-
-# Replace grep with ripgrep if available
-if command -v rg > /dev/null 2>&1; then
-  alias grep="rg"
-fi
-
-# Replace ls with exa/eza if available
-if command -v exa > /dev/null 2>&1; then
-  alias ls="exa --icons"
-  alias ll="exa -l --icons"
-  alias la="exa -la --icons"
-  alias tree="exa --tree --level=2"
-elif command -v eza > /dev/null 2>&1; then
-  alias ls="eza --icons"
-  alias ll="eza -l --icons"
-  alias la="eza -la --icons"
-  alias tree="eza --tree --level=2"
-else
-  alias ls="ls --color=auto"
-  alias tree="ls -R"
 fi
 
 # History settings
