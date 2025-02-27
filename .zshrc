@@ -57,18 +57,12 @@ _clean_up_paths
 RESET="%f"
 RESET_BOLD="%f%b"
 BOLD_PINK="%B%F{#ff69b4}"
-BOLD_ORANGE="%B%F{#ff8000}"
 BOLD_RED="%B%F{#ff0000}"
-BOLD_TEAL="%B%F{#008080}"
 BOLD_GREEN="%B%F{#00ff00}"
 BOLD_YELLOW="%B%F{#ffff00}"
-BOLD_BLUE="%B%F{#0000ff}"
-BOLD_MAGENTA="%B%F{#ff00ff}"
 BOLD_GRAY="%B%F{#808080}"
 BOLD_CYAN="%B%F{#00ffff}"
-BOLD_WHITE="%B%F{#ffffff}"
 WHITE="%F{#ffffff}"
-BLUE="%F{#0000ff}"
 BROWN="%F{#a52a2a}"
 
 # Modify less
@@ -254,15 +248,14 @@ bindkey -M vicmd '^H' backward-delete-char
 
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
-  VIM_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}NORMAL${RESET_BOLD}${WHITE}]${RESET}"
-  INSERT_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}INSERT${WHITE}]${RESET}"
+  VIM_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE}]${RESET}"
+  INSERT_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}I${WHITE}]${RESET}"
   if [[ $KEYMAP == vicmd ]]; then
     VIM_MODE=$VIM_PROMPT
   else
     VIM_MODE=$INSERT_PROMPT
   fi
-  PROMPT_TIME="${WHITE}[${RESET}${BOLD_MAGENTA}%D{%H:%M:%S}${RESET}${WHITE}]${RESET}"
-  RPROMPT="${VIM_MODE} ${PROMPT_TIME}"
+  RPROMPT="${VIM_MODE}"
 }
 zle -N zle-keymap-select
 zle-line-init() { zle zle-keymap-select }
@@ -280,27 +273,24 @@ _git_info() {
     # Get the current branch name
     git_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
   fi
-  if [[ -n "$git_branch" ]]; then
+  if [[ -n "${git_branch}" ]]; then
     # Check if there are any changes in the working directory
     if [[ -n $(git status --porcelain) ]]; then
-      git_status="${BOLD_RED}✘${RESET_BOLD}"  # Changes exist
+      git_status="${BOLD_RED}${git_branch}${RESET_BOLD}"  # Changes exist
     else
-      git_status="${BOLD_GREEN}✔${RESET_BOLD}"  # No changes
+      git_status="${BOLD_GREEN}${git_branch}${RESET_BOLD}"  # No changes
     fi
-    echo "${BOLD_TEAL}$git_branch${RESET_BOLD} $git_status"
+    echo "${git_status}"
   fi
 }
 
 # Update prompt
 _update_prompt() {
   # Update the prompt with additional details
-  PROMPT="${BOLD_BLUE}┌─${RESET_BOLD}${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET}"
-  PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_ORANGE}%!${RESET_BOLD}${WHITE}]${RESET}"
-  PROMPT+=" ${BROWN}-${RESET}"
-  PROMPT+=" ${WHITE}[${RESET}$(_git_info)${WHITE}]${RESET}"
+  PROMPT="${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET}"
+  PROMPT+="${BROWN}-${RESET}${WHITE}[${RESET}$(_git_info)${WHITE}]${RESET}"
 
-  PROMPT+="
-${BOLD_BLUE}└─${RESET_BOLD}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
+  PROMPT+="${BROWN}-${RESET}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
 
   PS2=" ${BOLD_BLUE}>${RESET_BOLD} "
 }
