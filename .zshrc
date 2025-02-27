@@ -157,7 +157,7 @@ alias e="_nvim"
 if command -v fd > /dev/null 2>&1 && command -v fzf > /dev/null 2>&1; then
   alias sd='dir=$(fd -t d . | fzf) && [ -n "$dir" ] && cd "$dir"'
 else
-  sd() {
+  alias sd='
     dirs=()
     while IFS= read -r dir; do
       dirs+=("$dir")
@@ -177,7 +177,7 @@ else
         echo "Invalid selection."
       fi
     done
-  }
+  '
 fi
 alias ..="cd .."
 alias ...="cd ../.."
