@@ -35,21 +35,29 @@ inoremap <A-k> <Esc>:m .-2<CR>==gi
 vnoremap <A-j> :m '>+1<CR>gv=gv
 vnoremap <A-k> :m '<-2<CR>gv=gv
 
-" Map 'jk' to Esc
+" Map keys to Esc
 inoremap jk <Esc>
 inoremap kj <Esc>
-
-" Map 'jj' to Esc
 inoremap jj <Esc>
+inoremap kk <Esc>
 
-" Move up in insert mode
+" Navigate in insert mode
 inoremap <C-k> <Esc>ka
-
-" Move down in insert mode
 inoremap <C-j> <Esc>ja
-
-" Move left in insert mode
 inoremap <C-h> <Esc>ha
-
-" Move right in insert mode
 inoremap <C-l> <Esc>la
+
+" Enable the status line
+set laststatus=2
+set statusline=%f\ %y\ %m\ %r\ %l/%L\ %c
+
+" Set color for line numbers
+set termguicolors
+highlight LineNr guifg=#FF0000        " Red color for line numbers
+highlight CursorLineNr guifg=#00FF00  " Green color for the current line number
+
+" Customize the highlight groups for list characters
+highlight Whitespace guifg=#808080    " Grey color for whitespace
+highlight TabLine guifg=#808080       " Grey color for tab line
+highlight EndOfLine guifg=#808080     " Grey color for end of line
+highlight CursorLine cterm=underline  " Underline the current line
