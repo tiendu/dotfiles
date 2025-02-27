@@ -2,13 +2,11 @@
 a2p() {
   local dir
   dir=$(realpath "$1" 2>/dev/null)
-
   # Exit if realpath fails (directory doesn't exist)
   if [ -z "$dir" ]; then
     echo "Directory '$1' does not exist."
     return
   fi
-
   # Add directory to PATH if not already included
   if [[ ":$PATH:" != *":$dir:"* ]]; then
     export PATH="$dir:$PATH"
@@ -17,7 +15,6 @@ a2p() {
   else
     echo "Directory '$dir' is already in PATH."
   fi
-
   # Make all files executable if not already
   find "$dir" -type f ! -perm -u+x -exec chmod +x {} \;
 }
@@ -37,17 +34,14 @@ _clean_up_paths() {
   local unique_paths=()
   local -A seen_paths
   IFS=":" read -r -A path_array <<< "$PATH"
-
   for path in "${path_array[@]}"; do
     if [[ -n "$path" && -z "${seen_paths[$path]}" && -d "$path" ]]; then
       unique_paths+=("$path")
       seen_paths["$path"]=1
     fi
   done
-
   PATH=$(printf "%s:" "${unique_paths[@]}")
   PATH=${PATH%:}  # Remove trailing colon
-
   # Clean up .zsh_added_paths
   [ -f "$HOME/.zsh_added_paths" ] && sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"
 }
@@ -156,12 +150,10 @@ else
     while IFS= read -r dir; do
       dirs+=("$dir")
     done < <(find . -type d ! -path "*/.*")
-
     if [ ${#dirs[@]} -eq 0 ]; then
       echo "No directories found."
       return
     fi
-
     echo "Select a directory:"
     select dir in "${dirs[@]}"; do
       if [ -n "$dir" ]; then
@@ -286,13 +278,14 @@ _git_info() {
 
 # Update prompt
 _update_prompt() {
-  # Update the prompt with additional details
-  PROMPT="${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET}"
-  PROMPT+="${BROWN}-${RESET}${WHITE}[${RESET}$(_git_info)${WHITE}]${RESET}"
-
-  PROMPT+="${BROWN}-${RESET}${WHITE}[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
-
-  PS2=" ${BOLD_BLUE}>${RESET_BOLD} "
+  local git_info
+  git_info=$(_git_info)
+  PROMPT="${WHITE}[${RESET}${BOLD_PINK}%~${RESET}${WHITE}"
+  if [[ -n "$git_info" ]]; then
+    PROMPT+=" ${BROWN}::${RESET} ${git_info}"
+  fi
+  PROMPT+="${WHITE}]-[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
+  PS2=" ${BOLD_BLUE}>${RESET} "
 }
 _update_prompt
 
