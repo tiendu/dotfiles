@@ -154,7 +154,31 @@ alias mv="mv -i"  # Prompt before overwriting files
 alias l="ls"
 alias g="git"
 alias e="_nvim"
-alias sd="cd ~ && cd (find * -type d | fzf)"
+if command -v fd > /dev/null 2>&1 && command -v fzf > /dev/null 2>&1; then
+  alias sd='dir=$(fd -t d . | fzf) && [ -n "$dir" ] && cd "$dir"'
+else
+  sd() {
+    dirs=()
+    while IFS= read -r dir; do
+      dirs+=("$dir")
+    done < <(find . -type d ! -path "*/.*")
+
+    if [ ${#dirs[@]} -eq 0 ]; then
+      echo "No directories found."
+      return
+    fi
+
+    echo "Select a directory:"
+    select dir in "${dirs[@]}"; do
+      if [ -n "$dir" ]; then
+        cd "$dir"
+        break
+      else
+        echo "Invalid selection."
+      fi
+    done
+  }
+fi
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
@@ -292,3 +316,5 @@ precmd() {
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _clean_up_paths
 add-zsh-hook precmd _update_prompt
+
+export PATH="$HOME/.pixi/bin:$PATH"
