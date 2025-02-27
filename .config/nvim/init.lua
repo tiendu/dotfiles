@@ -10,8 +10,8 @@ vim.opt.expandtab = true                       -- Use spaces instead of tabs
 vim.opt.tabstop = 4                            -- Set the width of a tab character to 4 spaces
 vim.opt.shiftwidth = 4                         -- Set the number of spaces to use for autoindenting
 vim.opt.softtabstop = 4                        -- Set the number of spaces for a Tab in insert mode
-vim.opt.wrap = false                           -- Disable line wrapping
-vim.opt.cursorline = true                      -- Highlight the current line
+vim.opt.wrap = true                            -- Disable line wrapping
+vim.opt.cursorline = false                     -- Highlight the current line
 vim.opt.clipboard = 'unnamedplus'              -- Use system clipboard for yanking and pasting
 vim.opt.timeoutlen = 300                       -- Lower keystroke timeout
 
@@ -44,17 +44,13 @@ vim.api.nvim_set_keymap('v', '<A-k>', ':m \'<-2<CR>gv=gv', { noremap = true })
 -- Map 'jk' to Esc
 vim.api.nvim_set_keymap('i', 'jk', '<Esc>', { noremap = true })
 vim.api.nvim_set_keymap('i', 'kj', '<Esc>', { noremap = true })
+vim.api.nvim_set_keymap('i', 'kk', '<Esc>', { noremap = true })
+vim.api.nvim_set_keymap('i', 'jj', '<Esc>', { noremap = true })
 
--- Move up in insert mode
+-- Navigate in insert mode
 vim.api.nvim_set_keymap('i', '<C-k>', '<Esc>ka', { noremap = true, silent = true })
-
--- Move down in insert mode
 vim.api.nvim_set_keymap('i', '<C-j>', '<Esc>ja', { noremap = true, silent = true })
-
--- Move left in insert mode
 vim.api.nvim_set_keymap('i', '<C-h>', '<Esc>ha', { noremap = true, silent = true })
-
--- Move right in insert mode
 vim.api.nvim_set_keymap('i', '<C-l>', '<Esc>la', { noremap = true, silent = true })
 
 -- Enable the status line
@@ -93,7 +89,4 @@ vim.cmd [[
 vim.api.nvim_set_hl(0, 'Whitespace', { fg = '#808080' }) -- Grey color
 vim.api.nvim_set_hl(0, 'TabLine', { fg = '#808080' })    -- Grey color
 vim.api.nvim_set_hl(0, 'EndOfLine', { fg = '#808080' })  -- Grey color
-vim.api.nvim_set_hl(0, 'CursorLine', { underline = true }) 
-
--- Use lazy nvim as plugin manager
-require('config.lazy')
+vim.api.nvim_set_hl(0, 'CursorLine', { underline = true })
