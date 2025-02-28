@@ -4,7 +4,7 @@ version = 1
 channels = ["conda-forge", "bioconda"]
 
 [envs.deven.dependencies]
-zsh = "*"
+fish = "*"
 "fd-find" = "*"
 eza = "*"
 ripgrep = "*"
@@ -16,13 +16,15 @@ glow-md = "*"
 bat = "*"
 lua = "*"
 luarocks = "*"
-uv = "*"
 python = "3.8.*"
+uv = "*"
 ruff = "*"
 fzf = "*"
 
 [envs.deven.exposed]
-zsh = "zsh"
+fish = "fish"
+fish_indent = "fish_indent"
+fish_key_reader = "fish_key_reader"
 bat = "bat"
 nvim = "nvim"
 fd = "fd"
