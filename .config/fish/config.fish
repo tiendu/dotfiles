@@ -2,6 +2,12 @@
 # Turn off greeting message
 set -g fish_greeting ''
 
+# Modify less
+set -x LESS "e M q R F X z -3"
+
+# Add pixi to PATH
+set -x PATH $HOME/.pixi/bin $PATH
+
 # Enable vi mode
 fish_vi_key_bindings
 
@@ -166,3 +172,24 @@ switch (uname)
     case Darwin
 end
 
+# Set cursors
+set fish_cursor_default block
+set fish_cursor_insert line blink
+set fish_cursor_replace_one underscore
+set fish_cursor_visual block
+
+# Prompt
+set fish_color_cwd "white"
+set fish_color_command "white"
+
+# Git prompt
+set __fish_git_prompt_show_informative_status true
+set __fish_git_prompt_showcolorhints true
+set __fish_git_prompt_showuntrackedfiles true
+set __fish_git_prompt_showstashstate true
+set __fish_git_prompt_color_flags "normal"
+set __fish_git_prompt_color_branch "cyan"
+set __fish_git_prompt_color_stagedstate "red"
+set __fish_git_prompt_color_dirtystate "blue"
+set __fish_git_prompt_color_untrackedfiles "yellow"
+set __fish_git_prompt_color_stashstate "white"
