@@ -25,7 +25,7 @@ config.colors = {
 }
 
 -- Cursor and Scrollback settings
-config.default_cursor_style = 'SteadyBlock'
+config.default_cursor_style = 'BlinkingBar'
 config.scrollback_lines = 10000
 
 -- Keybindings
