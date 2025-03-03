@@ -29,6 +29,9 @@ vim.opt.listchars = {
   eol = '↴',
 }
 
+-- Cursor configs
+vim.opt.guicursor = "n-v-c:block,i:ver25-blinkon500"
+
 -- Save and quit
 vim.api.nvim_set_keymap('n', '<leader>w', ':w<CR>', { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>q', ':q<CR>', { noremap = true })
