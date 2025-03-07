@@ -118,7 +118,7 @@ alias mv "mv -i" # Prompt before overwriting files
 alias l ls
 alias g git
 alias e _nvim
-alias sd "cd ~ && cd (find * -type d | fzf)"
+alias sd "cd (dirname (find * -type f | fzf))"
 
 # Multi cd
 function multicd
