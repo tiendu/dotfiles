@@ -32,7 +32,7 @@ end
 fish_user_key_bindings
 
 # Add new directory to PATH
-function add2path
+function a2p
     set dir (realpath $argv[1]) # Get the absolute path of the provided directory
     # Check if the directory exists
     if test -d "$dir"
