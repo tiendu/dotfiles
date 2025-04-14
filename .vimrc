@@ -5,10 +5,10 @@ set hlsearch                        " Highlight search results
 set incsearch                       " Incremental search
 set ignorecase                      " Ignore case in search patterns
 set smartcase                       " Override ignorecase if search pattern contains uppercase
-set expandtab                       " Use spaces instead of tabs
-set tabstop=4                       " Set the width of a tab character to 4 spaces
-set shiftwidth=4                    " Set the number of spaces to use for autoindenting
-set softtabstop=4                   " Set the number of spaces for a Tab in insert mode
+set noexpandtab                     " Use actual tab characters
+set tabstop=4                       " A tab equals 4 spaces visually
+set shiftwidth=4                    " Auto-indent uses 4 spaces width
+set softtabstop=4                   " Tab in insert mode uses 4 spaces
 set nowrap                          " Disable line wrapping
 set cursorline                      " Highlight the current line
 set clipboard=unnamedplus           " Use system clipboard for yanking and pasting
