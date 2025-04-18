@@ -54,8 +54,10 @@ BOLD_PINK="%B%F{#ff69b4}"
 BOLD_RED="%B%F{#ff0000}"
 BOLD_GREEN="%B%F{#00ff00}"
 BOLD_YELLOW="%B%F{#ffff00}"
+BOLD_MINT="%B%F{#00ffaa}"
 BOLD_GRAY="%B%F{#808080}"
 BOLD_CYAN="%B%F{#00ffff}"
+MINT="%F{#00ffaa}"
 WHITE="%F{#ffffff}"
 BROWN="%F{#a52a2a}"
 
@@ -244,14 +246,15 @@ bindkey -M vicmd '^H' backward-delete-char
 
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
-  VIM_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE}]${RESET}"
-  INSERT_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}I${WHITE}]${RESET}"
+  local NOR_PROMPT="${WHITE}(${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE})${RESET}"
+  local INS_PROMPT="${WHITE}(${RESET}${BOLD_CYAN}I${WHITE})${RESET}"
   if [[ $KEYMAP == vicmd ]]; then
-    VIM_MODE=$VIM_PROMPT
+    VIM_MODE=$NOR_PROMPT
   else
-    VIM_MODE=$INSERT_PROMPT
+    VIM_MODE=$INS_PROMPT
   fi
   RPROMPT="${VIM_MODE}"
+  zle reset-prompt
 }
 zle -N zle-keymap-select
 zle-line-init() { zle zle-keymap-select }
@@ -285,7 +288,7 @@ _dir_info() {
   local size count
   size=$(/bin/ls -lah 2>/dev/null | grep -m 1 total | sed 's/total //')
   count=$(/bin/ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
-  echo "${BOLD_GREEN}${count}${BOLD_GRAY}|${BOLD_GREEN}${size}${RESET}"
+  echo "${BOLD_MINT}${count}${RESET_BOLD}${BOLD_GRAY} ⛁ ${RESET_BOLD}${BOLD_MINT}${size}${RESET_BOLD}"
 }
 
 # Prompt
@@ -294,13 +297,13 @@ _update_prompt() {
   git_info=$(_git_info)
   dir_info=$(_dir_info)
 
-  PROMPT="${WHITE}[${RESET}${BOLD_PINK}%~${RESET}"
+  PROMPT="${WHITE}(${RESET}${BOLD_PINK}%~${RESET}"
   if [[ -n "$git_info" ]]; then
     PROMPT+=" ${BROWN}::${RESET} ${git_info}"
   fi
 
   PROMPT+=" ${BROWN}::${RESET} ${dir_info}"
-  PROMPT+="${WHITE}]-[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
+  PROMPT+="${WHITE})-(${RESET}${BOLD_GRAY}\$${RESET}${WHITE})${RESET} "
   PS2="${BOLD_BLUE}>${RESET} "
 }
 _update_prompt
