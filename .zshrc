@@ -288,7 +288,7 @@ _dir_info() {
   local size count
   size=$(/bin/ls -lah 2>/dev/null | grep -m 1 total | sed 's/total //')
   count=$(/bin/ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
-  echo "${BOLD_MINT}${count}${RESET_BOLD}${BOLD_GRAY} ⛁ ${RESET_BOLD}${BOLD_MINT}${size}${RESET_BOLD}"
+  echo "${BOLD_MINT}${count}${RESET_BOLD}${BOLD_GRAY} | ${RESET_BOLD}${BOLD_MINT}${size}${RESET_BOLD}"
 }
 
 # Prompt
