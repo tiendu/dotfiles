@@ -292,9 +292,34 @@ _git_info() {
 }
 
 # Directory stats using explicit full-path ls
+## Human-readable byte converter (cross-platform awk)
+_humanize_size() {
+  awk '{
+    split("B KB MB GB TB", unit)
+    s = $1
+    for (i = 1; s >= 1024 && i < 5; i++) s /= 1024
+    printf "%.1f%s\n", s, unit[i]
+  }'
+}
+
+## OS-aware fast directory size
+_get_dir_size() {
+  local blocks block_size bytes
+  blocks=$(/bin/ls -lA . 2>/dev/null | awk '/^total/ { print $2 }')
+
+  case "$(uname)" in
+    Darwin) block_size=512 ;;   # macOS
+    Linux)  block_size=1024 ;;  # Linux
+    *)      block_size=512 ;;   # Fallback
+  esac
+
+  bytes=$((blocks * block_size))
+  echo "$bytes" | _humanize_size
+}
+
 _dir_info() {
   local size count
-  size=$(/bin/ls -lah 2>/dev/null | grep -m 1 total | sed 's/total //')
+  size=$(_get_dir_size)
   count=$(/bin/ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
   echo "${BOLD_MINT}${count}${RESET_BOLD}${BOLD_GRAY} | ${RESET_BOLD}${BOLD_MINT}${size}${RESET_BOLD}"
 }
