@@ -2,20 +2,25 @@
 a2p() {
   local dir
   dir=$(realpath "$1" 2>/dev/null)
-  # Exit if realpath fails (directory doesn't exist)
-  if [ -z "$dir" ]; then
-    echo "Directory '$1' does not exist."
-    return
+  if [[ -z "$dir" || ! -d "$dir" ]]; then
+    echo "Directory '$1' does not exist or is invalid."
+    return 1
   fi
-  # Add directory to PATH if not already included
+
+  # Add to .zsh_added_paths if not already recorded
+  if ! grep -qxF "$dir" "$HOME/.zsh_added_paths" 2>/dev/null; then
+    echo "$dir" >> "$HOME/.zsh_added_paths"
+  fi
+
+  # Add to PATH if not already present
   if [[ ":$PATH:" != *":$dir:"* ]]; then
     export PATH="$dir:$PATH"
-    echo "$dir" >> "$HOME/.zsh_added_paths" 2>/dev/null
     echo "Directory '$dir' added to PATH."
   else
     echo "Directory '$dir' is already in PATH."
   fi
-  # Make all files executable if not already
+
+  # Make all files in the dir executable if not already
   find "$dir" -type f ! -perm -u+x -exec chmod +x {} \;
 }
 
@@ -34,14 +39,17 @@ _clean_up_paths() {
   local unique_paths=()
   local -A seen_paths
   IFS=":" read -r -A path_array <<< "$PATH"
+
   for path in "${path_array[@]}"; do
     if [[ -n "$path" && -z "${seen_paths[$path]}" && -d "$path" ]]; then
       unique_paths+=("$path")
       seen_paths["$path"]=1
     fi
   done
+
   PATH=$(printf "%s:" "${unique_paths[@]}")
   PATH=${PATH%:}  # Remove trailing colon
+
   # Clean up .zsh_added_paths
   [ -f "$HOME/.zsh_added_paths" ] && sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"
 }
@@ -270,7 +278,7 @@ _git_info() {
     git_branch="${rebase_commit_msg}"
   else
     # Get the current branch name
-    git_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+    git_branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
   fi
   if [[ -n "${git_branch}" ]]; then
     # Check if there are any changes in the working directory
@@ -306,7 +314,7 @@ _update_prompt() {
   PROMPT+="${WHITE})-(${RESET}${BOLD_GRAY}\$${RESET}${WHITE})${RESET} "
   PS2="${BOLD_BLUE}>${RESET} "
 }
-_update_prompt
+[[ -o interactive ]] && _update_prompt
 
 # Hooks to update the prompt
 precmd() {
