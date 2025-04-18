@@ -280,31 +280,28 @@ _git_info() {
   fi
 }
 
-# Get directory info
+# Directory stats using explicit full-path ls
 _dir_info() {
-  local files_count dir_size
-  files_count=$(find . -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')
-  dir_size=$(du -sh . 2>/dev/null | cut -f1)
-  echo "${BOLD_CYAN}${files_count} | ${dir_size}${RESET}"
+  local size count
+  size=$(/bin/ls -lah 2>/dev/null | grep -m 1 total | sed 's/total //')
+  count=$(/bin/ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
+  echo "${BOLD_GREEN}${count}${BOLD_GRAY}|${BOLD_GREEN}${size}${RESET}"
 }
 
-# Update prompt
+# Prompt
 _update_prompt() {
   local git_info dir_info
   git_info=$(_git_info)
   dir_info=$(_dir_info)
 
-  PROMPT="${BOLD_BLUE}┌─${RESET_BOLD}${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET}"
-  PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_ORANGE}%!${RESET_BOLD}${WHITE}]${RESET}"
-  PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${dir_info}${WHITE}]${RESET}"
-
+  PROMPT="${WHITE}[${RESET}${BOLD_PINK}%~${RESET}"
   if [[ -n "$git_info" ]]; then
-    PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${git_info}${WHITE}]${RESET}"
+    PROMPT+=" ${BROWN}::${RESET} ${git_info}"
   fi
 
-  PROMPT+="
-${BOLD_BLUE}└─${RESET_BOLD}${WHITE}\$ ${RESET}"
-  PS2=" ${BOLD_BLUE}>${RESET_BOLD} "
+  PROMPT+=" ${BROWN}::${RESET} ${dir_info}"
+  PROMPT+="${WHITE}]-[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
+  PS2="${BOLD_BLUE}>${RESET} "
 }
 _update_prompt
 
