@@ -53,7 +53,7 @@ _clean_up_paths() {
   # Clean up .zsh_added_paths
   [ -f "$HOME/.zsh_added_paths" ] && sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"
 }
-_clean_up_paths
+[[ -o interactive ]] && _clean_up_paths
 
 # Global color variables with hex color codes
 RESET="%f"
