@@ -280,16 +280,31 @@ _git_info() {
   fi
 }
 
+# Get directory info
+_dir_info() {
+  local files_count dir_size
+  files_count=$(find . -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')
+  dir_size=$(du -sh . 2>/dev/null | cut -f1)
+  echo "${BOLD_CYAN}${files_count} | ${dir_size}${RESET}"
+}
+
 # Update prompt
 _update_prompt() {
-  local git_info
+  local git_info dir_info
   git_info=$(_git_info)
-  PROMPT="${WHITE}[${RESET}${BOLD_PINK}%~${RESET}${WHITE}"
+  dir_info=$(_dir_info)
+
+  PROMPT="${BOLD_BLUE}┌─${RESET_BOLD}${WHITE}[${RESET}${BOLD_PINK}%~${RESET_BOLD}${WHITE}]${RESET}"
+  PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${BOLD_ORANGE}%!${RESET_BOLD}${WHITE}]${RESET}"
+  PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${dir_info}${WHITE}]${RESET}"
+
   if [[ -n "$git_info" ]]; then
-    PROMPT+=" ${BROWN}::${RESET} ${git_info}"
+    PROMPT+=" ${BROWN}-${RESET} ${WHITE}[${RESET}${git_info}${WHITE}]${RESET}"
   fi
-  PROMPT+="${WHITE}]-[${RESET}${BOLD_GRAY}\$${RESET}${WHITE}]${RESET} "
-  PS2=" ${BOLD_BLUE}>${RESET} "
+
+  PROMPT+="
+${BOLD_BLUE}└─${RESET_BOLD}${WHITE}\$ ${RESET}"
+  PS2=" ${BOLD_BLUE}>${RESET_BOLD} "
 }
 _update_prompt
 
