@@ -218,9 +218,6 @@ setopt MENUCOMPLETE              # Use menu completion
 setopt AUTO_MENU                 # Automatically show the completion menu
 setopt LIST_PACKED               # Pack the completion list
 
-# Call compdef after compinit
-compdef _files _nvim
-
 # Improve directory navigation
 setopt AUTOCD
 setopt AUTO_PUSHD                # Automatically push directories onto the stack
@@ -259,13 +256,11 @@ bindkey -M vicmd '^H' backward-delete-char
 function zle-keymap-select {
   local NOR_PROMPT="${WHITE}(${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE})${RESET}"
   local INS_PROMPT="${WHITE}(${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE})${RESET}"
-
   if [[ $KEYMAP == vicmd ]]; then
     VIM_MODE=$NOR_PROMPT
   else
     VIM_MODE=$INS_PROMPT
   fi
-
   RPROMPT="${VIM_MODE}"
   zle reset-prompt
 }
@@ -384,7 +379,8 @@ if [[ $- == *i* ]]; then
   _clean_up_paths
   autoload -Uz compinit
   zmodload zsh/complist
-  compinit -C -d "$HOME/.zcompdump-$ZSH_VERSION" &!  # Cache per version
+  compinit -C -d "$HOME/.zcompdump-$ZSH_VERSION"
+  compdef _files _nvim
 fi
 
 # Ensure that the prompt is updated when the keymap changes (e.g., Vim mode)
