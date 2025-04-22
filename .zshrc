@@ -53,7 +53,6 @@ _clean_up_paths() {
   # Clean up .zsh_added_paths
   [ -f "$HOME/.zsh_added_paths" ] && sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"
 }
-[[ -o interactive ]] && _clean_up_paths
 
 # Global color variables with hex color codes
 RESET="%f"
@@ -65,6 +64,7 @@ BOLD_YELLOW="%B%F{#ffff00}"
 BOLD_MINT="%B%F{#00ffaa}"
 BOLD_GRAY="%B%F{#808080}"
 BOLD_CYAN="%B%F{#00ffff}"
+GRAY="%F{#999999}"
 MINT="%F{#00ffaa}"
 WHITE="%F{#ffffff}"
 BROWN="%F{#a52a2a}"
@@ -79,7 +79,11 @@ fi
 
 # Setup fzf (fuzzy finder) if installed
 if command -v fzf > /dev/null 2>&1; then
-  source <(fzf --zsh)
+  _fzf_init() {
+    source <(fzf --zsh)
+  }
+  autoload -Uz _fzf_init
+  zle -N _fzf_init
 fi
 
 # Bind fzf to history search
@@ -209,7 +213,6 @@ setopt HIST_VERIFY               # Verify history expansions before executing
 setopt EXTENDED_HISTORY          # Save timestamp in history file
 
 # Completion and correction settings
-autoload -Uz compinit && compinit
 setopt CORRECT                   # Correct spelling errors
 setopt MENUCOMPLETE              # Use menu completion
 setopt AUTO_MENU                 # Automatically show the completion menu
@@ -255,12 +258,14 @@ bindkey -M vicmd '^H' backward-delete-char
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
   local NOR_PROMPT="${WHITE}(${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE})${RESET}"
-  local INS_PROMPT="${WHITE}(${RESET}${BOLD_CYAN}I${WHITE})${RESET}"
+  local INS_PROMPT="${WHITE}(${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE})${RESET}"
+
   if [[ $KEYMAP == vicmd ]]; then
     VIM_MODE=$NOR_PROMPT
   else
     VIM_MODE=$INS_PROMPT
   fi
+
   RPROMPT="${VIM_MODE}"
   zle reset-prompt
 }
@@ -269,25 +274,52 @@ zle-line-init() { zle zle-keymap-select }
 zle -N zle-line-init
 
 # Get Git branch and status
+typeset -g _GIT_INFO_CACHE=""
+typeset -g _GIT_INFO_LAST_DIR=""
+
 _git_info() {
-  local git_branch git_status rebase_commit_msg
-  # Check if we are in the middle of a rebase
-  if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
-    # If rebasing, get the commit message of the next commit
-    rebase_commit_msg=$(cat .git/rebase-merge/message 2>/dev/null || cat .git/rebase-apply/message 2>/dev/null)
-    git_branch="${rebase_commit_msg}"
+  local current_dir=$(git rev-parse --show-toplevel 2>/dev/null)
+  [[ -z "$current_dir" ]] && return
+
+  # Use cached value if still in the same repo root
+  if [[ "$_GIT_INFO_LAST_DIR" == "$current_dir" && -n "$_GIT_INFO_CACHE" ]]; then
+    echo "$_GIT_INFO_CACHE"
+    return
+  fi
+
+  # (Original logic below — truncated for brevity)
+  local git_branch rebase_commit_msg added_count=0 modified_count=0
+  local git_dir line status_char
+
+  git_dir=$(git rev-parse --git-dir 2>/dev/null)
+  if [[ -d "$git_dir/rebase-merge" || -d "$git_dir/rebase-apply" ]]; then
+    rebase_commit_msg=$(<"$git_dir/rebase-merge/message" 2>/dev/null || <"$git_dir/rebase-apply/message" 2>/dev/null)
+    git_branch="rebase: ${rebase_commit_msg}"
   else
-    # Get the current branch name
     git_branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
   fi
-  if [[ -n "${git_branch}" ]]; then
-    # Check if there are any changes in the working directory
-    if [[ -n $(git status --porcelain) ]]; then
-      git_status="${BOLD_RED}${git_branch}${RESET_BOLD}"  # Changes exist
+
+  while IFS= read -r line; do
+    status_char="${line:0:2}"
+    case "$status_char" in
+      \?\?) ((added_count++)) ;;
+      [MARCDU]?) ((modified_count++)) ;;
+      ?[MARCDU]) ((modified_count++)) ;;
+    esac
+  done < <(git status --porcelain)
+
+  local status_suffix=""
+  ((added_count > 0)) && status_suffix+=" +${added_count}"
+  ((modified_count > 0)) && status_suffix+=" !${modified_count}"
+
+  if [[ -n "$git_branch" ]]; then
+    if [[ -n "$status_suffix" ]]; then
+      _GIT_INFO_CACHE="${BOLD_RED}${git_branch}${status_suffix} ✘${RESET_BOLD}"
     else
-      git_status="${BOLD_GREEN}${git_branch}${RESET_BOLD}"  # No changes
+      _GIT_INFO_CACHE="${BOLD_GREEN}${git_branch} ✔${RESET_BOLD}"
     fi
-    echo "${git_status}"
+    _GIT_INFO_LAST_DIR="$current_dir"
+    echo "$_GIT_INFO_CACHE"
   fi
 }
 
@@ -302,7 +334,7 @@ _humanize_size() {
   }'
 }
 
-## OS-aware fast directory size
+## OS-aware fast directory size using
 _get_dir_size() {
   local blocks block_size bytes
   blocks=$(/bin/ls -lA . 2>/dev/null | awk '/^total/ { print $2 }')
@@ -332,20 +364,28 @@ _update_prompt() {
 
   PROMPT="${WHITE}(${RESET}${BOLD_PINK}%~${RESET}"
   if [[ -n "$git_info" ]]; then
-    PROMPT+=" ${BROWN}::${RESET} ${git_info}"
+    PROMPT+=" ${GRAY}::${RESET} ${git_info}"
   fi
 
-  PROMPT+=" ${BROWN}::${RESET} ${dir_info}"
-  PROMPT+="${WHITE})-(${RESET}${BOLD_GRAY}\$${RESET}${WHITE})${RESET} "
+  PROMPT+=" ${GRAY}::${RESET} ${dir_info}"
+  PROMPT+="${WHITE})
+(${RESET}${BOLD_GRAY}\$${RESET}${WHITE})${RESET} "
   PS2="${BOLD_BLUE}>${RESET} "
 }
-[[ -o interactive ]] && _update_prompt
 
 # Hooks to update the prompt
 precmd() {
   _update_prompt
   _clean_up_paths  # Call it once at shell startup
 }
+
+if [[ $- == *i* ]]; then
+  _update_prompt
+  _clean_up_paths
+  autoload -Uz compinit
+  zmodload zsh/complist
+  compinit -C -d "$HOME/.zcompdump-$ZSH_VERSION" &!  # Cache per version
+fi
 
 # Ensure that the prompt is updated when the keymap changes (e.g., Vim mode)
 autoload -Uz add-zsh-hook
