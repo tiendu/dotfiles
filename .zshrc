@@ -57,17 +57,20 @@ _clean_up_paths() {
 # Global color variables with hex color codes
 RESET="%f"
 RESET_BOLD="%f%b"
-BOLD_PINK="%B%F{#ff69b4}"
-BOLD_RED="%B%F{#ff0000}"
-BOLD_GREEN="%B%F{#00ff00}"
-BOLD_YELLOW="%B%F{#ffff00}"
-BOLD_MINT="%B%F{#00ffaa}"
-BOLD_GRAY="%B%F{#808080}"
-BOLD_CYAN="%B%F{#00ffff}"
-GRAY="%F{#999999}"
-MINT="%F{#00ffaa}"
-WHITE="%F{#ffffff}"
-BROWN="%F{#a52a2a}"
+BOLD_RED="%B%F{red}"
+BOLD_GREEN="%B%F{green}"
+BOLD_YELLOW="%B%F{yellow}"
+BOLD_CYAN="%B%F{cyan}"
+BOLD_WHITE="%B%F{white}"
+BOLD_MAGENTA="%B%F{magenta}"
+BOLD_BLUE="%B%F{blue}"
+RED="%F{red}"
+GREEN="%F{green}"
+YELLOW="%F{yellow}"
+CYAN="%F{cyan}"
+WHITE="%F{white}"
+MAGENTA="%F{magenta}"
+BLUE="%F{blue}"
 
 # Modify less
 export LESS="e M q R F X z -3"
@@ -261,7 +264,7 @@ function zle-keymap-select {
   else
     VIM_MODE=$INS_PROMPT
   fi
-  RPROMPT="${VIM_MODE}"
+  RPROMPT=$VIM_MODE
   zle reset-prompt
 }
 zle -N zle-keymap-select
@@ -348,7 +351,7 @@ _dir_info() {
   local size count
   size=$(_get_dir_size)
   count=$(/bin/ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
-  echo "${BOLD_MINT}${count}${RESET_BOLD}${BOLD_GRAY} | ${RESET_BOLD}${BOLD_MINT}${size}${RESET_BOLD}"
+  echo "${BOLD_CYAN}${count}${RESET_BOLD}${BOLD_WHITE} | ${RESET_BOLD}${BOLD_CYAN}${size}${RESET_BOLD}"
 }
 
 # Prompt
@@ -357,15 +360,15 @@ _update_prompt() {
   git_info=$(_git_info)
   dir_info=$(_dir_info)
 
-  PROMPT="${WHITE}(${RESET}${BOLD_PINK}%~${RESET}"
+  PROMPT="${WHITE}(${RESET}${BOLD_MAGENTA}%~${RESET_BOLD}"
   if [[ -n "$git_info" ]]; then
-    PROMPT+=" ${GRAY}::${RESET} ${git_info}"
+    PROMPT+=" ${BLUE}::${RESET} ${git_info}"
   fi
 
-  PROMPT+=" ${GRAY}::${RESET} ${dir_info}"
-  PROMPT+="${WHITE})
-(${RESET}${BOLD_GRAY}\$${RESET}${WHITE})${RESET} "
-  PS2="${BOLD_BLUE}>${RESET} "
+  PROMPT+=" ${BLUE}::${RESET} ${dir_info}${WHITE})${RESET}"
+  PROMPT+="
+${WHITE}(${RESET}${BOLD_WHITE}\$${RESET_BOLD}${WHITE})${RESET} "
+  PS2="${BOLD_BLUE}>${RESET_BOLD} "
 }
 
 # Hooks to update the prompt
