@@ -5,6 +5,7 @@ channels = ["conda-forge", "bioconda"]
 
 [envs.deven.dependencies]
 fish = "*"
+zsh = "*"
 "fd-find" = "*"
 eza = "*"
 ripgrep = "*"
@@ -32,3 +33,5 @@ eza = "eza"
 rg = "rg"
 zoxide = "zoxide"
 pixi-pack = "pixi-pack"
+zsh = "zsh"
+
