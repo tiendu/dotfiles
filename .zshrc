@@ -136,17 +136,26 @@ if command -v rg > /dev/null 2>&1; then
   alias grep="rg"
 fi
 
-# Replace ls with exa/eza if available
-if command -v exa > /dev/null 2>&1; then
-  alias ls="exa --icons"
-  alias ll="exa -l --icons"
-  alias la="exa -la --icons"
-  alias tree="exa --tree --level=2"
-elif command -v eza > /dev/null 2>&1; then
-  alias ls="eza --icons"
-  alias ll="eza -l --icons"
-  alias la="eza -la --icons"
-  alias tree="eza --tree --level=2"
+# Check if icons are likely supported
+_supports_icons() {
+  [[ "$TERM_PROGRAM" == *iTerm* ]] || \
+  [[ "$TERM" == *xterm* || "$TERM" == *screen* || "$TERM" == *tmux* ]] || \
+  [[ "$COLORTERM" == "truecolor" ]]
+}
+
+# Replace ls with eza if available
+if command -v eza > /dev/null 2>&1; then
+  if _supports_icons; then
+    alias ls="eza --icons"
+    alias ll="eza -l --icons"
+    alias la="eza -la --icons"
+    alias tree="eza --tree --level=2 --icons"
+  else
+    alias ls="eza"
+    alias ll="eza -l"
+    alias la="eza -la"
+    alias tree="eza --tree --level=2"
+  fi
 else
   alias ls="ls --color=auto"
   alias tree="ls -R"
@@ -232,6 +241,10 @@ setopt INTERACTIVE_COMMENTS      # Allow comments in interactive shell
 setopt LONG_LIST_JOBS            # Use long format for job lists
 setopt NO_BEEP                   # Disable the bell/beep sound
 setopt GLOBDOTS                  # Include dotfiles in globbing
+
+# Safer defaults
+setopt PROMPT_SUBST
+unsetopt BEEP
 
 # Vim mode
 ## Enable Vim mode
