@@ -270,8 +270,8 @@ bindkey -M vicmd '^H' backward-delete-char
 
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
-  local NOR_PROMPT="${WHITE}(${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE})${RESET}"
-  local INS_PROMPT="${WHITE}(${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE})${RESET}"
+  local NOR_PROMPT="${WHITE}⌈${RESET}${BOLD_YELLOW}○${RESET_BOLD}${WHITE}⌋${RESET}"
+  local INS_PROMPT="${WHITE}⌈${RESET}${BOLD_CYAN}●${RESET_BOLD}${WHITE}⌋${RESET}"
   if [[ $KEYMAP == vicmd ]]; then
     VIM_MODE=$NOR_PROMPT
   else
@@ -364,44 +364,57 @@ _dir_info() {
   local size count
   size=$(_get_dir_size)
   count=$(/bin/ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
-  echo "${BOLD_CYAN}${count}${RESET_BOLD}${BOLD_WHITE} | ${RESET_BOLD}${BOLD_CYAN}${size}${RESET_BOLD}"
+  echo "${BOLD_CYAN}${count}${RESET_BOLD}${BOLD_WHITE} · ${RESET_BOLD}${BOLD_CYAN}${size}${RESET_BOLD}"
 }
 
 # Prompt
 _update_prompt() {
   local git_info dir_info
+  local last_status=$1
   git_info=$(_git_info)
   dir_info=$(_dir_info)
 
-  PROMPT="${WHITE}(${RESET}${BOLD_MAGENTA}%~${RESET_BOLD}"
+  PROMPT="${WHITE}⌈${RESET}${BOLD_MAGENTA}%~${RESET_BOLD}"
   if [[ -n "$git_info" ]]; then
-    PROMPT+=" ${BLUE}::${RESET} ${git_info}"
+    PROMPT+=" ${BLUE}•${RESET} ${git_info}"
   fi
 
-  PROMPT+=" ${BLUE}::${RESET} ${dir_info}${WHITE})${RESET}"
-  PROMPT+="
-${WHITE}(${RESET}${BOLD_WHITE}\$${RESET_BOLD}${WHITE})${RESET} "
-  PS2="${BOLD_BLUE}>${RESET_BOLD} "
+  PROMPT+=" ${BLUE}•${RESET} ${dir_info}${WHITE}⌋${RESET}
+⌈${RESET}"
+  if [[ $last_status -eq 0 ]]; then
+    PROMPT+="${BOLD_GREEN}❯${RESET_BOLD}"
+  else
+    PROMPT+="${BOLD_RED}❯${RESET_BOLD}"
+  fi
+  PROMPT+="${WHITE}⌋${RESET} "
+  PS2="${BOLD_BLUE}↳${RESET_BOLD} "
 }
 
 # Hooks to update the prompt
-precmd() {
-  _update_prompt
-  _clean_up_paths  # Call it once at shell startup
+_prompt_precmd() {
+  _update_prompt $?
+  RPROMPT=$VIM_MODE
 }
 
-if [[ $- == *i* ]]; then
-  _update_prompt
+_clean_up_paths_precmd() {
   _clean_up_paths
+}
+
+# Register hooks
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _prompt_precmd
+add-zsh-hook precmd _clean_up_paths_precmd
+
+# Interactive shell setup
+if [[ $- == *i* ]]; then
+  _update_prompt 0
+  RPROMPT=$VIM_MODE
+  _clean_up_paths
+
   autoload -Uz compinit
   zmodload zsh/complist
   compinit -C -d "$HOME/.zcompdump-$ZSH_VERSION"
   compdef _files _nvim
 fi
-
-# Ensure that the prompt is updated when the keymap changes (e.g., Vim mode)
-autoload -Uz add-zsh-hook
-add-zsh-hook precmd _clean_up_paths
-add-zsh-hook precmd _update_prompt
 
 export PATH="$HOME/.pixi/bin:$PATH"
