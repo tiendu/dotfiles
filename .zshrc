@@ -270,8 +270,8 @@ bindkey -M vicmd '^H' backward-delete-char
 
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
-  local NOR_PROMPT="${WHITE}⌈${RESET}${BOLD_YELLOW}○${RESET_BOLD}${WHITE}⌋${RESET}"
-  local INS_PROMPT="${WHITE}⌈${RESET}${BOLD_CYAN}●${RESET_BOLD}${WHITE}⌋${RESET}"
+  local NOR_PROMPT="${WHITE}(${RESET}${BOLD_YELLOW}○${RESET_BOLD}${WHITE})${RESET}"
+  local INS_PROMPT="${WHITE}(${RESET}${BOLD_CYAN}●${RESET_BOLD}${WHITE})${RESET}"
   if [[ $KEYMAP == vicmd ]]; then
     VIM_MODE=$NOR_PROMPT
   else
@@ -364,7 +364,7 @@ _dir_info() {
   local size count
   size=$(_get_dir_size)
   count=$(/bin/ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
-  echo "${BOLD_CYAN}${count}${RESET_BOLD}${BOLD_WHITE} · ${RESET_BOLD}${BOLD_CYAN}${size}${RESET_BOLD}"
+  echo "${BOLD_CYAN}${count} | ${size}${RESET_BOLD}"
 }
 
 # Prompt
@@ -374,19 +374,19 @@ _update_prompt() {
   git_info=$(_git_info)
   dir_info=$(_dir_info)
 
-  PROMPT="${WHITE}⌈${RESET}${BOLD_MAGENTA}%~${RESET_BOLD}"
+  PROMPT="${WHITE}(${RESET}${BOLD_MAGENTA}%~${RESET_BOLD}"
   if [[ -n "$git_info" ]]; then
-    PROMPT+=" ${BLUE}•${RESET} ${git_info}"
+    PROMPT+=" ${BLUE}::${RESET} ${git_info}"
   fi
 
-  PROMPT+=" ${BLUE}•${RESET} ${dir_info}${WHITE}⌋${RESET}
-⌈${RESET}"
+  PROMPT+=" ${BLUE}::${RESET} ${dir_info}${WHITE})${RESET}
+(${RESET}"
   if [[ $last_status -eq 0 ]]; then
     PROMPT+="${BOLD_GREEN}❯${RESET_BOLD}"
   else
     PROMPT+="${BOLD_RED}❯${RESET_BOLD}"
   fi
-  PROMPT+="${WHITE}⌋${RESET} "
+  PROMPT+="${WHITE})${RESET} "
   PS2="${BOLD_BLUE}↳${RESET_BOLD} "
 }
 
