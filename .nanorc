@@ -1,28 +1,29 @@
 # sudo nano ~/.nanorc
 # Non-default settings
-set atblanks        # Wrap lines at blanks
-set cutfromcursor   # Ctrl+K cuts from cursor position to end of line
-set nohelp          # Disable help information (Ctrl+G to view the help screen)
-set softwrap        # Enable softwrap of lines
-set tabsize 4       # Set tab-to-spaces size to 4
-set tabstospaces    # Convert tab key press to spaces
-set constantshow    # Display useful information (e.g., line number) in the bottom bar
-set linenumbers     # Enable line numbering
-set casesensitive   # Case-sensitive search
-set historylog      # Save the last 100 history searches for later use
-set positionlog     # Save the cursor position between editing sessions
-set zap             # Allow highlighting text (Ctrl+Shift+Arrow) and delete it with backspace
-set autoindent      # New line will have the same number of leading spaces as the previous one
-set indicator       # Display a scroll bar on the right
-set minibar         # Display file name and other information in the bottom bar, and remove the top bar
-set regexp          # Use regular expression for searching
-set backup          # Create backups of your current file
-set trimblanks      # Remove trailing white space when saving
-set smarthome       # Home key jumps to start of line first, then to true home
-set afterends       # Ctrl+Right moves to word ends instead of word starts
+set atblanks                   # Wrap lines at blanks
+set cutfromcursor              # Ctrl+K cuts from cursor position to end of line
+set nohelp                     # Disable help information (Ctrl+G to view the help screen)
+set softwrap                   # Enable softwrap of lines
+set tabsize 4                  # Set tab-to-spaces size to 4
+set tabstospaces               # Convert tab key press to spaces
+set constantshow               # Display useful information (e.g., line number) in the bottom bar
+set linenumbers                # Enable line numbering
+set casesensitive              # Case-sensitive search
+set historylog                 # Save the last 100 history searches for later use
+set positionlog                # Save the cursor position between editing sessions
+set zap                        # Allow highlighting text (Ctrl+Shift+Arrow) and delete it with backspace
+set autoindent                 # New line will have the same number of leading spaces as the previous one
+set indicator                  # Display a scroll bar on the right
+set minibar                    # Display file name and other information in the bottom bar, and remove the top bar
+set regexp                     # Use regular expression for searching
+set backup                     # Create backups of your current file
+set trimblanks                 # Remove trailing white space when saving
+set smarthome                  # Home key jumps to start of line first, then to true home
+set afterends                  # Ctrl+Right moves to word ends instead of word starts
+set multibuffer                # Read files into separate buffers instead of inserting
+set mouse                      # Enable mouse support
 set numbercolor yellow,normal  # Set color for line numbers
 set scrollercolor grey,normal  # Set color for scroll bar
-set multibuffer     # Read files into separate buffers instead of inserting
 
 # Shortcut key bindings
 bind ^Q exit all           # Ctrl+Q to exit
