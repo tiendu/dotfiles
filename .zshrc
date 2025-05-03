@@ -168,6 +168,10 @@ alias mv="mv -i"  # Prompt before overwriting files
 alias l="ls"
 alias g="git"
 alias e="_nvim"
+
+# Dotfiles git alias for easier dotfiles management
+alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
 if command -v fd > /dev/null 2>&1 && command -v fzf > /dev/null 2>&1; then
   alias sd='dir=$(fd -t d . | fzf) && [ -n "$dir" ] && cd "$dir"'
 else
@@ -270,8 +274,8 @@ bindkey -M vicmd '^H' backward-delete-char
 
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
-  local NOR_PROMPT="${WHITE}(${RESET}${BOLD_YELLOW}○${RESET_BOLD}${WHITE})${RESET}"
-  local INS_PROMPT="${WHITE}(${RESET}${BOLD_CYAN}●${RESET_BOLD}${WHITE})${RESET}"
+  local NOR_PROMPT="${WHITE}(${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE})${RESET}"
+  local INS_PROMPT="${WHITE}(${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE})${RESET}"
   if [[ $KEYMAP == vicmd ]]; then
     VIM_MODE=$NOR_PROMPT
   else
@@ -418,3 +422,4 @@ if [[ $- == *i* ]]; then
 fi
 
 export PATH="$HOME/.pixi/bin:$PATH"
+export PATH="/home/coffee/.pixi/bin:$PATH"
