@@ -55,6 +55,7 @@ _clean_up_paths() {
 }
 
 # Global color variables with hex color codes
+autoload -U colors && colors
 RESET="%f"
 RESET_BOLD="%f%b"
 BOLD_RED="%B%F{red}"
@@ -168,10 +169,6 @@ alias mv="mv -i"  # Prompt before overwriting files
 alias l="ls"
 alias g="git"
 alias e="_nvim"
-
-# Dotfiles git alias for easier dotfiles management
-alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-
 if command -v fd > /dev/null 2>&1 && command -v fzf > /dev/null 2>&1; then
   alias sd='dir=$(fd -t d . | fzf) && [ -n "$dir" ] && cd "$dir"'
 else
@@ -352,7 +349,7 @@ _humanize_size() {
 ## OS-aware fast directory size using
 _get_dir_size() {
   local blocks block_size bytes
-  blocks=$(/bin/ls -lA . 2>/dev/null | awk '/^total/ { print $2 }')
+  blocks=$(command ls -lA . 2>/dev/null | awk '/^total/ { print $2 }')
 
   case "$(uname)" in
     Darwin) block_size=512 ;;   # macOS
@@ -361,7 +358,7 @@ _get_dir_size() {
   esac
 
   bytes=$((blocks * block_size))
-  echo "$bytes" | _humanize_size
+  _humanize_size <<< "${bytes}"
 }
 
 _dir_info() {
