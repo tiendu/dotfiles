@@ -9,7 +9,7 @@ function get_dir_info --description 'Show file count and dir size'
             set block_size 512
     end
 
-    set -l blocks (ls -lA . 2>/dev/null | awk '/^total/ { print $2 }')
+    set -l blocks (command ls -lA . 2>/dev/null | awk '/^total/ { print $2 }')
     if test -z "$blocks"
         set blocks 0
     end
