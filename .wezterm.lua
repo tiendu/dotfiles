@@ -69,7 +69,4 @@ config.visual_bell = {
   fade_out_duration_ms = 150,
 }
 
--- Highlight active pane
-config.colors.active_pane_border = '#ffcc00'
-
 return config
