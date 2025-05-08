@@ -169,6 +169,10 @@ alias mv="mv -i"  # Prompt before overwriting files
 alias l="ls"
 alias g="git"
 alias e="_nvim"
+
+# Dotfiles git alias for easier dotfiles management
+alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
 if command -v fd > /dev/null 2>&1 && command -v fzf > /dev/null 2>&1; then
   alias sd='dir=$(fd -t d . | fzf) && [ -n "$dir" ] && cd "$dir"'
 else
