@@ -410,7 +410,7 @@ ${BOLD_BLUE}⎩ ${RESET}"
   if [[ $last_status -eq 0 ]]; then
     PROMPT+="${BOLD_GREEN}❯${RESET_BOLD} "
   else
-    PROMPT+="${BOLD_RED}✘${RESET_BOLD} "
+    PROMPT+="${BOLD_RED}❮${RESET_BOLD} "
   fi
 
   PS2="${BOLD_BLUE}↳${RESET_BOLD} "
