@@ -354,6 +354,7 @@ _humanize_size() {
 _get_dir_size() {
   local blocks block_size bytes
   blocks=$(command ls -lA . 2>/dev/null | awk '/^total/ { print $2 }')
+  blocks=${blocks:-0}
 
   case "$(uname)" in
     Darwin) block_size=512 ;;   # macOS
@@ -374,24 +375,44 @@ _dir_info() {
 
 # Prompt
 _update_prompt() {
-  local git_info dir_info
   local last_status=$1
-  git_info=$(_git_info)
-  dir_info=$(_dir_info)
 
-  PROMPT="${WHITE}(${RESET}${BOLD_MAGENTA}%~${RESET_BOLD}"
+  # Capture prefix injected by Conda or Pyenv like: (base), (myenv)
+  local injected_env=""
+  if [[ "$PS1" == \(*\)* ]]; then
+    # extract the env name between the first pair of parentheses
+    injected_env="${PS1%%)*}"
+    injected_env="${injected_env#(}"
+    injected_env="${BOLD_YELLOW}${injected_env}${RESET_BOLD}"
+
+    # remove the injected (env) from PS1 to avoid duplication
+    PS1="${PS1#*) }"
+  fi
+
+  # Git + dir info
+  local git_info=$(_git_info)
+  local dir_info=$(_dir_info)
+
+  # Line 1
+  PROMPT="${BOLD_BLUE}⎧ ${RESET}"
+  if [[ -n "$injected_env" ]]; then
+    PROMPT+="${injected_env} ${BLUE}::${RESET} "
+  fi
+  PROMPT+="${BOLD_MAGENTA}%~${RESET_BOLD}"
   if [[ -n "$git_info" ]]; then
     PROMPT+=" ${BLUE}::${RESET} ${git_info}"
   fi
+  PROMPT+=" ${BLUE}::${RESET} ${dir_info}"
 
-  PROMPT+=" ${BLUE}::${RESET} ${dir_info}${WHITE})${RESET}
-(${RESET}"
+  # Line 2
+  PROMPT+="
+${BOLD_BLUE}⎩ ${RESET}"
   if [[ $last_status -eq 0 ]]; then
-    PROMPT+="${BOLD_GREEN}❯${RESET_BOLD}"
+    PROMPT+="${BOLD_GREEN}❯${RESET_BOLD} "
   else
-    PROMPT+="${BOLD_RED}❯${RESET_BOLD}"
+    PROMPT+="${BOLD_RED}✘${RESET_BOLD} "
   fi
-  PROMPT+="${WHITE})${RESET} "
+
   PS2="${BOLD_BLUE}↳${RESET_BOLD} "
 }
 
