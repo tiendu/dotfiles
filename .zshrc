@@ -394,7 +394,7 @@ _update_prompt() {
   local dir_info=$(_dir_info)
 
   # Line 1
-  PROMPT="${WHITE}╒ ${RESET}"
+  PROMPT="${WHITE}⎧ ${RESET}"
   if [[ -n "$injected_env" ]]; then
     PROMPT+="${injected_env} ${BLUE}::${RESET} "
   fi
@@ -406,7 +406,7 @@ _update_prompt() {
 
   # Line 2
   PROMPT+="
-${WHITE}╘ ${RESET}"
+${WHITE}⎩ ${RESET}"
   if [[ $last_status -eq 0 ]]; then
     PROMPT+="${BOLD_GREEN}❯${RESET_BOLD} "
   else
