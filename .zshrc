@@ -83,26 +83,38 @@ fi
 
 # Setup fzf (fuzzy finder) if installed
 if command -v fzf > /dev/null 2>&1; then
-  _fzf_init() {
-    source <(fzf --zsh)
-  }
-  autoload -Uz _fzf_init
-  zle -N _fzf_init
+  # Manual fallback definition if ~/.fzf.zsh doesn't exist (Pixi install)
+  if ! type fzf-history-widget >/dev/null 2>&1; then
+    fzf-history-widget() {
+      local selected
+      selected=$(fc -rl 1 | awk '{$1=""; print substr($0,2)}' | fzf --tac +s --no-sort --reverse --height 40% --ansi --prompt="History > ")
+      if [[ -n $selected ]]; then
+        LBUFFER=$selected
+        zle redisplay
+      fi
+    }
+    zle -N fzf-history-widget
+  fi
+
+  # Load official fzf keybindings + widgets if installed via fzf install script
+  [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+  # Bind Ctrl+R to history search
+  bindkey '^R' fzf-history-widget
+
+  # Optional: Custom keybinds and options
+  export FZF_DEFAULT_OPTS="--bind 'ctrl-j:down,ctrl-k:up,alt-j:preview-down,alt-k:preview-up'"
+
+  export FZF_CTRL_R_OPTS="
+    --preview 'echo {2..} | bat --color=always -pl sh'
+    --preview-window up:hidden:wrap
+    --bind 'ctrl-/:change-preview-window(30%|60%|90%|)'
+    --bind 'ctrl-v:execute(echo {2..} | view - > /dev/tty)'
+    --bind 'ctrl-t:track+clear-query'
+    --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort'
+    --color header:italic
+    --header 'Press CTRL-Y to copy command into clipboard'"
 fi
-
-# Bind fzf to history search
-export FZF_CTRL_R_OPTS="
-  --preview 'echo {2..} | bat --color=always -pl sh'
-  --preview-window up:hidden:wrap
-  --bind 'ctrl-/:change-preview-window(30%|60%|90%|)'
-  --bind 'ctrl-v:execute(echo {2..} | view - > /dev/tty)'
-  --bind 'ctrl-t:track+clear-query'
-  --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort'
-  --color header:italic
-  --header 'Press CTRL-Y to copy command into clipboard'"
-
-# Use Vim nav keys in fzf
-export FZF_DEFAULT_OPTS="--bind 'ctrl-j:down,ctrl-k:up,alt-j:preview-down,alt-k:preview-up'"
 
 # Vim to create new file
 _nvim() {
