@@ -1,3 +1,13 @@
+## Get Java
+
+```bash
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+sdk install java 17.0.9-tem
+sdk use java 17.0.9-tem
+```
+
 ## Version-Controlled Dotfiles
 
 Create a bare Git repository to manage your `$HOME` config files:
