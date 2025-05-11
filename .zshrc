@@ -287,8 +287,8 @@ bindkey -M vicmd '^H' backward-delete-char
 
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
-  local NOR_PROMPT="${WHITE}⟦${RESET}${BOLD_YELLOW}◎${RESET_BOLD}${WHITE}⟧${RESET}"
-  local INS_PROMPT="${WHITE}⟦${RESET}${BOLD_CYAN}◉${RESET_BOLD}${WHITE}⟧${RESET}"
+  local NOR_PROMPT="${WHITE}⟦${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE}⟧${RESET}"
+  local INS_PROMPT="${WHITE}⟦${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE}⟧${RESET}"
   if [[ $KEYMAP == vicmd ]]; then
     VIM_MODE=$NOR_PROMPT
   else
