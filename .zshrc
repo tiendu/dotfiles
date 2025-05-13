@@ -287,8 +287,8 @@ bindkey -M vicmd '^H' backward-delete-char
 
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
-  local NOR_PROMPT="${WHITE}⟦${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE}⟧${RESET}"
-  local INS_PROMPT="${WHITE}⟦${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE}⟧${RESET}"
+  local NOR_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE}]${RESET}"
+  local INS_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE}]${RESET}"
   if [[ $KEYMAP == vicmd ]]; then
     VIM_MODE=$NOR_PROMPT
   else
@@ -342,9 +342,9 @@ _git_info() {
 
   if [[ -n "$git_branch" ]]; then
     if [[ -n "$status_suffix" ]]; then
-      _GIT_INFO_CACHE="${BOLD_RED}${git_branch}${status_suffix} ✘${RESET_BOLD}"
+      _GIT_INFO_CACHE="${BOLD_RED}${git_branch}${status_suffix}${RESET_BOLD}"
     else
-      _GIT_INFO_CACHE="${BOLD_GREEN}${git_branch} ✔${RESET_BOLD}"
+      _GIT_INFO_CACHE="${BOLD_GREEN}${git_branch}${RESET_BOLD}"
     fi
     _GIT_INFO_LAST_DIR="$current_dir"
     echo "$_GIT_INFO_CACHE"
@@ -406,26 +406,26 @@ _update_prompt() {
   local dir_info=$(_dir_info)
 
   # Line 1
-  PROMPT="${WHITE}⎧ ${RESET}"
+  PROMPT=" "
   if [[ -n "$injected_env" ]]; then
-    PROMPT+="${injected_env} ${BLUE}::${RESET} "
+    PROMPT+="${injected_env} ${WHITE}::${RESET} "
   fi
   PROMPT+="${BOLD_MAGENTA}%~${RESET_BOLD}"
   if [[ -n "$git_info" ]]; then
-    PROMPT+=" ${BLUE}::${RESET} ${git_info}"
+    PROMPT+=" ${WHITE}::${RESET} ${git_info}"
   fi
-  PROMPT+=" ${BLUE}::${RESET} ${dir_info}"
+  PROMPT+=" ${WHITE}::${RESET} ${dir_info}"
 
   # Line 2
   PROMPT+="
-${WHITE}⎩ ${RESET}"
+ "
   if [[ $last_status -eq 0 ]]; then
-    PROMPT+="${BOLD_GREEN}❯${RESET_BOLD} "
+    PROMPT+="${BOLD_GREEN}>${RESET_BOLD} "
   else
-    PROMPT+="${BOLD_RED}❮${RESET_BOLD} "
+    PROMPT+="${BOLD_RED}<${RESET_BOLD} "
   fi
 
-  PS2="${BOLD_BLUE}↳${RESET_BOLD} "
+  PS2="${BOLD_BLUE}>>${RESET_BOLD} "
 }
 
 # Hooks to update the prompt
