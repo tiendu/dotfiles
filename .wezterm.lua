@@ -8,7 +8,7 @@ config.font = wezterm.font_with_fallback {
   weight = 'Bold'
 }
 config.harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' }  -- Turn off ligatures
-config.font_size = 16.0
+config.font_size = 18.0
 config.window_background_opacity = 0.8
 
 -- Tab bar customization
