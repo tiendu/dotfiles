@@ -22,6 +22,6 @@ function get_dir_info --description 'Show file count and dir size'
 	set -l magenta (set_color magenta)
 	set -l normal (set_color normal)
 
-  echo -n "($cyan$count$normal|$magenta$size$normal)"
+  echo -n "($cyan$count$normal | $magenta$size$normal)"
 end
 
