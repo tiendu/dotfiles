@@ -1,3 +1,33 @@
+## Quick Font Set-up for XFCE
+
+```bash
+#!/bin/bash
+
+# ==== Config ====
+FONT_NAME="Noto Sans"
+FONT_SIZE="11"
+TITLE_FONT="$FONT_NAME Bold $FONT_SIZE"
+UI_FONT="$FONT_NAME $FONT_SIZE"
+TERMINAL_FONT="Monospace $FONT_SIZE"
+
+# ==== Apply ====
+
+# UI font
+xfconf-query -c xsettings -p /Gtk/FontName -s "$UI_FONT"
+
+# Window title font
+xfconf-query -c xfwm4 -p /general/title_font -s "$TITLE_FONT"
+
+# Terminal font
+xfconf-query -c xfce4-terminal -p /general/use-system-font -s false
+xfconf-query -c xfce4-terminal -p /general/font-name -s "$TERMINAL_FONT"
+
+# Optional: reload xfwm4 to apply title bar font immediately
+xfwm4 --replace &
+
+echo "[✓] XFCE font updated to: $UI_FONT"
+```
+
 ## Java Installation with SDKMAN
 
 ```bash
