@@ -10,7 +10,7 @@ Check status:
 tlp-stat -s
 ```
 
-Add these to `/etc/tlp/conf`:
+Add these to `/etc/tlp.conf`:
 
 ```
 CPU_SCALING_GOVERNOR_ON_BAT=powersave
