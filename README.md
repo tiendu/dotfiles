@@ -1,65 +1,20 @@
-## Quick Font/Icon Set-up for XFCE
+## Linux Battery Optimization
 
 ```bash
-#!/bin/bash
+sudo apt update && sudo apt install tlp tlp-rdw acpi-call-dkms tp-smapi-dkms && sudo tlp start
+```
 
-# === Default Config ===
-FONT_NAME="Noto Sans"
-FONT_SIZE="11"
-TITLE_FONT="$FONT_NAME Bold $FONT_SIZE"
-UI_FONT="$FONT_NAME $FONT_SIZE"
-TERMINAL_FONT="Monospace $FONT_SIZE"
-PANEL_ICON_SIZE=28
-GTK_ICON_SIZES="gtk-menu=24,24:gtk-button=24,24:gtk-large-toolbar=32,32"
-DPI_VALUE=110000  # Equivalent to 110 DPI
-ICON_THEME="Papirus"
+Check status:
 
-# === Apply Fonts ===
-echo "[1/6] Applying UI font: $UI_FONT"
-xfconf-query -c xsettings -p /Gtk/FontName -s "$UI_FONT"
+```bash
+tlp-stat -s
+```
 
-echo "[2/6] Applying title bar font: $TITLE_FONT"
-xfconf-query -c xfwm4 -p /general/title_font -s "$TITLE_FONT"
+Add these to `/etc/tlp/conf`:
 
-echo "[3/6] Applying terminal font: $TERMINAL_FONT"
-xfconf-query -c xfce4-terminal -p /general/use-system-font -s false
-xfconf-query -c xfce4-terminal -p /general/font-name -s "$TERMINAL_FONT"
-
-# === Apply Icon Sizes ===
-echo "[4/6] Setting panel height and icon size: $PANEL_ICON_SIZE"
-xfconf-query -c xfce4-panel -p /panels/panel-0/size -s $PANEL_ICON_SIZE
-
-echo "[4.1/6] Setting GTK icon sizes"
-xfconf-query -c xsettings -p /Gtk/IconSizes -s "$GTK_ICON_SIZES"
-
-# === Set Icon Theme ===
-echo "[4.2/6] Setting icon theme to: $ICON_THEME"
-xfconf-query -c xsettings -p /Net/IconThemeName -s "$ICON_THEME"
-
-# === Force Window Buttons & Launcher to scale icons ===
-echo "[5/6] Forcing taskbar buttons to auto-scale icons"
-for plugin_id in $(xfconf-query -c xfce4-panel -p /panels/panel-0/plugin-ids -l | grep -o '[0-9]\+'); do
-    plugin_type=$(xfconf-query -c xfce4-panel -p /plugins/plugin-$plugin_id -n -v 2>/dev/null)
-    if [[ "$plugin_type" == *"tasklist"* ]]; then
-        echo "  ↳ Found Window Buttons (plugin-$plugin_id) → enabling icon scaling"
-        xfconf-query -c xfce4-panel -p /plugins/plugin-$plugin_id/show-labels -s false
-        xfconf-query -c xfce4-panel -p /plugins/plugin-$plugin_id/adjust-icon-size -s true
-    fi
-    if [[ "$plugin_type" == *"launcher"* ]]; then
-        echo "  ↳ Found Launcher (plugin-$plugin_id) → nothing to change (scales by icon size)"
-    fi
-done
-
-# === DPI Setting ===
-echo "[6/6] Setting Xft DPI to: $DPI_VALUE"
-xfconf-query -c xsettings -p /Xft/DPI -s $DPI_VALUE
-
-# === Restart panel + window manager ===
-echo "[✓] Restarting XFWM and Panel to apply changes..."
-xfwm4 --replace & disown
-xfce4-panel --restart
-
-echo -e "\n🎉 XFCE tuned! Font: $UI_FONT | DPI: ${DPI_VALUE%000} | Panel: ${PANEL_ICON_SIZE}px | Icon Theme: $ICON_THEME"
+```
+CPU_SCALING_GOVERNOR_ON_BAT=powersave
+USB_AUTOSUSPEND=1
 ```
 
 ## Java Installation with SDKMAN
