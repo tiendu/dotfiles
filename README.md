@@ -1,31 +1,45 @@
-## Quick Font Set-up for XFCE
+## Quick Font/Icon Set-up for XFCE
 
 ```bash
 #!/bin/bash
 
-# ==== Config ====
+# === Default Config ===
 FONT_NAME="Noto Sans"
 FONT_SIZE="11"
 TITLE_FONT="$FONT_NAME Bold $FONT_SIZE"
 UI_FONT="$FONT_NAME $FONT_SIZE"
 TERMINAL_FONT="Monospace $FONT_SIZE"
+PANEL_ICON_SIZE=28
+GTK_ICON_SIZES="gtk-menu=24,24:gtk-button=24,24:gtk-large-toolbar=32,32"
+DPI_VALUE=110000  # Equivalent to 110 DPI
 
-# ==== Apply ====
-
-# UI font
+# === Apply Fonts ===
+echo "[1/5] Applying UI font: $UI_FONT"
 xfconf-query -c xsettings -p /Gtk/FontName -s "$UI_FONT"
 
-# Window title font
+echo "[2/5] Applying title bar font: $TITLE_FONT"
 xfconf-query -c xfwm4 -p /general/title_font -s "$TITLE_FONT"
 
-# Terminal font
+echo "[3/5] Applying terminal font: $TERMINAL_FONT"
 xfconf-query -c xfce4-terminal -p /general/use-system-font -s false
 xfconf-query -c xfce4-terminal -p /general/font-name -s "$TERMINAL_FONT"
 
-# Optional: reload xfwm4 to apply title bar font immediately
+# === Apply Icon Sizes ===
+echo "[4/5] Setting panel icon size: $PANEL_ICON_SIZE"
+xfconf-query -c xfce4-panel -p /panels/panel-0/size -s $PANEL_ICON_SIZE
+
+echo "[4.1/5] Setting GTK icon sizes"
+xfconf-query -c xsettings -p /Gtk/IconSizes -s "$GTK_ICON_SIZES"
+
+# === Apply DPI ===
+echo "[5/5] Setting Xft DPI to: $DPI_VALUE"
+xfconf-query -c xsettings -p /Xft/DPI -s $DPI_VALUE
+
+# === Reload window manager (optional) ===
+echo "[✓] Done. Restarting XFWM to apply title font..."
 xfwm4 --replace &
 
-echo "[✓] XFCE font updated to: $UI_FONT"
+echo -e "\n🎉 XFCE desktop tuned! Font: $UI_FONT | DPI: ${DPI_VALUE%000} | Icon: ${PANEL_ICON_SIZE}px"
 ```
 
 ## Java Installation with SDKMAN
