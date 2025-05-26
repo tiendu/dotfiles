@@ -29,28 +29,38 @@ sdk use java 17.0.9-tem
 
 ## Version-Controlled Dotfiles
 
-Create a bare Git repository to manage your `$HOME` config files:
+### Step 1: Define the environment variable (e.g. in `.zshrc` or `.bashrc`)
 
 ```bash
-git init --bare $HOME/.dotfiles
-alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+export DOTFILES_REPO="git@github.com:tiendu/dotfiles.git"
+export DOTFILES_DIR="$HOME/.dotfiles"
+```
+
+### Step 2: Use it in your setup
+
+```bash
+# Clone the dotfiles repo as a bare repo
+git clone --bare "$DOTFILES_REPO" "$DOTFILES_DIR"
+
+# Define the `config` alias
+alias config='/usr/bin/git --git-dir=$DOTFILES_DIR --work-tree=$HOME'
+
+# Checkout your dotfiles into $HOME
+config checkout
 config config --local status.showUntrackedFiles no
 ```
 
-With alias `config`, you can:
+### Bonus: Add the alias permanently
 
 ```bash
-config add .vimrc .zshrc
-config commit -m "update prompt"
-config push
+echo 'alias config="/usr/bin/git --git-dir=$DOTFILES_DIR --work-tree=$HOME"' >> ~/.zshrc
 ```
 
-To clone on another machine:
+You can also export the variables there if you want them available every time:
 
 ```bash
-git clone --bare git@github.com:you/dotfiles.git $HOME/.dotfiles
-alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-config checkout
+echo 'export DOTFILES_REPO="git@github.com:tiendu/dotfiles.git"' >> ~/.zshrc
+echo 'export DOTFILES_DIR="$HOME/.dotfiles"' >> ~/.zshrc
 ```
 
 ## `pixi.sh` Environment Setup
