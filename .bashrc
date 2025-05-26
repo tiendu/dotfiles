@@ -7,6 +7,9 @@ case $- in
     *) return;;
 esac
 
+# Enable vi-style command-line editing
+set -o vi
+
 # Avoid duplicates in history.
 export HISTCONTROL=ignoredups:erasedups:ignorespace
 
