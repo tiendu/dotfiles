@@ -223,7 +223,9 @@ elif command -v xsel > /dev/null 2>&1; then
   alias pbcopy="xsel --clipboard --input"
   alias pbpaste="xsel --clipboard --output"
 else
-  echo "No clipboard utility found. Install xclip or xsel for pbcopy/pbpaste functionality."
+  # Fallback to no-op to avoid script errors in headless environments
+  alias pbcopy='cat > /dev/null'
+  alias pbpaste='echo ""'
 fi
 
 # History settings
@@ -453,6 +455,19 @@ if [[ $- == *i* ]]; then
   zmodload zsh/complist
   compinit -C -d "$HOME/.zcompdump-$ZSH_VERSION"
   compdef _files _nvim
+fi
+
+# Auto-start tmux if not already inside it
+if [ -t 1 ] && command -v tmux >/dev/null 2>&1; then
+  if [[ -f ~/.tmux.conf ]] && \
+     [[ $PPID != 1 ]] && \
+     [[ $$ != 1 ]] && \
+     [[ $TERM != dumb ]] && \
+     [[ $TERM != linux ]] && \
+     [[ $TERM != screen* ]] && \
+     [[ -z $TMUX ]]; then
+    exec tmux
+  fi
 fi
 
 export PATH="$HOME/.pixi/bin:$PATH"
