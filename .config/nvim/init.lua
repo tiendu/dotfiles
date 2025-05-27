@@ -14,6 +14,9 @@ vim.opt.wrap = false                           -- Disable line wrapping
 vim.opt.cursorline = true                      -- Highlight the current line
 vim.opt.clipboard = 'unnamedplus'              -- Use system clipboard for yanking and pasting
 vim.opt.timeoutlen = 300                       -- Lower keystroke timeout
+vim.opt.colorcolumn = '10,20,30,40,50,60,70,80'
+
+vim.cmd [[ highlight ColorColumn guibg=#2c2c2c ]]
 
 -- Key Mappings
 vim.g.mapleader = ' '                          -- Set the leader key to space
@@ -61,18 +64,18 @@ vim.o.laststatus = 2
 
 -- Define the status line format
 vim.o.statusline = table.concat({
-  '%#StatusLine#',              -- Highlight group for the main section
-  '%F',                         -- File path
-  '%h',                         -- Help flag
-  '%m',                         -- Modified flag
-  '%r',                         -- Read-only flag
-  '%#StatusLineNC#',            -- Highlight group for secondary sections
-  '%=',                         -- Right-align the rest
-  '%y',                         -- File type
-  '%{&fileencoding?&fileencoding:&encoding}', -- File encoding
-  '%{&fileformat}',             -- File format (e.g., unix, dos)
-  ' [%p%%]',                    -- File percentage through
-  ' %l/%L:%c',                  -- Line number/Total lines: Column number
+  '%#StatusLine#',                             -- Highlight group for the main section
+  ' %F',                                       -- File path
+  ' %h',                                       -- Help flag
+  ' %m',                                       -- Modified flag
+  ' %r',                                       -- Read-only flag
+  ' %#StatusLineNC#',                          -- Highlight group for secondary sections
+  '%=',                                        -- Right-align the rest
+  ' %y',                                       -- File type
+  ' %{&fileencoding?&fileencoding:&encoding}', -- File encoding
+  ' %{&fileformat}',                           -- File format (e.g., unix, dos)
+  ' [%p%%]',                                   -- File percentage through
+  ' Ln %l/%L, Col %c',                         -- Line number/Total lines: Column number
 })
 
 -- Set color for line numbers
