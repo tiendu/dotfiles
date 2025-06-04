@@ -407,27 +407,26 @@ _update_prompt() {
   local git_info=$(_git_info)
   local dir_info=$(_dir_info)
 
-  # Line 1: Time :: Env :: Path :: Git :: Dir
-  local prompt=" ${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: "
+  # Line 1
+  PROMPT=" ${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: "
   if [[ -n "$injected_env" ]]; then
-    prompt+="${injected_env} ${WHITE}::${RESET} "
+    PROMPT+="${injected_env} ${WHITE}::${RESET} "
   fi
-  prompt+="${BOLD_MAGENTA}%~${RESET_BOLD}"
+  PROMPT+="${BOLD_MAGENTA}%~${RESET_BOLD}"
   if [[ -n "$git_info" ]]; then
-    prompt+=" ${WHITE}::${RESET} ${git_info}"
+    PROMPT+=" ${WHITE}::${RESET} ${git_info}"
   fi
-  prompt+=" ${WHITE}::${RESET} ${dir_info}"
+  PROMPT+=" ${WHITE}::${RESET} ${dir_info}"
 
-  # Line 2: Status-aware arrow
-  prompt+="
-"
+  # Line 2
+  PROMPT+="
+ "
   if [[ $last_status -eq 0 ]]; then
-    prompt+="${BOLD_GREEN}>${RESET_BOLD} "
+    PROMPT+="${BOLD_GREEN}>${RESET_BOLD} "
   else
-    prompt+="${BOLD_RED}<${RESET_BOLD} "
+    PROMPT+="${BOLD_RED}<${RESET_BOLD} "
   fi
 
-  PS1="$prompt"
   PS2="${BOLD_BLUE}>>${RESET_BOLD} "
 }
 
