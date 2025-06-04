@@ -387,6 +387,35 @@ _dir_info() {
   echo "${BOLD_CYAN}${count} | ${size}${RESET_BOLD}"
 }
 
+_shorten_path() {
+  local full_path="${1:-$PWD}"
+  local head_count=2
+  local tail_count=2
+  local prefix=""
+  local trimmed_path="$full_path"
+
+  # Replace $HOME with ~ if applicable
+  if [[ "$full_path" == "$HOME"* ]]; then
+    prefix="~"
+    trimmed_path="${full_path/#$HOME/}"
+  fi
+
+  # Split path into array
+  local parts=()
+  IFS='/' read -rA parts <<< "${trimmed_path#/}"  # remove leading slash if any
+
+  local total_parts=${#parts[@]}
+  local path_out=""
+
+  if (( total_parts > head_count + tail_count + 1 )); then
+    path_out="${prefix}/${(j:/:)parts[1,head_count]}/.../${(j:/:)parts[-$tail_count,-1]}"
+  else
+    path_out="${prefix}/${(j:/:)parts}"
+  fi
+
+  echo "$path_out"
+}
+
 # Prompt
 _update_prompt() {
   local last_status=$1
@@ -412,7 +441,7 @@ _update_prompt() {
   if [[ -n "$injected_env" ]]; then
     PROMPT+="${injected_env} ${WHITE}::${RESET} "
   fi
-  PROMPT+="${BOLD_MAGENTA}%~${RESET_BOLD}"
+  PROMPT+="${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD}"
   if [[ -n "$git_info" ]]; then
     PROMPT+=" ${WHITE}::${RESET} ${git_info}"
   fi
