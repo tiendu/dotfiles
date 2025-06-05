@@ -621,8 +621,7 @@ pkg update && \
 pkg upgrade -y && \
 pkg autoclean && \
 pkg clean && \
-pkg install curl wget git zip unzip gawk nano eza ripgrep htop ruby openssh zsh tmux tree python3 nmap jq pup bat aria2 fzf entr && \
-gem install lolcat
+pkg install curl wget git zip unzip gawk neovim eza ripgrep htop zsh tmux python3 nmap jq fd bat aria2 fzf entr
 ```
 
 ### Customize Extra Keys
