@@ -1,9 +1,27 @@
 # Add a dir to PATH
 a2p() {
-  local dir
-  dir=$(realpath "$1" 2>/dev/null)
+  local input="$1"
+  local dir=""
+
+  if [[ -z "$input" ]]; then
+    echo "Usage: a2p <binary_name | directory_path | binary_path>"
+    return 1
+  fi
+
+  # If input is a file or contains slashes (implies path), resolve its directory
+  if [[ -f "$input" || "$input" == */* ]]; then
+    dir=$(realpath -m "$input" 2>/dev/null)
+    dir=$(dirname "$dir")
+  else
+    if ! command -v "$input" >/dev/null; then
+      echo "Binary not found: $input"
+      return 1
+    fi
+    dir=$(dirname "$(command -v "$input")")
+  fi
+
   if [[ -z "$dir" || ! -d "$dir" ]]; then
-    echo "Directory '$1' does not exist or is invalid."
+    echo "Could not resolve a valid directory from '$input'."
     return 1
   fi
 
