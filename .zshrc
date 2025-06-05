@@ -199,6 +199,7 @@ alias mv="mv -i"  # Prompt before overwriting files
 alias l="ls"
 alias g="git"
 alias e="_nvim"
+alias ta="tmux attach || tmux new"
 
 # Dotfiles git alias for easier dotfiles management
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
@@ -502,19 +503,6 @@ if [[ $- == *i* ]]; then
   zmodload zsh/complist
   compinit -C -d "$HOME/.zcompdump-$ZSH_VERSION"
   compdef _files _nvim
-fi
-
-# Auto-start tmux if not already inside it
-if [ -t 1 ] && command -v tmux >/dev/null 2>&1; then
-  if [[ -f ~/.tmux.conf ]] && \
-     [[ $PPID != 1 ]] && \
-     [[ $$ != 1 ]] && \
-     [[ $TERM != dumb ]] && \
-     [[ $TERM != linux ]] && \
-     [[ $TERM != screen* ]] && \
-     [[ -z $TMUX ]]; then
-    exec tmux
-  fi
 fi
 
 export PATH="$HOME/.pixi/bin:$PATH"
