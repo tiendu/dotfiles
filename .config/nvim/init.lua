@@ -54,39 +54,41 @@ vim.o.statusline = table.concat({
 })
 
 -- === Keymaps: General ===
-vim.api.nvim_set_keymap('n', '<leader>w', ':w<CR>', { noremap = true })
-vim.api.nvim_set_keymap('n', '<leader>q', ':q<CR>', { noremap = true })
-vim.api.nvim_set_keymap('n', '<leader>x', ':silent! wq<CR>', { noremap = true })
+vim.keymap.set('n', '<leader>w', ':w<CR>', { noremap = true })
+vim.keymap.set('n', '<leader>q', ':q<CR>', { noremap = true })
+vim.keymap.set('n', '<leader>x', ':silent! wq<CR>', { noremap = true })
 
 -- === Keymaps: Line Movement ===
-vim.api.nvim_set_keymap('n', '<A-j>', ':m .+1<CR>==', { noremap = true })
-vim.api.nvim_set_keymap('n', '<A-k>', ':m .-2<CR>==', { noremap = true })
-vim.api.nvim_set_keymap('i', '<A-j>', '<Esc>:m .+1<CR>==gi', { noremap = true })
-vim.api.nvim_set_keymap('i', '<A-k>', '<Esc>:m .-2<CR>==gi', { noremap = true })
-vim.api.nvim_set_keymap('v', '<A-j>', ":m '>+1<CR>gv=gv", { noremap = true })
-vim.api.nvim_set_keymap('v', '<A-k>', ":m '<-2<CR>gv=gv", { noremap = true })
+vim.keymap.set('n', '<A-j>', ':m .+1<CR>==', { noremap = true })
+vim.keymap.set('n', '<A-k>', ':m .-2<CR>==', { noremap = true })
+vim.keymap.set('i', '<A-j>', '<Esc>:m .+1<CR>==gi', { noremap = true })
+vim.keymap.set('i', '<A-k>', '<Esc>:m .-2<CR>==gi', { noremap = true })
+vim.keymap.set('v', '<A-j>', ":m '>+1<CR>gv=gv", { noremap = true })
+vim.keymap.set('v', '<A-k>', ":m '<-2<CR>gv=gv", { noremap = true })
 
 -- === Keymaps: Escape Insert Mode ===
-vim.api.nvim_set_keymap('i', 'jk', '<Esc>', { noremap = true })
-vim.api.nvim_set_keymap('i', 'kj', '<Esc>', { noremap = true })
-vim.api.nvim_set_keymap('i', 'kk', '<Esc>', { noremap = true })
-vim.api.nvim_set_keymap('i', 'jj', '<Esc>', { noremap = true })
+vim.keymap.set('i', 'jk', '<Esc>', { noremap = true })
+vim.keymap.set('i', 'kj', '<Esc>', { noremap = true })
+vim.keymap.set('i', 'kk', '<Esc>', { noremap = true })
+vim.keymap.set('i', 'jj', '<Esc>', { noremap = true })
 
 -- === Keymaps: Cursor Movement in Insert Mode ===
-vim.api.nvim_set_keymap('i', '<C-k>', '<Esc>ka', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('i', '<C-j>', '<Esc>ja', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('i', '<C-h>', '<Esc>ha', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('i', '<C-l>', '<Esc>la', { noremap = true, silent = true })
+vim.keymap.set('i', '<C-k>', '<Esc>ka', { noremap = true, silent = true })
+vim.keymap.set('i', '<C-j>', '<Esc>ja', { noremap = true, silent = true })
+vim.keymap.set('i', '<C-h>', '<Esc>ha', { noremap = true, silent = true })
+vim.keymap.set('i', '<C-l>', '<Esc>la', { noremap = true, silent = true })
 
 -- === Keymaps: Quickfix ===
-vim.api.nvim_set_keymap('n', '<leader>co', ':copen<CR>', { noremap = true })
-vim.api.nvim_set_keymap('n', '<leader>cc', ':cclose<CR>', { noremap = true })
-vim.api.nvim_set_keymap('n', '<leader>cn', ':cnext<CR>', { noremap = true })
-vim.api.nvim_set_keymap('n', '<leader>cp', ':cprev<CR>', { noremap = true })
+vim.keymap.set('n', '<leader>co', ':copen<CR>', { noremap = true })
+vim.keymap.set('n', '<leader>cc', ':cclose<CR>', { noremap = true })
+vim.keymap.set('n', '<leader>cn', ':cnext<CR>', { noremap = true })
+vim.keymap.set('n', '<leader>cp', ':cprev<CR>', { noremap = true })
 
 -- === Keymaps: Tab Navigation ===
 vim.keymap.set('n', '<C-l>', 'gt', { noremap = true, desc = 'Next tab' })
 vim.keymap.set('n', '<C-h>', 'gT', { noremap = true, desc = 'Previous tab' })
+vim.keymap.set('n', '<leader>tc', ':tabclose<CR>', { desc = 'Close current tab' })
+vim.keymap.set('n', '<leader>to', ':tabonly<CR>', { desc = 'Close all other tabs' })
 vim.keymap.set('n', '<leader>e', ':tabnew | Explore<CR>', { desc = 'File explorer in new tab' })
 
 -- === Highlight Yanked Text ===
