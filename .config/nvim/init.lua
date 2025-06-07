@@ -84,6 +84,11 @@ vim.api.nvim_set_keymap('n', '<leader>cc', ':cclose<CR>', { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>cn', ':cnext<CR>', { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>cp', ':cprev<CR>', { noremap = true })
 
+-- === Keymaps: Tab Navigation ===
+vim.keymap.set('n', '<C-l>', 'gt', { noremap = true, desc = 'Next tab' })
+vim.keymap.set('n', '<C-h>', 'gT', { noremap = true, desc = 'Previous tab' })
+vim.keymap.set('n', '<leader>e', ':tabnew | Explore<CR>', { desc = 'File explorer in new tab' })
+
 -- === Highlight Yanked Text ===
 vim.api.nvim_create_autocmd("TextYankPost", {
   pattern = "*",
