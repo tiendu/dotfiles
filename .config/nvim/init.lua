@@ -125,10 +125,21 @@ vim.api.nvim_create_autocmd("InsertLeave", {
 vim.api.nvim_create_autocmd("BufWritePre", {
   pattern = "*",
   callback = function()
+    local file = vim.fn.expand("<afile>")
     local dir = vim.fn.expand("<afile>:p:h")
+
+    -- Ensure directory exists
     if vim.fn.isdirectory(dir) == 0 then
       vim.fn.mkdir(dir, "p")
     end
+
+    -- Create .bak backup like nano if file exists
+    if vim.fn.filereadable(file) == 1 then
+      local backup = file .. '.bak'
+      vim.fn.writefile(vim.fn.readfile(file), backup)
+    end
+
+    -- Remove trailing whitespace and restore view
     local save = vim.fn.winsaveview()
     vim.cmd([[silent! %s/\s\+$//e]])
     vim.fn.winrestview(save)
