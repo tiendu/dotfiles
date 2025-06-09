@@ -91,6 +91,19 @@ vim.keymap.set('n', '<leader>tc', ':tabclose<CR>', { desc = 'Close current tab' 
 vim.keymap.set('n', '<leader>to', ':tabonly<CR>', { desc = 'Close all other tabs' })
 vim.keymap.set('n', '<leader>e', ':tabnew | Explore<CR>', { desc = 'File explorer in new tab' })
 
+-- === File Explorer: Netrw Settings ===
+vim.api.nvim_create_autocmd("filetype", {
+  pattern = "netrw",
+  callback = function()
+    -- Allow `/` to start normal search in netrw
+    vim.keymap.set('n', '/', '/', { buffer = true })
+  end,
+})
+vim.g.netrw_banner = 0        -- disable banner
+vim.g.netrw_liststyle = 3     -- tree-style view
+vim.g.netrw_browse_split = 0  -- open files in same window
+vim.g.netrw_winsize = 25
+
 -- === Highlight Yanked Text ===
 vim.api.nvim_create_autocmd("TextYankPost", {
   pattern = "*",
