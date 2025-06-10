@@ -104,13 +104,34 @@ vim.g.netrw_liststyle = 3     -- tree-style view
 vim.g.netrw_browse_split = 0  -- open files in same window
 vim.g.netrw_winsize = 25
 
--- === Highlight Yanked Text ===
-vim.api.nvim_create_autocmd("TextYankPost", {
-  pattern = "*",
-  callback = function()
-    vim.highlight.on_yank { higroup = "IncSearch", timeout = 200 }
-  end,
-})
+-- === OSC52 Copy Functionality ===
+function osc52_copy()
+  -- Helper function to send OSC52 sequence
+  local function write(osc52)
+    local success = false
+
+    -- Try writing to /dev/fd/2 (stderr)
+    if vim.fn.filewritable('/dev/fd/2') == 1 then
+      success = vim.fn.writefile({osc52}, '/dev/fd/2', 'b') == 0
+    else
+      -- Fall back to chansend if the above fails
+      success = vim.fn.chansend(vim.v.stderr, osc52) > 0
+    end
+
+    return success
+  end
+
+  local text = vim.fn.getreg('"')  -- Get the yanked text from the unnamed register (")
+  local encoded_text = vim.fn.systemlist("echo -n " .. vim.fn.shellescape(text) .. " | base64")  -- Base64 encode the yanked text
+  local osc52 = '\27]52;c;' .. table.concat(encoded_text, '') .. '\27\\'  -- Create the OSC52 control sequence
+
+  -- Use write function to send OSC52 control sequence to terminal
+  local success = write(osc52)
+
+  if not success then
+    vim.api.nvim_echo({{"Failed to copy selection", "ErrorMsg"}}, false, {})
+  end
+end
 
 -- === Auto Commands ===
 vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {
@@ -151,13 +172,37 @@ vim.api.nvim_create_autocmd("FocusLost", {
   command = "stopinsert",
 })
 
--- === Misc Highlights ===
-vim.cmd [[
-  syntax match TodoKeyword /TODO\|FIXME\|NOTE/ containedin=.*Comment
-  highlight TodoKeyword ctermfg=Yellow guifg=#FFA500 gui=bold
+vim.api.nvim_create_autocmd("TextYankPost", {
+  pattern = "*",
+  callback = function()
+    -- Highlight yanked text
+    vim.highlight.on_yank { higroup = "IncSearch", timeout = 200 }
 
+    -- Only copy to OSC52 if the operator is 'y' (meaning yank)
+    if vim.v.event.operator == 'y' then
+      osc52_copy()  -- Call the copy function when text is yanked
+    end
+  end,
+})
+
+-- === Highlight Setup ===
+vim.cmd [[
+  " Highlight TODO, FIXME, NOTE globally in the entire text
+  function! HighlightTodoKeywords()
+    " Match TODO, FIXME, and NOTE globally and highlight them
+    call matchadd('TodoKeyword', '\(TODO\|FIXME\|NOTE\)', 100)
+  endfunction
+
+  " Apply the function on file open or syntax change
+  autocmd Syntax * call HighlightTodoKeywords()
+  autocmd BufEnter * call HighlightTodoKeywords()
+
+  " Highlight extra whitespace (trailing spaces)
   highlight ExtraWhitespace ctermbg=red guibg=#ff5f5f
   match ExtraWhitespace /\s\+$/
+
+  " Highlight TODO/FIXME/NOTE in yellow/orange and bold
+  highlight TodoKeyword ctermfg=Yellow guifg=#FFA500 gui=bold
 ]]
 
 -- === Other ===
