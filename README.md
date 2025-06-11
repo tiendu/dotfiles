@@ -110,27 +110,28 @@ Then `pixi install && pixi shell`.
 ## `podman` in GitHub Codespaces
 
 ```bash
+# Install podman globally using Pixi (if not already installed)
 pixi global install podman
+
+# Install necessary dependencies to support podman
 sudo apt-get update && sudo apt-get install uidmap fuse-overlayfs
+
+# Create a configuration directory for Podman
 mkdir -p ~/.config/containers
-```
 
-Create ~/.config/containers/policy.json:
-
-```json
-{
+# Create the policy.json file to configure insecure registries
+echo '{
   "default": [
       {
           "type": "insecureAcceptAnything"
       }
   ]
-}
-```
+}' > ~/.config/containers/policy.json
 
-Then:
-
-```
+# Adjust permissions for the policy file
 chmod 644 ~/.config/containers/policy.json
+
+# Build your container image using Podman
 podman build --network host -t <image_name> .
 ```
 
@@ -139,7 +140,8 @@ podman build --network host -t <image_name> .
 ### Suspend on Lid Close
 
 ```bash
-sudo nano /etc/systemd/logind.conf
+# Edit systemd logind configuration to suspend on lid close
+sudo vi /etc/systemd/logind.conf
 # Uncomment: HandleLidSwitch=suspend
 sudo systemctl restart systemd-logind.service
 ```
@@ -147,8 +149,9 @@ sudo systemctl restart systemd-logind.service
 ### Grub Timeout
 
 ```bash
-sudo nano /etc/default/grub
-# Set GRUB_TIMEOUT=0
+# Edit GRUB configuration to disable timeout during boot
+sudo vi /etc/default/grub
+# Set GRUB_TIMEOUT=0 to skip boot menu
 sudo update-grub
 ```
 
@@ -162,9 +165,13 @@ Download [Intel One Mono](https://github.com/intel/intel-one-mono) then `unzip f
 
 ### Turn Off Wayland (for `anydesk`, `vnc`)
 
-Edit `custom.conf` with `sudo nano /etc/gdm3/custom.conf`.
+```bash
+# Edit the GDM configuration to disable Wayland for better compatibility with applications like AnyDesk and VNC
+sudo vi /etc/gdm3/custom.conf
+# Uncomment: WaylandEnable=false
+```
 
-Uncomment `WaylandEnable=false`.
+Some remote desktop applications (like `anydesk` or `vnc`) are not fully compatible with Wayland. Disabling Wayland allows these tools to work better.
 
 ## SLURM Configuration
 
@@ -450,74 +457,23 @@ sudo apt install r-base-dev build-essential libnlopt-dev libfontconfig1 \
 libxml2-dev libgsl-dev cmake libssl-dev libcurl4-openssl-dev
 ```
 
-## Mamba Installation
-
-### Single-User Installation
-
-Install Mamba via Miniforge:
+## Miniforge Installation
 
 ```bash
+# Download the Miniforge installer script
 wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+
+# Run the installer for a user-specific Miniforge installation
 sh Miniforge3-Linux-x86_64.sh -b -u -p $HOME/miniforge
+
+# Add Miniforge to your PATH in the shell config file (for Zsh or Bash)
 echo 'export PATH="$HOME/miniforge/bin:$PATH"' >> ~/."$(basename $SHELL)"rc
+
+# Reload the shell configuration to apply changes
 source ~/."$(basename $SHELL)"rc
+
+# Clean up the installer script
 rm Miniforge3-Linux-x86_64.sh*
-```
-
-### Multi-User Installation (System-Wide)
-
-1. Download the installer:
-
-```bash
-wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
-```
-
-2. Install to a shared directory:
-
-```bash
-sudo bash Mambaforge-Linux-x86_64.sh -b -p /opt/mambaforge
-```
-
-3. Create group and assign permissions:
-
-```bash
-sudo groupadd mambaforge
-sudo chgrp -R mambaforge /opt/mambaforge
-sudo chmod -R 777 /opt/mambaforge
-sudo chmod -R 777 /opt/mambaforge/share
-sudo chown -R :mambaforge /opt/mambaforge/share
-```
-
-4. Add users to the mambaforge group:
-
-```bash
-sudo adduser <username> mambaforge
-```
-
-5. User initialization (done by each user):
-
-```bash
-source /opt/mambaforge/bin/activate
-mamba init
-```
-
-6. Fix cache permission issues (optional):
-
-```bash
-sudo chown :mambaforge /opt/mambaforge/pkgs/cache/
-sudo chmod g+s /opt/mambaforge/pkgs/cache/
-```
-
-If errors persist:
-
-```bash
-sudo rm -rf /opt/mambaforge/pkgs/cache/
-```
-
-7. Clean up installer:
-
-```bash
-rm Mambaforge-Linux-x86_64.sh
 ```
 
 ## Nextflow Setup
