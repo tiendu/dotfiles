@@ -460,11 +460,21 @@ libxml2-dev libgsl-dev cmake libssl-dev libcurl4-openssl-dev
 ## Miniforge Installation
 
 ```bash
-# Download the Miniforge installer script
-wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
-
-# Run the installer for a user-specific Miniforge installation
-sh Miniforge3-Linux-x86_64.sh -b -u -p $HOME/miniforge
+# Auto-detect the system platform
+if [[ "$(uname)" == "Darwin" ]]; then
+    # macOS detected
+    echo "Installing Miniforge for macOS..."
+    wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-x86_64.sh
+    sh Miniforge3-MacOSX-x86_64.sh -b -u -p $HOME/miniforge
+elif [[ "$(uname)" == "Linux" ]]; then
+    # Linux detected
+    echo "Installing Miniforge for Linux..."
+    wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+    sh Miniforge3-Linux-x86_64.sh -b -u -p $HOME/miniforge
+else
+    echo "Unsupported OS. Only macOS and Linux are supported."
+    exit 1
+fi
 
 # Add Miniforge to your PATH in the shell config file (for Zsh or Bash)
 echo 'export PATH="$HOME/miniforge/bin:$PATH"' >> ~/."$(basename $SHELL)"rc
@@ -473,7 +483,7 @@ echo 'export PATH="$HOME/miniforge/bin:$PATH"' >> ~/."$(basename $SHELL)"rc
 source ~/."$(basename $SHELL)"rc
 
 # Clean up the installer script
-rm Miniforge3-Linux-x86_64.sh*
+rm Miniforge3-*.sh*
 ```
 
 ## Nextflow Setup
