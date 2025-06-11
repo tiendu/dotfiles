@@ -506,3 +506,18 @@ if [[ $- == *i* ]]; then
 fi
 
 export PATH="$HOME/.pixi/bin:$PATH"
+
+# !! Contents within this block are managed by 'mamba shell init' !!
+if command -v mamba >/dev/null 2>&1; then
+  export MAMBA_EXE="$(command -v mamba)"
+  export MAMBA_ROOT_PREFIX="$HOME/.local/share/mamba"
+
+  __mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2>/dev/null)"
+  if [ $? -eq 0 ]; then
+    eval "$__mamba_setup"
+  else
+    alias mamba="$MAMBA_EXE"  # Fallback
+  fi
+
+  unset __mamba_setup
+fi
