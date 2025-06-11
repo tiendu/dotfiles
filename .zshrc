@@ -439,36 +439,27 @@ _shorten_path() {
 _update_prompt() {
   local last_status=$1
 
-  # Capture prefix injected by Conda or Pyenv like: (base), (myenv)
   local injected_env=""
-  if [[ "$PROMPT" == \(*\)* ]]; then
-    # extract the env name between the first pair of parentheses
-    injected_env="${PROMPT%%)*}"
-    injected_env="${injected_env#\(}"
+  # Detect prefix like (env)
+  if [[ "$PS1" == \(*\)* ]]; then
+    injected_env="${PS1%%)*}"       # Remove everything after first ')'
+    injected_env="${injected_env#\(}" # Remove leading '('
     injected_env="${BOLD_YELLOW}${injected_env}${RESET_BOLD}"
-  
-    # remove the injected (env) from PROMPT to avoid duplication
-    PROMPT="${PROMPT#*\) }"
+    PS1="${PS1#*) }"                # Remove the (env) prefix from PS1
   fi
 
-  # Git + dir info
   local git_info=$(_git_info)
   local dir_info=$(_dir_info)
 
   # Line 1
   PROMPT=" ${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: "
-  if [[ -n "$injected_env" ]]; then
-    PROMPT+="${injected_env} ${WHITE}::${RESET} "
-  fi
+  [[ -n "$injected_env" ]] && PROMPT+="${injected_env} ${WHITE}::${RESET} "
   PROMPT+="${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD}"
-  if [[ -n "$git_info" ]]; then
-    PROMPT+=" ${WHITE}::${RESET} ${git_info}"
-  fi
-  PROMPT+=" ${WHITE}::${RESET} ${dir_info}"
+  [[ -n "$git_info" ]] && PROMPT+=" ${WHITE}::${RESET} ${git_info}"
+  PROMPT+=" ${WHITE}::${RESET} ${dir_info}
+"
 
   # Line 2
-  PROMPT+="
- "
   if [[ $last_status -eq 0 ]]; then
     PROMPT+="${BOLD_GREEN}>${RESET_BOLD} "
   else
