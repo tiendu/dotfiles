@@ -1,3 +1,10 @@
+## Minimalist Development Tools
+
+```bash
+sudo apt update && sudo apt upgrade -y && \
+sudo apt install neovim ripgrep fd-find fzf bat tmux zsh coreutils git jq eza zoxide podman wget curl tldr nodejs nvm curl unzip zip
+```
+
 ## Linux Battery Optimization
 
 ```bash
@@ -617,11 +624,8 @@ nextflow run main.nf \
 ### Install Essential Packages
 
 ```bash
-pkg update && \
-pkg upgrade -y && \
-pkg autoclean && \
-pkg clean && \
-pkg install curl wget git zip unzip gawk neovim eza ripgrep htop zsh tmux python3 nmap jq fd bat aria2 fzf entr
+pkg update -y && pkg upgrade -y && pkg autoclean && pkg clean && \
+pkg install neovim ripgrep fd fzf bat tmux zsh coreutils git jq eza zoxide podman wget curl tldr nodejs zip unzip
 ```
 
 ### Customize Extra Keys
@@ -707,7 +711,7 @@ sudo mount /dev/sda1 /mnt/d4t
 ### Essential CLI Tools via Homebrew
 
 ```bash
-brew install curl aria2 git zip unzip gawk fish openssh tmux nmap jq eza ripgrep bat fzf yazi fd zoxide entr helix lazygit pv
+brew install neovim ripgrep fd fzf bat tmux zsh coreutils git jq eza zoxide podman wget curl tldr node nvm zip unzip
 ```
 
 ### Fix Python3 Install via Homebrew
