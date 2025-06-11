@@ -2,7 +2,7 @@
 
 ```bash
 sudo apt update && sudo apt upgrade -y && \
-sudo apt install neovim ripgrep fd-find fzf bat tmux zsh coreutils git jq eza zoxide podman wget curl tldr nodejs nvm curl unzip zip
+sudo apt install neovim ripgrep fd-find fzf bat tmux zsh coreutils git jq zoxide podman wget curl tldr nodejs curl unzip zip
 ```
 
 ## Linux Battery Optimization
@@ -667,7 +667,7 @@ sudo mount /dev/sda1 /mnt/d4t
 ### Essential CLI Tools via Homebrew
 
 ```bash
-brew install neovim ripgrep fd fzf bat tmux zsh coreutils git jq eza zoxide podman wget curl tldr node nvm zip unzip
+brew install neovim ripgrep fd fzf bat tmux zsh coreutils git jq eza zoxide podman wget curl tldr node zip unzip
 ```
 
 ### Fix Python3 Install via Homebrew
