@@ -444,11 +444,11 @@ _update_prompt() {
   if [[ "$PROMPT" == \(*\)* ]]; then
     # extract the env name between the first pair of parentheses
     injected_env="${PROMPT%%)*}"
-    injected_env="${injected_env#(}"
+    injected_env="${injected_env#\(}"
     injected_env="${BOLD_YELLOW}${injected_env}${RESET_BOLD}"
   
     # remove the injected (env) from PROMPT to avoid duplication
-    PROMPT="${PROMPT#*) }"
+    PROMPT="${PROMPT#*\) }"
   fi
 
   # Git + dir info
