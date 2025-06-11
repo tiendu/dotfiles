@@ -446,7 +446,7 @@ _update_prompt() {
     injected_env="${PROMPT%%)*}"
     injected_env="${injected_env#(}"
     injected_env="${BOLD_YELLOW}${injected_env}${RESET_BOLD}"
-
+  
     # remove the injected (env) from PROMPT to avoid duplication
     PROMPT="${PROMPT#*) }"
   fi
