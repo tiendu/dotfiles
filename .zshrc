@@ -439,27 +439,17 @@ _shorten_path() {
 _update_prompt() {
   local last_status=$1
 
-  local injected_env=""
-  # Detect prefix like (env)
-  if [[ "$PS1" == \(*\)* ]]; then
-    injected_env="${PS1%%)*}"       # Remove everything after first ')'
-    injected_env="${injected_env#\(}" # Remove leading '('
-    injected_env="${BOLD_YELLOW}${injected_env}${RESET_BOLD}"
-    PS1="${PS1#*) }"                # Remove the (env) prefix from PS1
-  fi
-
   local git_info=$(_git_info)
   local dir_info=$(_dir_info)
 
-  # Line 1
-  PROMPT=" ${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: "
-  [[ -n "$injected_env" ]] && PROMPT+="${injected_env} ${WHITE}::${RESET} "
+  # Line 1 — appended after any injected prompt prefix (e.g., (base))
+  PROMPT+=" ${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: "
   PROMPT+="${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD}"
   [[ -n "$git_info" ]] && PROMPT+=" ${WHITE}::${RESET} ${git_info}"
   PROMPT+=" ${WHITE}::${RESET} ${dir_info}
 "
 
-  # Line 2
+  # Line 2 — status-aware prompt symbol
   if [[ $last_status -eq 0 ]]; then
     PROMPT+="${BOLD_GREEN}>${RESET_BOLD} "
   else
