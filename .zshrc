@@ -441,14 +441,14 @@ _update_prompt() {
 
   # Capture prefix injected by Conda or Pyenv like: (base), (myenv)
   local injected_env=""
-  if [[ "$PS1" == \(*\)* ]]; then
+  if [[ "$PROMPT" == \(*\)* ]]; then
     # extract the env name between the first pair of parentheses
-    injected_env="${PS1%%)*}"
+    injected_env="${PROMPT%%)*}"
     injected_env="${injected_env#(}"
     injected_env="${BOLD_YELLOW}${injected_env}${RESET_BOLD}"
 
-    # remove the injected (env) from PS1 to avoid duplication
-    PS1="${PS1#*) }"
+    # remove the injected (env) from PROMPT to avoid duplication
+    PROMPT="${PROMPT#*) }"
   fi
 
   # Git + dir info
