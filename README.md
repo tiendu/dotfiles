@@ -2,7 +2,31 @@
 
 ```bash
 sudo apt update && sudo apt upgrade -y && \
-sudo apt install neovim ripgrep fd-find fzf bat tmux zsh coreutils git jq zoxide podman wget curl tldr nodejs curl unzip zip
+sudo apt install vim tmux coreutils git podman wget curl unzip zip htop
+```
+
+Minimal footprint configs:
+
+```
+# ~/.bashrc
+set -o vi
+alias vi='vim'
+export HISTTIMEFORMAT='%F %T '
+```
+
+```
+# ~/.vimrc
+set number
+set tabstop=4
+set shiftwidth=4
+set expandtab
+set clipboard=unnamedplus
+```
+
+```
+# ~/.tmux.conf
+set -g mouse on
+setw -g mode-keys vi
 ```
 
 ## Linux Battery Optimization
