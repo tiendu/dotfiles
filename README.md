@@ -15,12 +15,21 @@ export HISTTIMEFORMAT='%F %T '
 ```
 
 ```
-# ~/.vimrc or ~/.config/nvim/init.lua
+# ~/.vimrc
 set number
 set tabstop=4
 set shiftwidth=4
 set expandtab
 set clipboard=unnamedplus
+```
+
+```
+# ~/.config/nvim/init.lua
+vim.opt.number = true
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.expandtab = true
+vim.opt.clipboard = "unnamedplus"
 ```
 
 ```
