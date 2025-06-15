@@ -15,7 +15,7 @@ export HISTTIMEFORMAT='%F %T '
 ```
 
 ```
-# ~/.vimrc
+# ~/.vimrc or ~/.config/nvim/init.lua
 set number
 set tabstop=4
 set shiftwidth=4
