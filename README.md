@@ -15,6 +15,14 @@ export HISTTIMEFORMAT='%F %T '
 ```
 
 ```
+# ~/.zshrc
+bindkey -v
+alias vi='vim'
+export EDITOR='vim'
+autoload -Uz compinit; compinit
+```
+
+```
 # ~/.vimrc
 set number
 set tabstop=4
