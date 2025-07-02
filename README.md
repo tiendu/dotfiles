@@ -56,7 +56,7 @@ config.font = wezterm.font_with_fallback {
   weight = 'Bold',
 }
 config.font_size = 16.0
-config.window_background_opacity = 0.8
+config.window_background_opacity = 0.75
 
 return config
 ```
