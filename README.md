@@ -25,7 +25,9 @@ PROMPT='%F{blue}%D{%H:%M:%S}%f :: %~ $ '
 
 ```
 # ~/.vimrc
+let mapleader = " "
 set number
+set relativenumber
 set tabstop=4
 set shiftwidth=4
 set expandtab
@@ -34,6 +36,8 @@ set clipboard=unnamedplus
 
 ```
 # ~/.config/nvim/init.lua
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.tabstop = 4
