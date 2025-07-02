@@ -48,7 +48,7 @@ setw -g mode-keys vi
 ```
 
 ```
-# ~/.wezterm.lua
+-- ~/.wezterm.lua
 local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
