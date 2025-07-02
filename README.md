@@ -20,6 +20,7 @@ bindkey -v
 alias vi='vim'
 export EDITOR='vim'
 autoload -Uz compinit; compinit
+PROMPT='%F{blue}%D{%H:%M:%S}%f :: %~ $ '
 ```
 
 ```
