@@ -17,6 +17,8 @@ export HISTTIMEFORMAT='%F %T '
 ```
 # ~/.zshrc
 bindkey -v
+bindkey -M viins 'jk' vi-cmd-mode
+bindkey -M viins 'kj' vi-cmd-mode
 alias vi='vim'
 export EDITOR='vim'
 autoload -Uz compinit; compinit
