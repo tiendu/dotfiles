@@ -47,6 +47,20 @@ set -g mouse on
 setw -g mode-keys vi
 ```
 
+```
+# ~/.wezterm.lua
+local wezterm = require 'wezterm'
+local config = wezterm.config_builder()
+
+config.font = wezterm.font_with_fallback {
+  weight = 'Bold',
+}
+config.font_size = 16.0
+config.window_background_opacity = 0.8
+
+return config
+```
+
 ## Linux Battery Optimization
 
 ```bash
