@@ -50,6 +50,9 @@ vim.opt.clipboard = "unnamedplus"
 
 ```
 # ~/.tmux.conf
+unbind C-b
+set -g prefix C-a
+bind C-a send-prefix
 set -g mouse on
 setw -g mode-keys vi
 ```
