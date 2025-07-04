@@ -19,8 +19,14 @@ export HISTTIMEFORMAT='%F %T '
 bindkey -v
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
-alias vi='vim'
-export EDITOR='vim'
+if command -v nvim > /dev/null 2>&1; then
+  alias vi='nvim'
+  alias vim='nvim'
+  export EDITOR='nvim'
+else
+  alias vi='vim'
+  export EDITOR='vim'
+fi
 autoload -Uz compinit; compinit
 PROMPT='%F{blue}%D{%H:%M:%S}%f :: %~ $ '
 ```
