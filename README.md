@@ -28,7 +28,7 @@ setopt hist_ignore_dups
 setopt hist_reduce_blanks
 setopt hist_verify
 setopt extended_history
-PROMPT='%F{cyan}%D{%H:%M:%S}%f :: %F{yellow}%~%f $ '
+PROMPT='%F{magenta}>>>%f %F{cyan}%D{%H:%M:%S}%f :: %F{yellow}%~%f $ '
 ```
 
 ```
