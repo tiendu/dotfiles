@@ -12,14 +12,11 @@ Minimal footprint configs:
 bindkey -v
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
-if command -v nvim > /dev/null 2>&1; then
-  alias vi='nvim'
-  alias vim='nvim'
-  export EDITOR='nvim'
-else
-  alias vi='vim'
-  export EDITOR='vim'
-fi
+alias e='nvim'
+alias l='ls'
+alias z='cd'
+alias g='git'
+export EDITOR='nvim'
 autoload -Uz compinit; compinit
 HISTFILE=~/.zsh_history
 HISTSIZE=10000
