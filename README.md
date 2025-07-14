@@ -2,17 +2,10 @@
 
 ```bash
 sudo apt update && sudo apt upgrade -y && \
-sudo apt install vim tmux coreutils git podman wget curl unzip zip htop
+sudo apt install neovim tmux coreutils git podman wget curl unzip zip htop
 ```
 
 Minimal footprint configs:
-
-```
-# ~/.bashrc
-set -o vi
-alias vi='vim'
-export HISTTIMEFORMAT='%F %T '
-```
 
 ```
 # ~/.zshrc
@@ -39,17 +32,6 @@ setopt hist_reduce_blanks
 setopt hist_verify
 setopt extended_history
 PROMPT='%F{blue}%D{%H:%M:%S}%f :: %~ $ '
-```
-
-```
-# ~/.vimrc
-let mapleader = " "
-set number
-set relativenumber
-set tabstop=4
-set shiftwidth=4
-set expandtab
-set clipboard=unnamedplus
 ```
 
 ```
