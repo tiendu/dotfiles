@@ -445,8 +445,8 @@ _update_prompt() {
   # Line 1 — appended after any injected prompt prefix (e.g., (base))
   PROMPT=" ${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: "
   PROMPT+="${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD}"
-  [[ -n "$git_info" ]] && PROMPT+=" ${WHITE}::${RESET} ${git_info}"
-  PROMPT+=" ${WHITE}::${RESET} ${dir_info}
+  [[ -n "$git_info" ]] && PROMPT+=" :: ${git_info}"
+  PROMPT+=" :: ${dir_info}
 "
 
   # Line 2 — status-aware prompt symbol
