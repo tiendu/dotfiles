@@ -1,77 +1,3 @@
-# Add a dir to PATH
-a2p() {
-  local input="$1"
-  local dir=""
-
-  if [[ -z "$input" ]]; then
-    echo "Usage: a2p <binary_name | directory_path | binary_path>"
-    return 1
-  fi
-
-  # If input is a file or contains slashes (implies path), resolve its directory
-  if [[ -f "$input" || "$input" == */* ]]; then
-    dir=$(realpath -m "$input" 2>/dev/null)
-    dir=$(dirname "$dir")
-  else
-    if ! command -v "$input" >/dev/null; then
-      echo "Binary not found: $input"
-      return 1
-    fi
-    dir=$(dirname "$(command -v "$input")")
-  fi
-
-  if [[ -z "$dir" || ! -d "$dir" ]]; then
-    echo "Could not resolve a valid directory from '$input'."
-    return 1
-  fi
-
-  # Add to .zsh_added_paths if not already recorded
-  if ! grep -qxF "$dir" "$HOME/.zsh_added_paths" 2>/dev/null; then
-    echo "$dir" >> "$HOME/.zsh_added_paths"
-  fi
-
-  # Add to PATH if not already present
-  if [[ ":$PATH:" != *":$dir:"* ]]; then
-    export PATH="$dir:$PATH"
-    echo "Directory '$dir' added to PATH."
-  else
-    echo "Directory '$dir' is already in PATH."
-  fi
-
-  # Make all files in the dir executable if not already
-  find "$dir" -type f ! -perm -u+x -exec chmod +x {} \;
-}
-
-# Load previously added directories into PATH at startup
-if [ -f "$HOME/.zsh_added_paths" ]; then
-  while IFS= read -r line; do
-    if [ -d "$line" ] && [[ ":$PATH:" != *":$line:"* ]]; then
-      export PATH="$line:$PATH"
-    fi
-  done < "$HOME/.zsh_added_paths"
-fi
-
-# Clean up PATH and .zsh_added_paths
-_clean_up_paths() {
-  # Remove duplicates from $PATH
-  local unique_paths=()
-  local -A seen_paths
-  IFS=":" read -r -A path_array <<< "$PATH"
-
-  for path in "${path_array[@]}"; do
-    if [[ -n "$path" && -z "${seen_paths[$path]}" && -d "$path" ]]; then
-      unique_paths+=("$path")
-      seen_paths["$path"]=1
-    fi
-  done
-
-  PATH=$(printf "%s:" "${unique_paths[@]}")
-  PATH=${PATH%:}  # Remove trailing colon
-
-  # Clean up .zsh_added_paths
-  [ -f "$HOME/.zsh_added_paths" ] && sort -u "$HOME/.zsh_added_paths" -o "$HOME/.zsh_added_paths"
-}
-
 # Global color variables with hex color codes
 autoload -U colors && colors
 RESET="%f"
@@ -106,11 +32,13 @@ if command -v fzf > /dev/null 2>&1; then
     fzf-history-widget() {
       local selected
       selected=$(fc -rl 1 | awk '{$1=""; print substr($0,2)}' | fzf --tac +s --no-sort --reverse --height 40% --ansi --prompt="History > ")
+
       if [[ -n $selected ]]; then
         LBUFFER=$selected
         zle redisplay
       fi
     }
+
     zle -N fzf-history-widget
   fi
 
@@ -134,14 +62,17 @@ if command -v fzf > /dev/null 2>&1; then
     --header 'Press CTRL-Y to copy command into clipboard'"
 fi
 
-# Vim to create new file
+# nvim to create new file
 _nvim() {
   local file="$1"
+
   if [ ! -e "$file" ]; then
     touch "$file"  # Create the file if it doesn't exist
   fi
+
   # Open the file in nvim
   nvim "$file"
+
   # Check if the file is empty after quitting nvim
   if [ ! -s "$file" ]; then
     rm "$file"  # Remove the file if it is empty
@@ -167,26 +98,12 @@ if command -v rg > /dev/null 2>&1; then
   alias grep="rg"
 fi
 
-# Check if icons are likely supported
-_supports_icons() {
-  [[ "$TERM_PROGRAM" == *iTerm* ]] || \
-  [[ "$TERM" == *xterm* || "$TERM" == *screen* || "$TERM" == *tmux* ]] || \
-  [[ "$COLORTERM" == "truecolor" ]]
-}
-
 # Replace ls with eza if available
 if command -v eza > /dev/null 2>&1; then
-  if _supports_icons; then
-    alias ls="eza --icons"
-    alias ll="eza -l --icons"
-    alias la="eza -la --icons"
-    alias tree="eza --tree --level=2 --icons"
-  else
-    alias ls="eza"
-    alias ll="eza -l"
-    alias la="eza -la"
-    alias tree="eza --tree --level=2"
-  fi
+  alias ls="eza"
+  alias ll="eza -l"
+  alias la="eza -la"
+  alias tree="eza --tree --level=3"
 else
   alias ls="ls --color=auto"
   alias tree="ls -R"
@@ -204,29 +121,6 @@ alias ta="tmux attach || tmux new"
 # Dotfiles git alias for easier dotfiles management
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
-if command -v fd > /dev/null 2>&1 && command -v fzf > /dev/null 2>&1; then
-  alias sd='dir=$(fd -t d . | fzf) && [ -n "$dir" ] && cd "$dir"'
-else
-  alias sd='
-    dirs=()
-    while IFS= read -r dir; do
-      dirs+=("$dir")
-    done < <(find . -type d ! -path "*/.*")
-    if [ ${#dirs[@]} -eq 0 ]; then
-      echo "No directories found."
-      return
-    fi
-    echo "Select a directory:"
-    select dir in "${dirs[@]}"; do
-      if [ -n "$dir" ]; then
-        cd "$dir"
-        break
-      else
-        echo "Invalid selection."
-      fi
-    done
-  '
-fi
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
@@ -292,11 +186,9 @@ bindkey -v
 bindkey '^P' up-line-or-history                   # Ctrl+P to move up in history
 bindkey '^N' down-line-or-history                 # Ctrl+N to move down in history
 
-## Map jj, jk, kj to Esc in insert mode
-bindkey -M viins 'jj' vi-cmd-mode
+## Map jk, kj to Esc in insert mode
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
-bindkey -M viins 'kk' vi-cmd-mode
 
 ## For insert mode (viins), ensure backspace deletes the previous character
 bindkey -M viins '^?' backward-delete-char
@@ -310,11 +202,13 @@ bindkey -M vicmd '^H' backward-delete-char
 function zle-keymap-select {
   local NOR_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE}]${RESET}"
   local INS_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE}]${RESET}"
+
   if [[ $KEYMAP == vicmd ]]; then
     VIM_MODE=$NOR_PROMPT
   else
     VIM_MODE=$INS_PROMPT
   fi
+
   RPROMPT=$VIM_MODE
   zle reset-prompt
 }
@@ -465,40 +359,17 @@ _prompt_precmd() {
   RPROMPT=$VIM_MODE
 }
 
-_clean_up_paths_precmd() {
-  _clean_up_paths
-}
-
 # Register hooks
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _prompt_precmd
-add-zsh-hook precmd _clean_up_paths_precmd
 
 # Interactive shell setup
 if [[ $- == *i* ]]; then
   _update_prompt 0
   RPROMPT=$VIM_MODE
-  _clean_up_paths
 
   autoload -Uz compinit
   zmodload zsh/complist
   compinit -C -d "$HOME/.zcompdump-$ZSH_VERSION"
   compdef _files _nvim
-fi
-
-export PATH="$HOME/.pixi/bin:$PATH"
-
-# !! Contents within this block are managed by 'mamba shell init' !!
-if command -v mamba >/dev/null 2>&1; then
-  export MAMBA_EXE="$(command -v mamba)"
-  export MAMBA_ROOT_PREFIX="$HOME/.local/share/mamba"
-
-  __mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2>/dev/null)"
-  if [ $? -eq 0 ]; then
-    eval "$__mamba_setup"
-  else
-    alias mamba="$MAMBA_EXE"  # Fallback
-  fi
-
-  unset __mamba_setup
 fi
