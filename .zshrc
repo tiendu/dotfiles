@@ -25,74 +25,6 @@ if command -v zoxide > /dev/null 2>&1; then
   eval "$(zoxide init zsh)"
 fi
 
-# Setup fzf (fuzzy finder) if installed
-if command -v fzf > /dev/null 2>&1; then
-  # Manual fallback definition if ~/.fzf.zsh doesn't exist (Pixi install)
-  if ! type fzf-history-widget >/dev/null 2>&1; then
-    fzf-history-widget() {
-      local selected
-      selected=$(fc -rl 1 | awk '{$1=""; print substr($0,2)}' | fzf --tac +s --no-sort --reverse --height 40% --ansi --prompt="History > ")
-
-      if [[ -n $selected ]]; then
-        LBUFFER=$selected
-        zle redisplay
-      fi
-    }
-
-    zle -N fzf-history-widget
-  fi
-
-  # Load official fzf keybindings + widgets if installed via fzf install script
-  [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-  # Bind Ctrl+R to history search
-  bindkey '^R' fzf-history-widget
-
-  # Optional: Custom keybinds and options
-  export FZF_DEFAULT_OPTS="--bind 'ctrl-j:down,ctrl-k:up,alt-j:preview-down,alt-k:preview-up'"
-
-  export FZF_CTRL_R_OPTS="
-    --preview 'echo {2..} | bat --color=always -pl sh'
-    --preview-window up:hidden:wrap
-    --bind 'ctrl-/:change-preview-window(30%|60%|90%|)'
-    --bind 'ctrl-v:execute(echo {2..} | view - > /dev/tty)'
-    --bind 'ctrl-t:track+clear-query'
-    --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort'
-    --color header:italic
-    --header 'Press CTRL-Y to copy command into clipboard'"
-fi
-
-# nvim to create new file
-_nvim() {
-  local file="$1"
-
-  if [ ! -e "$file" ]; then
-    touch "$file"  # Create the file if it doesn't exist
-  fi
-
-  # Open the file in nvim
-  nvim "$file"
-
-  # Check if the file is empty after quitting nvim
-  if [ ! -s "$file" ]; then
-    rm "$file"  # Remove the file if it is empty
-    echo "File '$file' was empty and has been deleted."
-  fi
-}
-
-# Custom tab completion
-_first_tab() {
-  if [[ $#BUFFER == 0 ]]; then
-    BUFFER="cd "
-    CURSOR=3
-    zle list-choices
-  else
-    zle expand-or-complete
-  fi
-}
-zle -N _first_tab
-bindkey -M viins '^I' _first_tab
-
 # Replace grep with ripgrep if available
 if command -v rg > /dev/null 2>&1; then
   alias grep="rg"
@@ -115,7 +47,8 @@ alias cp="cp -i"  # Prompt before overwriting files
 alias mv="mv -i"  # Prompt before overwriting files
 alias l="ls"
 alias g="git"
-alias e="_nvim"
+alias e="nvim"
+alias h="fc -l 1 | awk '{\$1=\"\"; print substr(\$0,2)}'"
 alias ta="tmux attach || tmux new"
 
 # Dotfiles git alias for easier dotfiles management
@@ -140,6 +73,19 @@ else
   alias pbcopy='cat > /dev/null'
   alias pbpaste='echo ""'
 fi
+
+# Custom tab completion
+_first_tab() {
+  if [[ -z $BUFFER ]]; then
+    BUFFER="cd "
+    CURSOR=${#BUFFER}
+    zle list-choices
+  else
+    zle expand-or-complete
+  fi
+}
+zle -N _first_tab
+bindkey -M viins '^I' _first_tab
 
 # History settings
 HISTSIZE=10000
@@ -189,14 +135,6 @@ bindkey '^N' down-line-or-history                 # Ctrl+N to move down in histo
 ## Map jk, kj to Esc in insert mode
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
-
-## For insert mode (viins), ensure backspace deletes the previous character
-bindkey -M viins '^?' backward-delete-char
-bindkey -M viins '^H' backward-delete-char
-
-## For command mode (vicmd), bind backspace to delete the previous character
-bindkey -M vicmd '^?' backward-delete-char
-bindkey -M vicmd '^H' backward-delete-char
 
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
@@ -370,6 +308,6 @@ if [[ $- == *i* ]]; then
 
   autoload -Uz compinit
   zmodload zsh/complist
-  compinit -C -d "$HOME/.zcompdump-$ZSH_VERSION"
-  compdef _files _nvim
+  zmodload zsh/zle
+  compinit -C
 fi
