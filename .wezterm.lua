@@ -3,11 +3,12 @@ local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
 -- Appearance settings
-config.color_scheme = 'Homebrew'
-config.font = wezterm.font_with_fallback {
+config.color_scheme = 'Tokyo Night'
+config.font = wezterm.font {
+  family = 'JetBrains Mono',
+  stretch = 'Expanded',
   weight = 'Bold'
 }
-config.harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' }  -- Turn off ligatures
 config.font_size = 16.0
 config.window_background_opacity = 0.75
 
