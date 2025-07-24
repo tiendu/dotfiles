@@ -10,7 +10,7 @@ config.font = wezterm.font {
   weight = 'Bold'
 }
 config.font_size = 16.0
-config.window_background_opacity = 0.75
+config.window_background_opacity = 0.70
 
 -- Tab bar customization
 config.hide_tab_bar_if_only_one_tab = true
