@@ -3,7 +3,7 @@ local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
 -- Appearance settings
-config.color_scheme = 'Tokyo Night'
+config.color_scheme = 'Sakura'
 config.font = wezterm.font {
   family = 'JetBrains Mono',
   stretch = 'Expanded',
