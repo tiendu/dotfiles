@@ -136,6 +136,10 @@ bindkey '^N' down-line-or-history                 # Ctrl+N to move down in histo
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
 
+## Backspace to delete
+bindkey -M viins '^?' backward-delete-char
+bindkey -M viins '^H' backward-delete-char
+
 ## Add Vim status to the right prompt (RPROMPT)
 function zle-keymap-select {
   local NOR_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE}]${RESET}"
