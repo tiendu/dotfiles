@@ -47,7 +47,7 @@ alias mv="mv -i"
 alias l="ls"
 alias g="git"
 alias e="nvim"
-alias h="fc -l 1 | awk '{\$1=""; print substr(\$0,2)}'"
+alias h="fc -l 1 | awk '{\$1=\"\"; print substr(\$0,2)}'"
 alias ta="tmux attach || tmux new"
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 alias ..="cd .."
