@@ -2,34 +2,64 @@
 local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
--- Appearance settings
+-- Appearance
 config.color_scheme = 'Sakura'
 config.font = wezterm.font {
   family = 'JetBrains Mono',
+  weight = 'Bold',
   stretch = 'Expanded',
-  weight = 'Bold'
 }
 config.font_size = 16.0
-config.window_background_opacity = 0.70
+config.window_background_opacity = 0.85
+config.window_decorations = "RESIZE"
+config.enable_scroll_bar = true
+config.enable_wayland = false
 
--- Tab bar customization
+-- Padding
+config.window_padding = { left = 10, right = 10, top = 10, bottom = 10 }
+
+-- Cursor
+config.default_cursor_style = 'BlinkingBlock'
+config.cursor_blink_rate = 500
+config.force_reverse_video_cursor = true
+
+-- Scrollback
+config.scrollback_lines = 10000
+
+-- Bell settings
+config.audible_bell = 'Disabled'
+config.visual_bell = {
+  fade_in_function = 'EaseIn',
+  fade_out_function = 'EaseOut',
+  fade_in_duration_ms = 75,
+  fade_out_duration_ms = 150,
+}
+
+-- Tab bar
 config.hide_tab_bar_if_only_one_tab = true
 config.use_fancy_tab_bar = true
 config.colors = {
   tab_bar = {
     background = '#282828',
-    active_tab = { bg_color = '#458588', fg_color = '#ffffff', intensity = 'Bold' },
-    inactive_tab = { bg_color = '#3c3836', fg_color = '#a89984' },
+    active_tab = {
+      bg_color = '#458588',
+      fg_color = '#ffffff',
+      intensity = 'Bold',
+    },
+    inactive_tab = {
+      bg_color = '#3c3836',
+      fg_color = '#a89984',
+    },
   },
 }
 
--- Scrollback settings
-config.default_cursor_style = 'BlinkingBar'
-config.cursor_blink_rate = 500  -- milliseconds
-config.force_reverse_video_cursor = true
-config.scrollback_lines = 10000
+-- Inactive pane visibility
+config.inactive_pane_hsb = {
+  saturation = 0.9,
+  brightness = 0.6,
+}
 
--- Keybindings
+-- Keybindings (Vim-style splits + Tab management)
 config.keys = {
   { key = 't', mods = 'CTRL|SHIFT', action = wezterm.action.SpawnTab 'CurrentPaneDomain' },
   { key = 'w', mods = 'CTRL|SHIFT', action = wezterm.action.CloseCurrentTab { confirm = true } },
@@ -41,33 +71,7 @@ config.keys = {
   { key = 'k', mods = 'CTRL|SHIFT', action = wezterm.action.ActivatePaneDirection 'Up' },
 }
 
--- General behavior settings
+-- Disable auto-updates (if managed manually)
 config.check_for_updates = false
-config.audible_bell = 'Disabled'
-config.enable_wayland = false
-config.enable_scroll_bar = true
-
--- Padding and window settings
-config.window_padding = {
-  left = 10,
-  right = 10,
-  top = 10,
-  bottom = 10,
-}
-config.window_decorations = "RESIZE"
-
--- Improve pane border visibility
-config.inactive_pane_hsb = {
-  saturation = 0.9,
-  brightness = 0.6,
-}
-
--- Visual bell
-config.visual_bell = {
-  fade_in_function = 'EaseIn',
-  fade_out_function = 'EaseOut',
-  fade_in_duration_ms = 75,
-  fade_out_duration_ms = 150,
-}
 
 return config
