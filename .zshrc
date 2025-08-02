@@ -19,55 +19,36 @@ MAGENTA="%F{magenta}"
 BLUE="%F{blue}"
 
 ##### General Environment
+export EDITOR="nvim"
+export VISUAL="nvim"
 export LESS="e M q R F X z -3"
 
 ##### Tool Initializers
-if command -v zoxide > /dev/null 2>&1; then
-  eval "$(zoxide init zsh)"
-fi
-
-if command -v rg > /dev/null 2>&1; then
-  alias grep="rg"
-fi
-
-if command -v eza > /dev/null 2>&1; then
-  alias ls="eza"
-  alias ll="eza -l"
-  alias la="eza -la"
-  alias tree="eza --tree --level=3"
-else
-  alias ls="ls --color=auto"
-  alias tree="ls -R"
-fi
+command -v rg   >/dev/null && alias grep="rg"
+command -v eza  >/dev/null && alias ls="eza" && alias ll="eza -l" && alias la="eza -la" && alias tree="eza --tree --level=3"
+command -v eza  >/dev/null || alias ls="ls --color=auto" && alias tree="ls -R"
 
 ##### Aliases
-alias rm="rm -i"
-alias cp="cp -i"
-alias mv="mv -i"
-alias l="ls"
-alias g="git"
-alias e="nvim"
+alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' g='git' e='nvim'
 alias h="fc -l 1 | awk '{\$1=\"\"; print substr(\$0,2)}'"
 alias ta="tmux attach || tmux new"
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....="cd ../../.."
+alias ..='cd ..' ...='cd ../..' ....='cd ../../..'
 
 ##### Clipboard Cross-platform
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  alias pbcopy="pbcopy"
-  alias pbpaste="pbpaste"
-elif command -v xclip > /dev/null 2>&1; then
-  alias pbcopy="xclip -selection clipboard"
-  alias pbpaste="xclip -selection clipboard -o"
-elif command -v xsel > /dev/null 2>&1; then
-  alias pbcopy="xsel --clipboard --input"
-  alias pbpaste="xsel --clipboard --output"
-else
-  alias pbcopy='cat > /dev/null'
-  alias pbpaste='echo ""'
-fi
+case "$OSTYPE" in
+  darwin*) alias pbcopy='pbcopy'; alias pbpaste='pbpaste' ;;
+  *)  if command -v xclip &>/dev/null; then
+        alias pbcopy='xclip -selection clipboard'
+        alias pbpaste='xclip -selection clipboard -o'
+      elif command -v xsel &>/dev/null; then
+        alias pbcopy='xsel --clipboard --input'
+        alias pbpaste='xsel --clipboard --output'
+      else
+        alias pbcopy='cat > /dev/null'; alias pbpaste='echo ""'
+      fi
+  ;;
+esac
 
 ##### History & Shell Options
 HISTSIZE=10000
@@ -116,31 +97,7 @@ function zle-keymap-select {
 zle -N zle-keymap-select
 zle -N zle-line-init zle-keymap-select
 
-##### Git, Path & Prompt Info
-typeset -g _GIT_INFO_CACHE=""
-typeset -g _GIT_INFO_LAST_DIR=""
-
-_git_info() {
-  local current_dir=$(git rev-parse --show-toplevel 2>/dev/null)
-  [[ -z "$current_dir" ]] && return
-  if [[ "$_GIT_INFO_LAST_DIR" == "$current_dir" && -n "$_GIT_INFO_CACHE" ]]; then
-    echo "$_GIT_INFO_CACHE"
-    return
-  fi
-  local git_branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
-  local added_count=0 modified_count=0 line
-  while IFS= read -r line; do
-    [[ "$line" == \?\?* ]] && ((added_count++))
-    [[ "$line" == [MARCDU]?* || "$line" == ?[MARCDU]* ]] && ((modified_count++))
-  done < <(git status --porcelain)
-  local suffix=""
-  ((added_count)) && suffix+=" +$added_count"
-  ((modified_count)) && suffix+=" !$modified_count"
-  _GIT_INFO_CACHE="${git_branch:+${(L)git_branch}${suffix:+ ${suffix}}}"
-  _GIT_INFO_LAST_DIR="$current_dir"
-  [[ -n "$git_branch" ]] && echo "${suffix:+${BOLD_RED}${git_branch}${suffix}${RESET_BOLD}}" || echo "${BOLD_GREEN}${git_branch}${RESET_BOLD}"
-}
-
+##### Path & Prompt Info
 _humanize_size() {
   awk '{s=$1; split("B KB MB GB TB",u); for(i=1;s>=1024&&i<5;i++)s/=1024; printf "%.1f%s", s, u[i]}'
 }
@@ -151,7 +108,7 @@ _get_dir_size() {
 }
 _dir_info() {
   local size=$(_get_dir_size)
-  local count=$(/bin/ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
+  local count=$(command ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
   echo "${BOLD_CYAN}${count} | ${size}${RESET_BOLD}"
 }
 _shorten_path() {
@@ -162,19 +119,14 @@ _shorten_path() {
 }
 
 _update_prompt() {
-  local last_status=$1
-  local git=$(_git_info)
-  local dir=$(_dir_info)
-  PROMPT=" ${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD}"
-  [[ -n "$git" ]] && PROMPT+=" :: $git"
-  PROMPT+=" :: $dir
-"
-  PROMPT+=$([[ $last_status -eq 0 ]] && echo "${BOLD_GREEN}>${RESET_BOLD} " || echo "${BOLD_RED}<${RESET_BOLD} ")
+  local s=$1 d=$(_dir_info)
+  PROMPT=" ${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: $d
+$([[ $s -eq 0 ]] && echo "${BOLD_GREEN}>${RESET_BOLD}" || echo "${BOLD_RED}<${RESET_BOLD}") "
   PS2="${BOLD_BLUE}>>${RESET_BOLD} "
 }
 _prompt_precmd() {
   _update_prompt $?
-  RPROMPT=$VIM_MODE
+  RPROMPT="${VIM_MODE:-}"
 }
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _prompt_precmd
@@ -215,12 +167,9 @@ _self_insert_wrapper() { zle .self-insert; _custom_highlight; zle reset-prompt }
 _backspace_wrapper()  { zle .backward-delete-char; _custom_highlight; zle reset-prompt }
 zle -N self-insert _self_insert_wrapper
 zle -N backward-delete-char _backspace_wrapper
-zle -N zle-keymap-select
 
 ##### Init Interactive Shell
 if [[ $- == *i* ]]; then
-  _update_prompt 0
-  RPROMPT=$VIM_MODE
   autoload -Uz compinit
   zmodload zsh/complist
   zmodload zsh/zle
