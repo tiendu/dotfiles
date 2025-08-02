@@ -27,6 +27,7 @@ export LESS="e M q R F X z -3"
 command -v rg   >/dev/null && alias grep="rg"
 command -v eza  >/dev/null && alias ls="eza" && alias ll="eza -l" && alias la="eza -la" && alias tree="eza --tree --level=3"
 command -v eza  >/dev/null || alias ls="ls --color=auto" && alias tree="ls -R"
+command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
 ##### Aliases
 alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' g='git' e='nvim'
