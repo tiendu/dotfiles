@@ -89,9 +89,9 @@ bindkey -M viins '^I' _first_tab
 
 ##### RPROMPT for Vim Mode
 function zle-keymap-select {
-  local NOR_PROMPT="${WHITE}[${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE}]${RESET}"
-  local INS_PROMPT="${WHITE}[${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE}]${RESET}"
-  VIM_MODE=$([[ $KEYMAP == vicmd ]] && echo $NOR_PROMPT || echo $INS_PROMPT)
+  local normal="${WHITE}[${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE}]${RESET}"
+  local insert="${WHITE}[${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE}]${RESET}"
+  VIM_MODE=$([[ $KEYMAP == vicmd ]] && echo $normal || echo $insert)
   RPROMPT=$VIM_MODE
   zle reset-prompt
 }
