@@ -102,13 +102,17 @@ zle -N zle-line-init zle-keymap-select
 _humanize_size() {
   awk '{s=$1; split("B KB MB GB TB",u); for(i=1;s>=1024&&i<5;i++)s/=1024; printf "%.1f%s", s, u[i]}'
 }
-_get_dir_size() {
-  local blocks=$(command ls -lA . 2>/dev/null | awk '/^total/ {print $2}')
-  local bs=$([[ $(uname) == Darwin ]] && echo 512 || echo 1024)
-  echo $((blocks * bs)) | _humanize_size
+_dir_size() {
+  local bytes
+  if [[ $(uname) == Darwin ]]; then
+    bytes=$(find . -maxdepth 1 -type f -exec stat -f%z {} + 2>/dev/null)
+  else
+    bytes=$(find . -maxdepth 1 -type f -exec stat --format=%s {} + 2>/dev/null)
+  fi
+  echo "${bytes}" | awk '{s+=$1} END {print s}' | _humanize_size
 }
 _dir_info() {
-  local size=$(_get_dir_size)
+  local size=$(_dir_size)
   local count=$(command ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
   echo "${BOLD_CYAN}${count} | ${size}${RESET_BOLD}"
 }
