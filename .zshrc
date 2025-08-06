@@ -24,13 +24,14 @@ export VISUAL="nvim"
 export LESS="e M q R F X z -3"
 
 ##### Tool Initializers
-command -v rg   >/dev/null && alias grep="rg"
-command -v eza  >/dev/null && alias ls="eza" && alias ll="eza -l" && alias la="eza -la" && alias tree="eza --tree --level=3"
-command -v eza  >/dev/null || alias ls="ls --color=auto" && alias tree="ls -R"
+command -v rg >/dev/null && alias grep="rg"
+command -v fd >/dev/null && alias find="fd"
+command -v eza >/dev/null && alias ls="eza" && alias ll="eza -l" && alias la="eza -la" && alias tree="eza --tree --level=3"
+command -v eza >/dev/null || alias ls="ls --color=auto" && alias tree="ls -R"
 command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
 ##### Aliases
-alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' g='git' e='nvim'
+alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' g='git' e='nvim' f='find' r='grep'
 alias h="fc -l 1 | awk '{\$1=\"\"; print substr(\$0,2)}'"
 alias ta="tmux attach || tmux new"
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
