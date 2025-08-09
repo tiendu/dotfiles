@@ -97,8 +97,8 @@ bindkey -M viins '^I' _first_tab
 
 ##### RPROMPT for Vim Mode
 function zle-keymap-select {
-  local normal="${WHITE}[${RESET}${BOLD_YELLOW}N${RESET_BOLD}${WHITE}]${RESET}"
-  local insert="${WHITE}[${RESET}${BOLD_CYAN}I${RESET_BOLD}${WHITE}]${RESET}"
+  local normal="%K{red}${BOLD_WHITE} ⏸ %k${RESET_BOLD}"
+  local insert="%K{green}${BOLD_WHITE} ⏵ %k${RESET_BOLD}"
   VIM_MODE=$([[ $KEYMAP == vicmd ]] && echo $normal || echo $insert)
   RPROMPT=$VIM_MODE
   zle reset-prompt
@@ -133,7 +133,7 @@ _shorten_path() {
 
 _update_prompt() {
   local s=$1 d=$(_dir_info)
-  PROMPT="${BOLD_WHITE}┏━${RESET_BOLD}${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: $d
+  PROMPT="${BOLD_WHITE}┏━${RESET_BOLD}${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} ⁖ ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} ⁖ $d
 ${BOLD_WHITE}┗━${RESET_BOLD}$([[ $s -eq 0 ]] && echo "${BOLD_GREEN}❯${RESET_BOLD}" || echo "${BOLD_RED}❮${RESET_BOLD}") "
   PS2="${BOLD_BLUE}»${RESET_BOLD} "
 }
