@@ -26,8 +26,15 @@ export LESS="e M q R F X z -3"
 ##### Tool Initializers
 command -v rg >/dev/null && alias grep="rg"
 command -v fd >/dev/null && alias find="fd"
-command -v eza >/dev/null && alias ls="eza" && alias ll="eza -l" && alias la="eza -la" && alias tree="eza --tree --level=3"
-command -v eza >/dev/null || alias ls="ls --color=auto" && alias tree="ls -R"
+if command -v eza >/dev/null; then
+  alias ls="eza"
+  alias ll="eza -l"
+  alias la="eza -la"
+  alias tree="eza --tree --level=3"
+else
+  alias ls="ls --color=auto"
+  alias tree="ls -R"
+fi
 command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
 ##### Aliases
@@ -126,9 +133,9 @@ _shorten_path() {
 
 _update_prompt() {
   local s=$1 d=$(_dir_info)
-  PROMPT=" ${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: $d
-$([[ $s -eq 0 ]] && echo "${BOLD_GREEN}>${RESET_BOLD}" || echo "${BOLD_RED}<${RESET_BOLD}") "
-  PS2="${BOLD_BLUE}>>${RESET_BOLD} "
+  PROMPT="${BOLD_WHITE}┏━${RESET_BOLD}${BOLD_BLUE}%D{%H:%M:%S}${RESET_BOLD} :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: $d
+${BOLD_WHITE}┗━${RESET_BOLD}$([[ $s -eq 0 ]] && echo "${BOLD_GREEN}❯${RESET_BOLD}" || echo "${BOLD_RED}❮${RESET_BOLD}") "
+  PS2="${BOLD_BLUE}»${RESET_BOLD} "
 }
 _prompt_precmd() {
   _update_prompt $?
