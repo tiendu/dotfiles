@@ -4,10 +4,9 @@ local config = wezterm.config_builder()
 
 -- Appearance
 config.color_scheme = 'Sakura'
-config.font = wezterm.font {
-  family = 'JetBrains Mono',
-  weight = 'Bold',
-  stretch = 'Expanded',
+config.font = wezterm.font_with_fallback {
+  { family = 'Intel One Mono' },
+  { family = 'JetBrains Mono' },
 }
 config.font_size = 16.0
 config.window_background_opacity = 0.85
