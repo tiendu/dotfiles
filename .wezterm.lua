@@ -13,6 +13,7 @@ config.window_background_opacity = 0.85
 config.window_decorations = "RESIZE"
 config.enable_scroll_bar = true
 config.enable_wayland = false
+config.warn_about_missing_glyphs = false
 
 -- Padding
 config.window_padding = { left = 10, right = 10, top = 10, bottom = 10 }
