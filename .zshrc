@@ -122,7 +122,7 @@ _dir_size() {
 _dir_info() {
   local size=$(_dir_size)
   local count=$(command ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
-  echo "${BOLD_CYAN}(${count} | ${size})${RESET_BOLD}"
+  echo "${BOLD_CYAN}${count} | ${size}${RESET_BOLD}"
 }
 _shorten_path() {
   local full="${1:-$PWD}" prefix=""
@@ -133,7 +133,7 @@ _shorten_path() {
 
 _update_prompt() {
   local s=$1 d=$(_dir_info)
-  PROMPT=" %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} $d
+  PROMPT=" %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: $d
  $([[ $s -eq 0 ]] && echo "${BOLD_GREEN}>${RESET_BOLD}" || echo "${BOLD_RED}<${RESET_BOLD}") "
   PS2="${BOLD_BLUE}>>${RESET_BOLD} "
 }
