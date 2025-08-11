@@ -18,6 +18,9 @@ WHITE="%F{white}"
 MAGENTA="%F{magenta}"
 BLUE="%F{blue}"
 
+##### Load zle module
+zmodload zsh/zle
+
 ##### General Environment
 export EDITOR="nvim"
 export VISUAL="nvim"
@@ -110,25 +113,37 @@ zle -N zle-line-init zle-keymap-select
 _humanize_size() {
   awk '{s=$1; split("B KB MB GB TB",u); for(i=1;s>=1024&&i<5;i++)s/=1024; printf "%.1f%s", s, u[i]}'
 }
-_dir_size() {
-  local bytes
-  if [[ $(uname) == Darwin ]]; then
-    bytes=$(command find . -maxdepth 1 -type f -exec stat -f%z {} + 2>/dev/null)
-  else
-    bytes=$(command find . -maxdepth 1 -type f -exec stat --format=%s {} + 2>/dev/null)
+typeset -g  _dm_pwd="" _dm_size=""
+typeset -gi _dm_ts=0 _dm_count=0
+_dir_metrics() {
+  local now=$EPOCHSECONDS
+  if [[ $_dm_pwd == "$PWD" ]] && (( now - _dm_ts < 3 )); then
+    return
   fi
-  echo "${bytes}" | awk '{s+=$1} END {print s}' | _humanize_size
+  local -a files=( *(.DN) )
+  local -A S
+  local -i bytes=0
+  for f in $files; do
+    zstat -H S -- "$f"
+    (( bytes += S[size] ))
+  done
+  local -a entries=( *(DN) )
+  _dm_count=${#entries}
+  _dm_size=$(_humanize_size <<< "${bytes}")
+  _dm_pwd=$PWD
+  _dm_ts=$now
 }
 _dir_info() {
-  local size=$(_dir_size)
-  local count=$(command ls -A1 2>/dev/null | wc -l | tr -d '[:space:]')
-  echo "${BOLD_CYAN}${count} | ${size}${RESET_BOLD}"
+  _dir_metrics
+  echo "${BOLD_CYAN}${_dm_count} | ${_dm_size}${RESET_BOLD}"
 }
 _shorten_path() {
   local full="${1:-$PWD}" prefix=""
   [[ "$full" == "$HOME"* ]] && prefix="~" full="${full/#$HOME/}"
   IFS='/' read -rA parts <<< "${full#/}"
-  (( ${#parts[@]} > 4 )) && echo "${prefix}/${(j:/:)parts[1,2]}/.../${(j:/:)parts[-2,-1]}" || echo "${prefix}/${(j:/:)parts}"
+  (( ${#parts[@]} == 0 )) && { echo "${prefix}/"; return }
+  (( ${#parts[@]} > 4 )) && echo "${prefix}/${(j:/:)parts[1,2]}/.../${(j:/:)parts[-2,-1]}" \
+                         || echo "${prefix}/${(j:/:)parts}"
 }
 
 _update_prompt() {
@@ -176,15 +191,23 @@ _custom_highlight() {
     fi
   done
 }
-_self_insert_wrapper() { zle .self-insert; _custom_highlight; zle reset-prompt }
-_backspace_wrapper()  { zle .backward-delete-char; _custom_highlight; zle reset-prompt }
-zle -N self-insert _self_insert_wrapper
-zle -N backward-delete-char _backspace_wrapper
+_highlight_pre_redraw() {
+  emulate -L zsh
+  (( ${#BUFFER} > 4000 )) && { region_highlight=(); return }
+  _custom_highlight
+}
+_highlight_finish() { region_highlight=() }
+zle -N zle-line-pre-redraw _highlight_pre_redraw
+zle -N zle-line-finish _highlight_finish
 
 ##### Init Interactive Shell
 if [[ $- == *i* ]]; then
   autoload -Uz compinit
   zmodload zsh/complist
-  zmodload zsh/zle
+  zmodload zsh/datetime
+  zmodload zsh/stat
   compinit -C
 fi
+
+export PATH="$HOME/miniforge/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
