@@ -113,9 +113,9 @@ _humanize_size() {
 _dir_size() {
   local bytes
   if [[ $(uname) == Darwin ]]; then
-    bytes=$(find . -maxdepth 1 -type f -exec stat -f%z {} + 2>/dev/null)
+    bytes=$(command find . -maxdepth 1 -type f -exec stat -f%z {} + 2>/dev/null)
   else
-    bytes=$(find . -maxdepth 1 -type f -exec stat --format=%s {} + 2>/dev/null)
+    bytes=$(command find . -maxdepth 1 -type f -exec stat --format=%s {} + 2>/dev/null)
   fi
   echo "${bytes}" | awk '{s+=$1} END {print s}' | _humanize_size
 }
@@ -133,7 +133,7 @@ _shorten_path() {
 
 _update_prompt() {
   local s=$1 d=$(_dir_info)
-  PROMPT=" %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: $d
+  PROMPT=" %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${d}
  $([[ $s -eq 0 ]] && echo "${BOLD_GREEN}>${RESET_BOLD}" || echo "${BOLD_RED}<${RESET_BOLD}") "
   PS2="${BOLD_BLUE}>>${RESET_BOLD} "
 }
