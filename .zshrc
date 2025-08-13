@@ -41,7 +41,7 @@ fi
 command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
 ##### Aliases
-alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' g='git' e='nvim' f='find' r='grep'
+alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' g='git' e='nvim'
 alias h="fc -l 1 | awk '{\$1=\"\"; print substr(\$0,2)}'"
 alias ta="tmux attach || tmux new"
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
