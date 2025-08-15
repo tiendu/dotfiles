@@ -50,7 +50,12 @@ alias ..='cd ..' ...='cd ../..' ....='cd ../../..'
 ##### Clipboard Cross-platform
 case "$OSTYPE" in
   darwin*) alias pbcopy='pbcopy'; alias pbpaste='pbpaste' ;;
-  *)  if command -v xclip &>/dev/null; then
+  *)  if command -v wl-copy &>/dev/null; then
+        pbcopy() {
+          if (( $# )); then cat -- "$@" | wl-copy; else cat | wl-copy; fi
+        }
+        pbpaste() { wl-paste; }
+      elif command -v xclip &>/dev/null; then
         alias pbcopy='xclip -selection clipboard'
         alias pbpaste='xclip -selection clipboard -o'
       elif command -v xsel &>/dev/null; then
@@ -61,6 +66,14 @@ case "$OSTYPE" in
       fi
   ;;
 esac
+_paste_from_clipboard() {
+  local clip
+  clip="$(pbpaste)"
+  LBUFFER+="${clip}"
+}
+zle -N _paste_from_clipboard
+bindkey -M vicmd 'gp' _paste_from_clipboard
+bindkey -M vicmd 'gP' _paste_from_clipboard
 
 ##### History & Shell Options
 HISTSIZE=10000
@@ -68,13 +81,13 @@ SAVEHIST=10000
 HISTFILE=~/.zsh_history
 setopt APPEND_HISTORY SHARE_HISTORY INC_APPEND_HISTORY
 setopt HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS
-setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_VERIFY EXTENDED_HISTORY
+setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_VERIFY 
+setopt EXTENDED_HISTORY HIST_FIND_NO_DUPS HIST_SAVE_NO_DUPS
 
 setopt CORRECT MENUCOMPLETE AUTO_MENU LIST_PACKED
 setopt AUTOCD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
 setopt INTERACTIVE_COMMENTS LONG_LIST_JOBS NO_BEEP GLOBDOTS
 setopt PROMPT_SUBST
-unsetopt BEEP
 
 ##### Vim Mode & Keybinds
 bindkey -v
