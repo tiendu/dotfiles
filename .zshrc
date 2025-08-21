@@ -1,22 +1,14 @@
 # ~/.zshrc
 ##### Global Color Variables
 autoload -U colors && colors
-RESET="%f"
-RESET_BOLD="%f%b"
-BOLD_RED="%B%F{red}"
-BOLD_GREEN="%B%F{green}"
-BOLD_YELLOW="%B%F{yellow}"
-BOLD_CYAN="%B%F{cyan}"
-BOLD_WHITE="%B%F{white}"
-BOLD_MAGENTA="%B%F{magenta}"
-BOLD_BLUE="%B%F{blue}"
-RED="%F{red}"
-GREEN="%F{green}"
-YELLOW="%F{yellow}"
-CYAN="%F{cyan}"
-WHITE="%F{white}"
-MAGENTA="%F{magenta}"
-BLUE="%F{blue}"
+RESET="%f" RESET_BOLD="%f%b"
+RED="%F{red}" BOLD_RED="%B%F{red}"
+GREEN="%F{green}" BOLD_GREEN="%B%F{green}"
+YELLOW="%F{yellow}" BOLD_YELLOW="%B%F{yellow}"
+CYAN="%F{cyan}" BOLD_CYAN="%B%F{cyan}"
+WHITE="%F{white}" BOLD_WHITE="%B%F{white}"
+MAGENTA="%F{magenta}" BOLD_MAGENTA="%B%F{magenta}"
+BLUE="%F{blue}" BOLD_BLUE="%B%F{blue}"
 
 ##### Modules
 zmodload zsh/zle
@@ -231,7 +223,7 @@ if [[ $- == *i* ]]; then
   compinit -d "$_compdump"
   zstyle ':completion:*' menu select
   zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}' \
-                                 'r:|[._-]=* r:|=*'    # partial/fuzzy-ish
+                                 'r:|[._-]=* r:|=*'  # Partial/fuzzy-ish
   zstyle ':completion:*' group-name ''
   zstyle ':completion:*' list-colors ''
 fi
