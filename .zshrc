@@ -47,30 +47,28 @@ alias ta="tmux attach || tmux new"
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 alias ..='cd ..' ...='cd ../..' ....='cd ../../..'
 
-##### Clipboard Cross-platform
-case "$OSTYPE" in
-  darwin*) alias pbcopy='pbcopy'; alias pbpaste='pbpaste' ;;
-  *)  if command -v wl-copy &>/dev/null; then
-        pbcopy() {
-          if (( $# )); then cat -- "$@" | wl-copy; else cat | wl-copy; fi
-        }
-        pbpaste() { wl-paste; }
-      elif command -v xclip &>/dev/null; then
-        alias pbcopy='xclip -selection clipboard'
-        alias pbpaste='xclip -selection clipboard -o'
-      elif command -v xsel &>/dev/null; then
-        alias pbcopy='xsel --clipboard --input'
-        alias pbpaste='xsel --clipboard --output'
-      else
-        alias pbcopy='cat > /dev/null'; alias pbpaste='echo ""'
-      fi
-  ;;
-esac
-_paste_from_clipboard() {
-  local clip
-  clip="$(pbpaste)"
-  LBUFFER+="${clip}"
-}
+##### Cross-platform clipboard (functions for consistent behavior)
+# pbcopy [file...] or stdin; pbpaste prints contents
+if [[ "$OSTYPE" == darwin* ]]; then
+  pbcopy() { command pbcopy; }        # stdin only on macOS
+  pbpaste() { command pbpaste; }
+else
+  if command -v wl-copy &>/dev/null; then
+    pbcopy() { (( $# )) && cat -- "$@" | wl-copy || wl-copy; }
+    pbpaste() { wl-paste; }
+  elif command -v xclip &>/dev/null; then
+    pbcopy() { (( $# )) && cat -- "$@" | xclip -selection clipboard || xclip -selection clipboard; }
+    pbpaste() { xclip -selection clipboard -o; }
+  elif command -v xsel &>/dev/null; then
+    pbcopy() { (( $# )) && cat -- "$@" | xsel --clipboard --input || xsel --clipboard --input; }
+    pbpaste() { xsel --clipboard --output; }
+  else
+    pbcopy() { :; } ; pbpaste() { echo ""; }
+  fi
+fi
+
+# Quick paste mapping in vicmd
+_paste_from_clipboard() { LBUFFER+=$(pbpaste); }
 zle -N _paste_from_clipboard
 bindkey -M vicmd 'gp' _paste_from_clipboard
 bindkey -M vicmd 'gP' _paste_from_clipboard
@@ -78,7 +76,7 @@ bindkey -M vicmd 'gP' _paste_from_clipboard
 ##### History & Shell Options
 HISTSIZE=10000
 SAVEHIST=10000
-HISTFILE=~/.zsh_history
+HISTFILE=${HISTFILE:-$HOME/.zsh_history}
 setopt APPEND_HISTORY SHARE_HISTORY INC_APPEND_HISTORY
 setopt HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS
 setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_VERIFY 
@@ -87,10 +85,11 @@ setopt EXTENDED_HISTORY HIST_FIND_NO_DUPS HIST_SAVE_NO_DUPS
 setopt CORRECT MENUCOMPLETE AUTO_MENU LIST_PACKED
 setopt AUTOCD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
 setopt INTERACTIVE_COMMENTS LONG_LIST_JOBS NO_BEEP GLOBDOTS
-setopt PROMPT_SUBST
+setopt PROMPT_SUBST NO_FLOW_CONTROL 
 
 ##### Vim Mode & Keybinds
 bindkey -v
+KEYTIMEOUT=1
 bindkey '^P' up-line-or-history
 bindkey '^N' down-line-or-history
 bindkey -M viins 'jk' vi-cmd-mode
@@ -122,41 +121,50 @@ function zle-keymap-select {
 zle -N zle-keymap-select
 zle -N zle-line-init zle-keymap-select
 
-##### Path & Prompt Info
+##### Directory metrics (fast path + caching)
+typeset -g  _dm_pwd="" _dm_size="" _dm_count=0
+typeset -gi _dm_ts=0 _DM_TTL=3 _DM_MAX_ENTRIES=4000
+
 _humanize_size() {
-  awk '{s=$1; split("B KB MB GB TB",u); for(i=1;s>=1024&&i<5;i++)s/=1024; printf "%.1f%s", s, u[i]}'
+  local -F 2 s=$1; local -a u=(B KB MB GB TB PB); local i=1
+  while (( s >= 1024 && i < ${#u} )); do s=$(( s / 1024.0 )); (( i++ )); done
+  printf '%.1f%s' $s $u[i]
 }
-typeset -g  _dm_pwd="" _dm_size=""
-typeset -gi _dm_ts=0 _dm_count=0
 _dir_metrics() {
   local now=$EPOCHSECONDS
-  if [[ $_dm_pwd == "$PWD" ]] && (( now - _dm_ts < 3 )); then
+  if [[ $_dm_pwd == "$PWD" ]] && (( now - _dm_ts < _DM_TTL )); then
     return
   fi
-  local -a files=( *(.DN) )
-  local -A S
-  local -i bytes=0
-  for f in $files; do
-    zstat -H S -- "$f"
-    (( bytes += S[size] ))
-  done
-  local -a entries=( *(DN) )
+  local -a entries
+  entries=( *(DN) )
   _dm_count=${#entries}
-  _dm_size=$(_humanize_size <<< "${bytes}")
+  if (( _dm_count == 0 )); then
+    _dm_size="0B"
+  elif (( _dm_count > _DM_MAX_ENTRIES )); then
+    _dm_size="--"
+  else
+    local -A S; local -i bytes=0
+    local f
+    for f in *(.DN); do
+      zstat -H S -- "$f" 2>/dev/null && (( bytes += S[size] ))
+    done
+    _dm_size=$(_humanize_size $bytes)
+  fi
   _dm_pwd=$PWD
   _dm_ts=$now
 }
-_dir_info() {
-  _dir_metrics
-  echo "${BOLD_CYAN}${_dm_count} | ${_dm_size}${RESET_BOLD}"
-}
+chpwd() { _dm_ts=0; }  # Invalidate cache on cd
+_dir_info() { _dir_metrics; print -r -- "${BOLD_CYAN}${_dm_count} | ${_dm_size}${RESET_BOLD}"; }
 _shorten_path() {
   local full="${1:-$PWD}" prefix=""
   [[ "$full" == "$HOME"* ]] && prefix="~" full="${full/#$HOME/}"
-  IFS='/' read -rA parts <<< "${full#/}"
-  (( ${#parts[@]} == 0 )) && { echo "${prefix}/"; return }
-  (( ${#parts[@]} > 4 )) && echo "${prefix}/${(j:/:)parts[1,2]}/.../${(j:/:)parts[-2,-1]}" \
-                         || echo "${prefix}/${(j:/:)parts}"
+  local -a parts; IFS='/' read -rA parts <<< "${full#/}"
+  (( ${#parts} == 0 )) && { print -r -- "${prefix}/"; return; }
+  if (( ${#parts} > 4 )); then
+    print -r -- "${prefix}/${(j:/:)parts[1,2]}/.../${(j:/:)parts[-2,-1]}"
+  else
+    print -r -- "${prefix}/${(j:/:)parts}"
+  fi
 }
 
 _update_prompt() {
@@ -204,22 +212,23 @@ _custom_highlight() {
     fi
   done
 }
-_highlight_pre_redraw() {
-  emulate -L zsh
-  (( ${#BUFFER} > 4000 )) && { region_highlight=(); return }
-  _custom_highlight
-}
+_highlight_pre_redraw() { emulate -L zsh; (( ${#BUFFER} > 4000 )) && { region_highlight=(); return; }; _custom_highlight }
 _highlight_finish() { region_highlight=() }
 zle -N zle-line-pre-redraw _highlight_pre_redraw
 zle -N zle-line-finish _highlight_finish
 
-##### Init Interactive Shell
+##### Interactive-only setup (keeps non-interactive shells fast)
 if [[ $- == *i* ]]; then
   autoload -Uz compinit
   zmodload zsh/complist
-  zmodload zsh/datetime
-  zmodload zsh/stat
-  compinit -C
+  local _compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compdump"
+  mkdir -p -- "${_compdump:h}"
+  compinit -d "$_compdump"
+  zstyle ':completion:*' menu select
+  zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}' \
+                                 'r:|[._-]=* r:|=*'    # partial/fuzzy-ish
+  zstyle ':completion:*' group-name ''
+  zstyle ':completion:*' list-colors ''
 fi
 
 export PATH="$HOME/miniforge/bin:$PATH"
