@@ -44,15 +44,21 @@ command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
 ##### Aliases
 alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' g='git' e='nvim'
-alias h="fc -l 1 | awk '{\$1=\"\"; print substr(\$0,2)}'"
+alias h='fc -ln 1'
 alias ta="tmux attach || tmux new"
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 alias ..='cd ..' ...='cd ../..' ....='cd ../../..'
 
 ##### Cross-platform clipboard (functions for consistent behavior)
-# pbcopy [file...] or stdin; pbpaste prints contents
+# pbcopy [file...] or stdin; pbpaste prints content
 if [[ "$OSTYPE" == darwin* ]]; then
-  pbcopy() { command pbcopy; }        # stdin only on macOS
+  pbcopy() {
+    if (( $# )); then
+      { local f; for f in "$@"; do command cat "$f"; done; } | command pbcopy
+    else
+      command pbcopy
+    fi
+  }
   pbpaste() { command pbpaste; }
 else
   if command -v wl-copy &>/dev/null; then
@@ -68,8 +74,6 @@ else
     pbcopy() { :; } ; pbpaste() { echo ""; }
   fi
 fi
-
-# Quick paste mapping in vicmd
 _paste_from_clipboard() { LBUFFER+=$(pbpaste); }
 zle -N _paste_from_clipboard
 bindkey -M vicmd 'gp' _paste_from_clipboard
