@@ -18,8 +18,10 @@ WHITE="%F{white}"
 MAGENTA="%F{magenta}"
 BLUE="%F{blue}"
 
-##### Load zle module
+##### Modules
 zmodload zsh/zle
+zmodload -F zsh/stat b:zstat
+zmodload zsh/datetime
 
 ##### General Environment
 export EDITOR="nvim"
@@ -89,7 +91,6 @@ setopt PROMPT_SUBST NO_FLOW_CONTROL
 
 ##### Vim Mode & Keybinds
 bindkey -v
-KEYTIMEOUT=1
 bindkey '^P' up-line-or-history
 bindkey '^N' down-line-or-history
 bindkey -M viins 'jk' vi-cmd-mode
