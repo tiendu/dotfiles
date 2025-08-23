@@ -1,33 +1,62 @@
 -- === General Settings ===
 local opt = vim.opt
+
+-- === Filetype + Leaders ===
+vim.cmd('filetype plugin indent on')
+vim.g.mapleader = ' '
+vim.g.maplocalleader = '\\'
+
+-- === UI + Navigation ===
 opt.number = true
 opt.relativenumber = true
+opt.cursorline = true
+opt.signcolumn = "yes"
+opt.termguicolors = true
+opt.laststatus = 3
+opt.statusline = table.concat({
+  '%#StatusLine#','%F','%h','%m','%r',
+  '%#StatusLineNC#','%=','%y',
+  '%{&fileencoding?&fileencoding:&encoding}','%{&fileformat}',' [%p%%]',' %l/%L:%c',
+})
+opt.scrolloff = 4
+opt.sidescrolloff = 8
+opt.splitright = true
+opt.splitbelow = true
+opt.pumheight = 12
+opt.showmode = false
+opt.guicursor = "n-v-c:block,i:ver25-blinkon500"
+
+-- === Editing and Formatting ===
+opt.wrap = false
+opt.undofile = true
+opt.clipboard = 'unnamedplus'
+opt.timeoutlen = 300
+opt.autoread = true
+
+-- Search
 opt.hlsearch = true
 opt.incsearch = true
 opt.ignorecase = true
 opt.smartcase = true
-opt.expandtab = false
-opt.tabstop = 4
-opt.shiftwidth = 4
-opt.softtabstop = 4
-opt.wrap = false
-opt.cursorline = true
-opt.clipboard = 'unnamedplus'
-opt.timeoutlen = 300
-opt.autoread = true
-opt.list = true
-opt.listchars = { tab = '▸ ', space = '·', eol = '↴' }
-opt.guicursor = "n-v-c:block,i:ver25-blinkon500"
-opt.termguicolors = true
-opt.laststatus = 3
-opt.statusline = table.concat({
-  '%#StatusLine#', '%F', '%h', '%m', '%r',
-  '%#StatusLineNC#', '%=', '%y',
-  '%{&fileencoding?&fileencoding:&encoding}', '%{&fileformat}', ' [%p%%]', ' %l/%L:%c',
-})
 
-vim.g.mapleader = ' '
-vim.g.maplocalleader = '\\'
+-- Whitespace & indentation (defaults; overridden per-filetype below)
+opt.list = true
+opt.listchars = { tab = '▸ ', space = '·', eol = '↴', trail = '·' }
+opt.expandtab = true
+opt.tabstop = 2
+opt.shiftwidth = 2
+opt.softtabstop = 2
+opt.smartindent = true
+opt.shiftround = true
+
+-- Newline/EOL hygiene
+opt.fixendofline = true
+opt.endofline = true
+opt.joinspaces = false
+
+-- Comment behavior: don't auto-continue on new lines; strip leader on join
+opt.formatoptions:remove({ 'r', 'o' })
+opt.formatoptions:append({ 'j' })
 
 -- === Highlighting and Transparency ===
 local function set_transparency()
@@ -173,6 +202,3 @@ vim.api.nvim_create_autocmd({ "Syntax", "BufEnter" }, {
 -- === (Optional) Line Numbers — Custom Color ===
 vim.api.nvim_set_hl(0, "LineNr", { fg = "#FF0000" })
 vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#00FF00" })
-
--- === Disable legacy plugins ===
-vim.cmd('filetype plugin off')
