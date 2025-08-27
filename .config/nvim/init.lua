@@ -1,88 +1,103 @@
--- --- Quality-of-life / performance ---
+-- --- Startup / performance ---
 local ok = pcall(function() return vim.loader.enable() end)
-local opt = vim.opt
+local opt, g, api, fn = vim.opt, vim.g, vim.api, vim.fn
 
-opt.updatetime = 200
-opt.redrawtime = 10000
-opt.inccommand = "nosplit"
-opt.fillchars = { eob = " ", fold = " ", foldopen = "▾", foldsep = " ", foldclose = "▸" }
+-- --- Core timings & UI perf ---
+opt.updatetime   = 200
+opt.redrawtime   = 10000
+opt.inccommand   = "nosplit"
+opt.fillchars    = { eob = " ", fold = " ", foldopen = "▾", foldsep = " ", foldclose = "▸" }
 opt.shortmess:append({ I = true, W = true, C = true })
 
--- --- Filetypes + Leaders ---
-vim.cmd('filetype plugin indent on')
-vim.g.mapleader = ' '
-vim.g.maplocalleader = '\\'
+-- --- Leaders ---
+g.mapleader      = ' '
+g.maplocalleader = '\\'
 
--- --- UI + Navigation ---
-opt.number = true
+-- --- UI & Navigation ---
+opt.number         = true
 opt.relativenumber = true
-opt.cursorline = true
-opt.signcolumn = "yes"
+opt.cursorline     = true
+pcall(function() opt.cursorlineopt = "number" end) -- lighter cursorline (NVIM ≥0.9)
+opt.signcolumn    = "yes"
 opt.termguicolors = true
-opt.laststatus = 3
-opt.statusline = table.concat({
+opt.laststatus    = 3
+opt.statusline    = table.concat({
   '%#StatusLine#','%F','%h','%m','%r',
   '%#StatusLineNC#','%=','%y',
   '%{&fileencoding?&fileencoding:&encoding}','%{&fileformat}',' [%p%%]',' %l/%L:%c',
 })
-opt.scrolloff = 4
+opt.scrolloff     = 4
 opt.sidescrolloff = 8
-opt.splitright = true
-opt.splitbelow = true
-opt.pumheight = 12
-opt.showmode = false
-opt.guicursor = "n-v-c:block,i:ver25-blinkon500"
+opt.splitright    = true
+opt.splitbelow    = true
+opt.pumheight     = 12
+opt.showmode      = false
+opt.guicursor     = "n-v-c:block,i:ver25-blinkon500"
 
 -- --- Editing & Formatting ---
-opt.wrap = false
-opt.undofile = true
-opt.clipboard = 'unnamedplus'
+opt.wrap       = false
+opt.undofile   = true
+opt.clipboard  = 'unnamedplus'
 opt.timeoutlen = 300
-opt.autoread = true
+opt.autoread   = true
+opt.confirm    = true       -- be nice on :w over readonly files
+opt.mouse      = "a"        -- easy selection/resize when needed
+
+-- If ripgrep is installed, use it for :grep
+if fn.executable("rg") == 1 then
+  opt.grepprg = "rg --vimgrep --smart-case"
+end
 
 -- Search
-opt.hlsearch = true
-opt.incsearch = true
+opt.hlsearch   = true
+opt.incsearch  = true
 opt.ignorecase = true
-opt.smartcase = true
+opt.smartcase  = true
 
 -- Whitespace & indentation
-opt.list = true
-opt.listchars = { tab = '▸ ', space = '·', eol = '↴', trail = '·' }
-opt.expandtab = true
-opt.tabstop = 2
-opt.shiftwidth = 2
+opt.list        = true
+opt.listchars   = { tab = '▸ ', space = '·', eol = '↴', trail = '·' }
+opt.expandtab   = true
+opt.tabstop     = 2
+opt.shiftwidth  = 2
 opt.softtabstop = 2
 opt.smartindent = true
-opt.shiftround = true
+opt.shiftround  = true
 
 -- Newline/EOL hygiene
 opt.fixendofline = true
-opt.endofline = true
-opt.joinspaces = false
+opt.endofline    = true
+opt.joinspaces   = false
 
 -- Comment behavior
 opt.formatoptions:remove({ 'r', 'o' })  -- don't continue comments
 opt.formatoptions:append({ 'j' })       -- remove comment leader when joining lines
 
--- --- Highlighting and Transparency ---
+-- --- Highlighting & Transparency ---
 local function set_transparency()
-  for _, g in ipairs({ "Normal", "NormalFloat", "FloatBorder", "Pmenu", "PmenuSel" }) do
-    vim.api.nvim_set_hl(0, g, { bg = "none" })
+  local groups = { "Normal", "NormalFloat", "Pmenu" }
+  for _, gname in ipairs(groups) do
+    api.nvim_set_hl(0, gname, { bg = "none" })
   end
+  -- keep FloatBorder visible (match Comment fg if possible)
+  local c = api.nvim_get_hl(0, { name = "Comment", link = false }) or {}
+  api.nvim_set_hl(0, "FloatBorder", { bg = "none", fg = c.fg or "#808080" })
+  -- Menu selection should still show
+  local pm = api.nvim_get_hl(0, { name = "PmenuSel", link = false }) or {}
+  api.nvim_set_hl(0, "PmenuSel", { bg = pm.bg or "#333333", fg = pm.fg or "NONE" })
 end
 
-vim.api.nvim_create_autocmd("ColorScheme", {
-  group = vim.api.nvim_create_augroup("transparency", { clear = true }),
+api.nvim_create_autocmd("ColorScheme", {
+  group = api.nvim_create_augroup("transparency", { clear = true }),
   callback = set_transparency,
 })
 set_transparency()
 
-vim.api.nvim_set_hl(0, 'Whitespace',   { fg = '#808080' })
-vim.api.nvim_set_hl(0, 'TabLine',      { fg = '#808080' })
-vim.api.nvim_set_hl(0, 'CursorLine',   { underline = true })
-vim.api.nvim_set_hl(0, 'LineNr',       { fg = "#FF0000" })
-vim.api.nvim_set_hl(0, 'CursorLineNr', { fg = "#00FF00" })
+api.nvim_set_hl(0, 'Whitespace',   { fg = '#808080' })
+api.nvim_set_hl(0, 'TabLine',      { fg = '#808080' })
+api.nvim_set_hl(0, 'CursorLine',   { underline = true })
+api.nvim_set_hl(0, 'LineNr',       { fg = "#FF0000" })
+api.nvim_set_hl(0, 'CursorLineNr', { fg = "#00FF00" })
 
 -- --- Keymaps ---
 local map, kmopts = vim.keymap.set, { noremap = true, silent = true }
@@ -106,20 +121,20 @@ map('n', '<leader>cn', '<Cmd>cnext<CR>', kmopts)
 map('n', '<leader>cp', '<Cmd>cprev<CR>', kmopts)
 
 -- Tabs
-map('n', '<C-l>',     '<Cmd>tabnext<CR>',     { noremap = true, desc = 'Next tab' })
-map('n', '<C-h>',     '<Cmd>tabprevious<CR>', { noremap = true, desc = 'Previous tab' })
-map('n', '<leader>tc','<Cmd>tabclose<CR>',    { desc = 'Close current tab' })
-map('n', '<leader>to','<Cmd>tabonly<CR>',     { desc = 'Close other tabs' })
-map('n', '<leader>e', '<Cmd>tabnew | Explore<CR>', { desc = 'New tab file explorer' })
+map('n', '<C-l>',        '<Cmd>tabnext<CR>',     { noremap = true, desc = 'Next tab' })
+map('n', '<C-h>',        '<Cmd>tabprevious<CR>', { noremap = true, desc = 'Previous tab' })
+map('n', '<leader>tc',   '<Cmd>tabclose<CR>',    { desc = 'Close current tab' })
+map('n', '<leader>to',   '<Cmd>tabonly<CR>',     { desc = 'Close other tabs' })
+map('n', '<leader>e',    '<Cmd>tabnew | Explore<CR>', { desc = 'New tab file explorer' })
 
 -- --- File Explorer (netrw) ---
-vim.g.netrw_banner = 0
-vim.g.netrw_liststyle = 3
-vim.g.netrw_browse_split = 0
-vim.g.netrw_winsize = 25
+g.netrw_banner       = 0
+g.netrw_liststyle    = 3
+g.netrw_browse_split = 0
+g.netrw_winsize      = 25
 
-vim.api.nvim_create_autocmd("FileType", {
-  group = vim.api.nvim_create_augroup("netrw_localmaps", { clear = true }),
+api.nvim_create_autocmd("FileType", {
+  group = api.nvim_create_augroup("netrw_localmaps", { clear = true }),
   pattern = "netrw",
   callback = function()
     map('n', '/', '/', { buffer = true }) -- keep default feel explicitly
@@ -127,67 +142,73 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 
 -- --- Autocommands ---
+
 -- Keep buffers in sync with external changes
-vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {
-  group = vim.api.nvim_create_augroup("autoread_checktime", { clear = true }),
+api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {
+  group = api.nvim_create_augroup("autoread_checktime", { clear = true }),
   command = "checktime",
 })
 
--- Gentler autosave: write only modified, listed buffers when leaving Insert
-vim.api.nvim_create_autocmd("InsertLeave", {
-  group = vim.api.nvim_create_augroup("autosave_modified", { clear = true }),
+-- Gentler autosave: write only modified, listed, modifiable buffers on InsertLeave
+api.nvim_create_autocmd("InsertLeave", {
+  group = api.nvim_create_augroup("autosave_modified", { clear = true }),
   callback = function()
-    for _, b in ipairs(vim.api.nvim_list_bufs()) do
-      if vim.bo[b].buflisted and vim.bo[b].modifiable and vim.api.nvim_buf_get_option(b, "modified") then
-        pcall(vim.api.nvim_buf_call, b, function() vim.cmd("silent keepalt write") end)
+    for _, b in ipairs(api.nvim_list_bufs()) do
+      if fn.buflisted(b) == 1 and vim.bo[b].modifiable and vim.bo[b].modified then
+        pcall(api.nvim_buf_call, b, function()
+          vim.cmd("silent keepalt write")
+        end)
       end
     end
   end,
 })
 
 -- Trim trailing spaces on save (skip formats where two spaces are semantic)
-vim.api.nvim_create_autocmd("BufWritePre", {
-  group = vim.api.nvim_create_augroup("trim_trailing_ws", { clear = true }),
+api.nvim_create_autocmd("BufWritePre", {
+  group = api.nvim_create_augroup("trim_trailing_ws", { clear = true }),
   callback = function(args)
     local ft = vim.bo[args.buf].filetype
     if ft == "markdown" or ft == "asciidoc" then return end
-    local view = vim.fn.winsaveview()
+    local view = fn.winsaveview()
     vim.cmd([[silent! keeppatterns %s/\s\+$//e]])
-    vim.fn.winrestview(view)
+    fn.winrestview(view)
   end,
 })
 
--- Leave insert when window loses focus
-vim.api.nvim_create_autocmd("FocusLost", {
-  group = vim.api.nvim_create_augroup("stopinsert_on_blur", { clear = true }),
-  command = "stopinsert",
+-- Leave insert when window loses focus (but not in terminal/prompt buffers)
+api.nvim_create_autocmd("FocusLost", {
+  group = api.nvim_create_augroup("stopinsert_on_blur", { clear = true }),
+  callback = function(args)
+    local bt = vim.bo[args.buf].buftype
+    if bt == "" then vim.cmd("stopinsert") end
+  end,
 })
 
 -- Highlight on yank
-vim.api.nvim_create_autocmd("TextYankPost", {
-  group = vim.api.nvim_create_augroup("yank_hi", { clear = true }),
+api.nvim_create_autocmd("TextYankPost", {
+  group = api.nvim_create_augroup("yank_hi", { clear = true }),
   callback = function()
     vim.highlight.on_yank { higroup = "IncSearch", timeout = 200 }
   end,
 })
 
 -- --- Highlight TODOs & trailing whitespace (no match leaks) ---
-vim.api.nvim_set_hl(0, "ExtraWhitespace", { bg = "#ff5f5f" })
-vim.api.nvim_set_hl(0, "TodoKeyword",    { fg = "#FFA500", bold = true })
+api.nvim_set_hl(0, "ExtraWhitespace", { bg = "#ff5f5f" })
+api.nvim_set_hl(0, "TodoKeyword",     { fg = "#FFA500", bold = true })
 
-vim.api.nvim_create_autocmd({ "Syntax", "BufEnter" }, {
-  group = vim.api.nvim_create_augroup("match_keywords_ws", { clear = true }),
+api.nvim_create_autocmd({ "Syntax", "BufEnter" }, {
+  group = api.nvim_create_augroup("match_keywords_ws", { clear = true }),
   callback = function(args)
     -- one TODO match per buffer
     if vim.b[args.buf].todo_match_id then
-      pcall(vim.fn.matchdelete, vim.b[args.buf].todo_match_id)
+      pcall(fn.matchdelete, vim.b[args.buf].todo_match_id)
     end
-    vim.b[args.buf].todo_match_id = vim.fn.matchadd("TodoKeyword", [[\v<(TODO|FIXME|NOTE)>]])
+    vim.b[args.buf].todo_match_id = fn.matchadd("TodoKeyword", [[\v<(TODO|FIXME|NOTE)>]])
 
     -- one trailing whitespace match per buffer
     if vim.b[args.buf].trail_match_id then
-      pcall(vim.fn.matchdelete, vim.b[args.buf].trail_match_id)
+      pcall(fn.matchdelete, vim.b[args.buf].trail_match_id)
     end
-    vim.b[args.buf].trail_match_id = vim.fn.matchadd("ExtraWhitespace", [[\s\+$]])
+    vim.b[args.buf].trail_match_id = fn.matchadd("ExtraWhitespace", [[\s\+$]])
   end,
 })
