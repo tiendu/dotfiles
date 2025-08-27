@@ -93,25 +93,11 @@ map('n', '<leader>q', '<Cmd>q<CR>', kmopts)
 map('n', '<leader>x', '<Cmd>silent! wq<CR>', kmopts)
 map('n', '<Esc>',     '<Cmd>nohlsearch<CR>', kmopts)
 
--- Move lines
-map('n', '<A-j>', '<Cmd>m .+1<CR>==', kmopts)
-map('n', '<A-k>', '<Cmd>m .-2<CR>==', kmopts)
-map('i', '<A-j>', '<Esc><Cmd>m .+1<CR>==gi', kmopts)
-map('i', '<A-k>', '<Esc><Cmd>m .-2<CR>==gi', kmopts)
-map('v', '<A-j>', ":m '>+1<CR>gv=gv", kmopts)
-map('v', '<A-k>', ":m '<-2<CR>gv=gv", kmopts)
-
 -- Fast Escape
 map('i', 'jk', '<Esc>', kmopts)
 map('i', 'kj', '<Esc>', kmopts)
 map('i', 'jj', '<Esc>', kmopts)
 map('i', 'kk', '<Esc>', kmopts)
-
--- Cursor move in insert (stay in Insert, fold-aware)
-map('i', '<C-h>', '<C-o>h', kmopts)
-map('i', '<C-l>', '<C-o>l', kmopts)
-map('i', '<C-k>', '<C-o>k', kmopts)
-map('i', '<C-j>', '<C-o>j', kmopts)
 
 -- Quickfix
 map('n', '<leader>co', '<Cmd>copen<CR>', kmopts)
