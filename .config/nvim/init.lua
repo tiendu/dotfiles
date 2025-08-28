@@ -1,3 +1,4 @@
+-- ~/.config/nvim/init.lua
 -- --- Startup / performance ---
 local ok = pcall(function() return vim.loader.enable() end)
 local opt, g, api, fn = vim.opt, vim.g, vim.api, vim.fn
@@ -56,7 +57,7 @@ opt.smartcase  = true
 
 -- Whitespace & indentation
 opt.list        = true
-opt.listchars   = { tab = '▸ ', space = '·', eol = '↴', trail = '·' }
+opt.listchars   = { tab = '▸ ', space = '·', eol = '↴', trail = '•' }
 opt.expandtab   = true
 opt.tabstop     = 2
 opt.shiftwidth  = 2
@@ -212,3 +213,4 @@ api.nvim_create_autocmd({ "Syntax", "BufEnter" }, {
     vim.b[args.buf].trail_match_id = fn.matchadd("ExtraWhitespace", [[\s\+$]])
   end,
 })
+
