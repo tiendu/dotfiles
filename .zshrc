@@ -1,14 +1,14 @@
 # ~/.zshrc
 ##### Global Color Variables
 autoload -U colors && colors
-RESET="%f" RESET_BOLD="%f%b"
-RED="%F{red}" BOLD_RED="%B%F{red}"
-GREEN="%F{green}" BOLD_GREEN="%B%F{green}"
-YELLOW="%F{yellow}" BOLD_YELLOW="%B%F{yellow}"
-CYAN="%F{cyan}" BOLD_CYAN="%B%F{cyan}"
-WHITE="%F{white}" BOLD_WHITE="%B%F{white}"
+RESET="%f%k"          RESET_BOLD="%f%k%b"
+RED="%F{red}"         BOLD_RED="%B%F{red}"
+GREEN="%F{green}"     BOLD_GREEN="%B%F{green}"
+YELLOW="%F{yellow}"   BOLD_YELLOW="%B%F{yellow}"
+CYAN="%F{cyan}"       BOLD_CYAN="%B%F{cyan}"
+WHITE="%F{white}"     BOLD_WHITE="%B%F{white}"
 MAGENTA="%F{magenta}" BOLD_MAGENTA="%B%F{magenta}"
-BLUE="%F{blue}" BOLD_BLUE="%B%F{blue}"
+BLUE="%F{blue}"       BOLD_BLUE="%B%F{blue}"
 
 ##### Modules
 zmodload zsh/zle
@@ -35,11 +35,13 @@ fi
 command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
 ##### Aliases
-alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' g='git' e='nvim'
-alias h='fc -ln 1'
-alias ta="tmux attach || tmux new"
-alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-alias ..='cd ..' ...='cd ../..' ....='cd ../../..'
+if [[ $- == *i* ]]; then
+  alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' g='git' e='nvim'
+  alias h='fc -ln 1'
+  alias ta="tmux attach || tmux new"
+  alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+  alias ..='cd ..' ...='cd ../..' ....='cd ../../..'
+fi
 
 ##### Cross-platform clipboard (functions for consistent behavior)
 # pbcopy [file...] or stdin; pbpaste prints content
@@ -66,10 +68,13 @@ else
     pbcopy() { :; } ; pbpaste() { echo ""; }
   fi
 fi
-_paste_from_clipboard() { LBUFFER+=$(pbpaste); }
-zle -N _paste_from_clipboard
-bindkey -M vicmd 'gp' _paste_from_clipboard
-bindkey -M vicmd 'gP' _paste_from_clipboard
+_paste_clip_after()  { LBUFFER+=$(pbpaste); }
+_paste_clip_before() { RBUFFER="$(pbpaste)$RBUFFER"; }
+zle -N _paste_clip_after
+zle -N _paste_clip_before
+bindkey -M vicmd 'p' _paste_clip_after
+bindkey -M vicmd 'P' _paste_clip_before
+bindkey -M viins '^V' _paste_clip_after
 
 ##### History & Shell Options
 HISTSIZE=10000
@@ -83,16 +88,25 @@ setopt EXTENDED_HISTORY HIST_FIND_NO_DUPS HIST_SAVE_NO_DUPS
 setopt CORRECT MENUCOMPLETE AUTO_MENU LIST_PACKED
 setopt AUTOCD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
 setopt INTERACTIVE_COMMENTS LONG_LIST_JOBS NO_BEEP GLOBDOTS
-setopt PROMPT_SUBST NO_FLOW_CONTROL
+setopt PROMPT_SUBST NO_FLOW_CONTROL PIPE_FAIL
 
 ##### Vim Mode & Keybinds
 bindkey -v
-bindkey '^P' up-line-or-history
-bindkey '^N' down-line-or-history
+autoload -Uz up-line-or-search down-line-or-search
+bindkey -M viins '^P' up-line-or-search
+bindkey -M viins '^N' down-line-or-search
+bindkey -M vicmd '/' history-incremental-search-forward
+bindkey -M vicmd '?' history-incremental-search-backward
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
 bindkey -M viins '^?' backward-delete-char
 bindkey -M viins '^H' backward-delete-char
+
+# History menu: list all matches that start with current prefix
+autoload -Uz history-beginning-search-menu
+zle -N history-beginning-search-menu
+bindkey -M viins '^R' history-beginning-search-menu
+bindkey -M vicmd 'R' history-beginning-search-menu
 
 # Insert "cd " when tab is hit on empty line
 _first_tab() {
@@ -184,7 +198,7 @@ _custom_highlight() {
   region_highlight=()
   local buffer="$BUFFER"
   local -a words=(${(z)buffer})
-  local -a delimiters=(";" "|" "&&" "||" "&" "(" ")")
+  local -a delimiters=(";" "|" "||" "&&" "|&" "&" "(" ")" ";;&" ";|")
   local offset=0
   local remaining="$buffer"
   local found_command=0
@@ -219,14 +233,20 @@ if [[ $- == *i* ]]; then
   autoload -Uz compinit
   zmodload zsh/complist
   local _compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compdump"
-  mkdir -p -- "${_compdump:h}"
-  compinit -d "$_compdump"
+  mkdir -p -- "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compcache"
+  compinit -C -d "$_compdump"
+  zstyle ':completion:*' use-cache on
+  zstyle ':completion:*' cache-path "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compcache"
   zstyle ':completion:*' menu select
   zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}' \
                                  'r:|[._-]=* r:|=*'  # Partial/fuzzy-ish
   zstyle ':completion:*' group-name ''
   zstyle ':completion:*' list-colors ''
+  zstyle ':completion:*:history-words' menu yes select
+  zstyle ':completion:*:history-words' list-colors ''
+  export PROMPT_EOL_MARK=""
 fi
 
-export PATH="$HOME/miniforge/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
+[[ -d "$HOME/miniforge/bin" ]] && PATH="$HOME/miniforge/bin:$PATH"
+[[ -d "/opt/homebrew/bin" ]]   && PATH="/opt/homebrew/bin:$PATH"
+export PATH
