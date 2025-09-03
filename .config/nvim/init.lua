@@ -204,14 +204,10 @@ local function get_chars()
   return prevc, nextc
 end
 
--- Insert an opener+closer unless we're mid-word; otherwise just insert opener
-local function open_pair(open, close)
+local function open_pair(open, close, always)
   return function()
-    local prevc, nextc = get_chars()
-    -- only pair at word boundaries (prev is space/punct or start; next is space/punct or end)
-    local prev_ok = (prevc == "" or prevc:match("[%s%p]"))
-    local next_ok = (nextc == "" or nextc:match("[%s%p]"))
-    if prev_ok and next_ok then
+    local _, nextc = get_chars()
+    if always or nextc == "" or nextc:match("[%s%p]") then
       return open .. close .. "<Left>"
     else
       return open
@@ -219,7 +215,6 @@ local function open_pair(open, close)
   end
 end
 
--- If the next char is the expected closer, jump over it; otherwise insert
 local function close_pair(close)
   return function()
     local _, nextc = get_chars()
@@ -241,15 +236,17 @@ local function backspace_pair()
   return "<BS>"
 end
 
--- Mappings (insert mode)
-map("i", "(", open_pair("(", ")"), expr_opts)
+-- Mappings for autopairs
+map("i", "(", open_pair("(", ")", true), expr_opts)
+map("i", "[", open_pair("[", "]", true), expr_opts)
+map("i", "{", open_pair("{", "}", true), expr_opts)
 map("i", ")", close_pair(")"),     expr_opts)
-map("i", "[", open_pair("[", "]"), expr_opts)
 map("i", "]", close_pair("]"),     expr_opts)
-map("i", "{", open_pair("{", "}"), expr_opts)
 map("i", "}", close_pair("}"),     expr_opts)
-map("i", "'", open_pair("'", "'"), expr_opts)
-map("i", '"', open_pair('"', '"'), expr_opts)
+
+-- Quotes: keep boundary-aware so we don't break don't/it's
+map("i", "'", open_pair("'", "'"),  expr_opts)
+map("i", '"', open_pair('"', '"'),  expr_opts)
 
 -- Smart backspace
 map("i", "<BS>", backspace_pair, expr_opts)
