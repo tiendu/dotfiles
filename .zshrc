@@ -228,6 +228,21 @@ _highlight_finish() { region_highlight=() }
 zle -N zle-line-pre-redraw _highlight_pre_redraw
 zle -N zle-line-finish _highlight_finish
 
+##### Autopair quotes
+_autopair() {
+  local key="$1" close="$2"
+  if [[ $RBUFFER[1] == "$close" ]]; then
+    zle forward-char
+  else
+    LBUFFER+="$key$close"
+    zle backward-char
+  fi
+}
+zle -N _autopair-apos  ; _autopair-apos()  { _autopair "'" "'" }
+zle -N _autopair-quot  ; _autopair-quot()  { _autopair '"' '"' }
+bindkey -M viins "'" _autopair-apos
+bindkey -M viins '"' _autopair-quot
+
 ##### Interactive-only setup (keeps non-interactive shells fast)
 if [[ $- == *i* ]]; then
   autoload -Uz compinit
