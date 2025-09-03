@@ -204,10 +204,18 @@ local function get_chars()
   return prevc, nextc
 end
 
+-- Insert an opener+closer unless we're mid-word
 local function open_pair(open, close, always)
   return function()
-    local _, nextc = get_chars()
-    if always or nextc == "" or nextc:match("[%s%p]") then
+    local prevc, nextc = get_chars()
+    -- Brackets/braces/parens: always pair if "always" is true
+    if always then
+      return open .. close .. "<Left>"
+    end
+    -- Quotes: only pair if prev is start/space/punct and next is end/space/punct
+    local prev_ok = (prevc == "" or prevc:match("[%s%p]"))
+    local next_ok = (nextc == "" or nextc:match("[%s%p]"))
+    if prev_ok and next_ok then
       return open .. close .. "<Left>"
     else
       return open
