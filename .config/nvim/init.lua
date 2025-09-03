@@ -143,7 +143,6 @@ api.nvim_create_autocmd("FileType", {
 })
 
 -- --- Autocommands ---
-
 -- Keep buffers in sync with external changes
 api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {
   group = api.nvim_create_augroup("autoread_checktime", { clear = true }),
@@ -192,6 +191,79 @@ api.nvim_create_autocmd("TextYankPost", {
     vim.highlight.on_yank { higroup = "IncSearch", timeout = 200 }
   end,
 })
+
+-- --- Autopairs
+local expr_opts = { expr = true, noremap = true, silent = true, replace_keycodes = true }
+
+-- Utility: current line char at cursor (next) and before (prev)
+local function get_chars()
+  local col = vim.fn.col('.')
+  local line = vim.fn.getline('.')
+  local nextc = line:sub(col, col)
+  local prevc = line:sub(col-1, col-1)
+  return prevc, nextc
+end
+
+-- Insert an opener+closer unless we're mid-word; otherwise just insert opener
+local function open_pair(open, close)
+  return function()
+    local prevc, nextc = get_chars()
+    -- only pair at word boundaries (prev is space/punct or start; next is space/punct or end)
+    local prev_ok = (prevc == "" or prevc:match("[%s%p]"))
+    local next_ok = (nextc == "" or nextc:match("[%s%p]"))
+    if prev_ok and next_ok then
+      return open .. close .. "<Left>"
+    else
+      return open
+    end
+  end
+end
+
+-- If the next char is the expected closer, jump over it; otherwise insert
+local function close_pair(close)
+  return function()
+    local _, nextc = get_chars()
+    if nextc == close then
+      return "<Right>"
+    else
+      return close
+    end
+  end
+end
+
+-- Smart backspace: if exactly between a known pair, delete both
+local function backspace_pair()
+  local prevc, nextc = get_chars()
+  local pairs = { ["'"]="'", ['"']='"', ["("]=")", ["["]="]", ["{"]="}" }
+  if pairs[prevc] and pairs[prevc] == nextc then
+    return "<BS><Del>"
+  end
+  return "<BS>"
+end
+
+-- Mappings (insert mode)
+map("i", "(", open_pair("(", ")"), expr_opts)
+map("i", ")", close_pair(")"),     expr_opts)
+map("i", "[", open_pair("[", "]"), expr_opts)
+map("i", "]", close_pair("]"),     expr_opts)
+map("i", "{", open_pair("{", "}"), expr_opts)
+map("i", "}", close_pair("}"),     expr_opts)
+map("i", "'", open_pair("'", "'"), expr_opts)
+map("i", '"', open_pair('"', '"'), expr_opts)
+
+-- Smart backspace
+map("i", "<BS>", backspace_pair, expr_opts)
+
+-- Make <CR> add a newline *inside* braces/brackets like many editors:
+map("i", "<CR>", function()
+  if vim.fn.pumvisible() == 1 then return "<CR>" end
+  local prevc, nextc = get_chars()
+  local matchers = { ["("]=")", ["["]="]", ["{"]="}" }
+  if matchers[prevc] and matchers[prevc] == nextc then
+    return "<CR><Esc>O"
+  end
+  return "<CR>"
+end, expr_opts)
 
 -- --- Highlight TODOs & trailing whitespace (no match leaks) ---
 api.nvim_set_hl(0, "ExtraWhitespace", { bg = "#ff5f5f" })
