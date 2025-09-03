@@ -231,16 +231,29 @@ zle -N zle-line-finish _highlight_finish
 ##### Autopair
 if [[ $- == *i* ]]; then
   _autopair() {
-    local key="$1" close="$2"
+    local key="$1" close="$2" mode="$3"
     if [[ $RBUFFER[1] == "$close" ]]; then
       zle forward-char
-    else
+      return
+    fi
+    if [[ "$mode" == "always" ]]; then
       LBUFFER+="$key$close"
       zle backward-char
+      return
     fi
+    if [[ "$mode" == "boundary" ]]; then
+      local prev="${LBUFFER[-1]}" next="${RBUFFER[1]}"
+      if [[ -z "$prev" || "$prev" == [[:space:][:punct:]] ]] && \
+         [[ -z "$next" || "$next" == [[:space:][:punct:]] ]]; then
+        LBUFFER+="$key$close"
+        zle backward-char
+        return
+      fi
+    fi
+    LBUFFER+="$key"
   }
-  zle -N _ap-apos  ; _ap-apos()  { _autopair "'" "'" }
-  zle -N _ap-quot  ; _ap-quot()  { _autopair '"' '"' }
+  zle -N _ap-apos  ; _ap-apos()  { _autopair "'" "'" "boundary" }
+  zle -N _ap-quot  ; _ap-quot()  { _autopair '"' '"' "boundary" }
   bindkey -M viins "'" _ap-apos
   bindkey -M viins '"' _ap-quot
   _autopair_close() {
@@ -251,15 +264,15 @@ if [[ $- == *i* ]]; then
       LBUFFER+="$close"
     fi
   }
-  zle -N _ap-open-paren ; _ap-open-paren() { _autopair "(" ")" }
+  zle -N _ap-open-paren ; _ap-open-paren() { _autopair "(" ")" "always" }
   zle -N _ap-close-paren; _ap-close-paren(){ _autopair_close ")" }
   bindkey -M viins '(' _ap-open-paren
   bindkey -M viins ')' _ap-close-paren
-  zle -N _ap-open-brack ; _ap-open-brack() { _autopair "[" "]" }
+  zle -N _ap-open-brack ; _ap-open-brack() { _autopair "[" "]" "always" }
   zle -N _ap-close-brack; _ap-close-brack(){ _autopair_close "]" }
   bindkey -M viins '[' _ap-open-brack
   bindkey -M viins ']' _ap-close-brack
-  zle -N _ap-open-brace ; _ap-open-brace() { _autopair "{" "}" }
+  zle -N _ap-open-brace ; _ap-open-brace() { _autopair "{" "}" "always" }
   zle -N _ap-close-brace; _ap-close-brace(){ _autopair_close "}" }
   bindkey -M viins '{' _ap-open-brace
   bindkey -M viins '}' _ap-close-brace
