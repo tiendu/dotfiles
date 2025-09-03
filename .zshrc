@@ -228,20 +228,54 @@ _highlight_finish() { region_highlight=() }
 zle -N zle-line-pre-redraw _highlight_pre_redraw
 zle -N zle-line-finish _highlight_finish
 
-##### Autopair quotes
-_autopair() {
-  local key="$1" close="$2"
-  if [[ $RBUFFER[1] == "$close" ]]; then
-    zle forward-char
-  else
-    LBUFFER+="$key$close"
-    zle backward-char
-  fi
-}
-zle -N _autopair-apos  ; _autopair-apos()  { _autopair "'" "'" }
-zle -N _autopair-quot  ; _autopair-quot()  { _autopair '"' '"' }
-bindkey -M viins "'" _autopair-apos
-bindkey -M viins '"' _autopair-quot
+##### Autopair
+if [[ $- == *i* ]]; then
+  _autopair() {
+    local key="$1" close="$2"
+    if [[ $RBUFFER[1] == "$close" ]]; then
+      zle forward-char
+    else
+      LBUFFER+="$key$close"
+      zle backward-char
+    fi
+  }
+  zle -N _ap-apos  ; _ap-apos()  { _autopair "'" "'" }
+  zle -N _ap-quot  ; _ap-quot()  { _autopair '"' '"' }
+  bindkey -M viins "'" _ap-apos
+  bindkey -M viins '"' _ap-quot
+  _autopair_close() {
+    local close="$1"
+    if [[ $RBUFFER[1] == "$close" ]]; then
+      zle forward-char
+    else
+      LBUFFER+="$close"
+    fi
+  }
+  zle -N _ap-open-paren ; _ap-open-paren() { _autopair "(" ")" }
+  zle -N _ap-close-paren; _ap-close-paren(){ _autopair_close ")" }
+  bindkey -M viins '(' _ap-open-paren
+  bindkey -M viins ')' _ap-close-paren
+  zle -N _ap-open-brack ; _ap-open-brack() { _autopair "[" "]" }
+  zle -N _ap-close-brack; _ap-close-brack(){ _autopair_close "]" }
+  bindkey -M viins '[' _ap-open-brack
+  bindkey -M viins ']' _ap-close-brack
+  zle -N _ap-open-brace ; _ap-open-brace() { _autopair "{" "}" }
+  zle -N _ap-close-brace; _ap-close-brace(){ _autopair_close "}" }
+  bindkey -M viins '{' _ap-open-brace
+  bindkey -M viins '}' _ap-close-brace
+  _ap-backspace() {
+    if [[ -n $LBUFFER && -n $RBUFFER ]]; then
+      local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
+      case "$l$r" in
+        "''"|\"\"|"()|"[]|{}) LBUFFER=${LBUFFER[1,-2]}; RBUFFER=${RBUFFER[2,-1]}; return ;;
+      esac
+    fi
+    zle backward-delete-char
+  }
+  zle -N _ap-backspace
+  bindkey -M viins '^?' _ap-backspace
+  bindkey -M viins '^H' _ap-backspace
+fi
 
 ##### Interactive-only setup (keeps non-interactive shells fast)
 if [[ $- == *i* ]]; then
