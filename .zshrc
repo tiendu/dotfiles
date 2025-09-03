@@ -280,7 +280,7 @@ if [[ $- == *i* ]]; then
     if [[ -n $LBUFFER && -n $RBUFFER ]]; then
       local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
       case "$l$r" in
-      "''"|\"\"|"()|"[]|{}|"’’"|"“”")
+      "''"|\"\"|"()|"[]|{} )
         LBUFFER=${LBUFFER[1,-2]}; RBUFFER=${RBUFFER[2,-1]}; return ;;
       esac
     fi
