@@ -232,6 +232,11 @@ zle -N zle-line-finish _highlight_finish
 if [[ $- == *i* ]]; then
   _autopair() {
     local key="$1" close="$2" mode="$3"
+    local prev="${LBUFFER[-1]}"
+    if [[ "$prev" == "$key" ]]; then
+      LBUFFER+="$key"
+      return
+    fi
     if [[ $RBUFFER[1] == "$close" ]]; then
       zle forward-char
       return
@@ -242,7 +247,7 @@ if [[ $- == *i* ]]; then
       return
     fi
     if [[ "$mode" == "boundary" ]]; then
-      local prev="${LBUFFER[-1]}" next="${RBUFFER[1]}"
+      local next="${RBUFFER[1]}"
       if [[ -z "$prev" || "$prev" == [[:space:][:punct:]] ]] && \
          [[ -z "$next" || "$next" == [[:space:][:punct:]] ]]; then
         LBUFFER+="$key$close"
@@ -256,7 +261,7 @@ if [[ $- == *i* ]]; then
   zle -N _ap-quot  ; _ap-quot()  { _autopair '"' '"' "boundary" }
   bindkey -M viins "'" _ap-apos
   bindkey -M viins '"' _ap-quot
-  _autopair_close() {
+  _autopair-close() {
     local close="$1"
     if [[ $RBUFFER[1] == "$close" ]]; then
       zle forward-char
@@ -264,24 +269,27 @@ if [[ $- == *i* ]]; then
       LBUFFER+="$close"
     fi
   }
-  zle -N _ap-open-paren ; _ap-open-paren() { _autopair "(" ")" "always" }
-  zle -N _ap-close-paren; _ap-close-paren(){ _autopair_close ")" }
+  zle -N _ap-open-paren ; _ap-open-paren() { _autopair "(" ")" "boundary" }
+  zle -N _ap-close-paren; _ap-close-paren(){ _autopair-close ")" }
   bindkey -M viins '(' _ap-open-paren
   bindkey -M viins ')' _ap-close-paren
-  zle -N _ap-open-brack ; _ap-open-brack() { _autopair "[" "]" "always" }
-  zle -N _ap-close-brack; _ap-close-brack(){ _autopair_close "]" }
+  zle -N _ap-open-brack ; _ap-open-brack() { _autopair "[" "]" "boundary" }
+  zle -N _ap-close-brack; _ap-close-brack(){ _autopair-close "]" }
   bindkey -M viins '[' _ap-open-brack
   bindkey -M viins ']' _ap-close-brack
-  zle -N _ap-open-brace ; _ap-open-brace() { _autopair "{" "}" "always" }
-  zle -N _ap-close-brace; _ap-close-brace(){ _autopair_close "}" }
+  zle -N _ap-open-brace ; _ap-open-brace() { _autopair "{" "}" "boundary" }
+  zle -N _ap-close-brace; _ap-close-brace(){ _autopair-close "}" }
   bindkey -M viins '{' _ap-open-brace
   bindkey -M viins '}' _ap-close-brace
   _ap-backspace() {
     if [[ -n $LBUFFER && -n $RBUFFER ]]; then
       local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
       case "$l$r" in
-      "''"|\"\"|"()|"[]|{} )
-        LBUFFER=${LBUFFER[1,-2]}; RBUFFER=${RBUFFER[2,-1]}; return ;;
+        "''"|\"\"|\(\)|\[\]|\{\})
+          LBUFFER=${LBUFFER[1,-2]}
+          RBUFFER=${RBUFFER[2,-1]}
+          return
+        ;;
       esac
     fi
     zle backward-delete-char
