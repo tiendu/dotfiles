@@ -235,6 +235,9 @@ if [[ $- == *i* ]]; then
     local prev="${LBUFFER[-1]}"
     if [[ "$prev" == "$key" ]]; then
       LBUFFER+="$key"
+      if [[ $RBUFFER[1] == "$close" ]]; then
+        RBUFFER="$close$RBUFFER"
+      fi
       return
     fi
     if [[ $RBUFFER[1] == "$close" ]]; then
