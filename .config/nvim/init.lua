@@ -192,37 +192,46 @@ api.nvim_create_autocmd("TextYankPost", {
   end,
 })
 
--- --- Autopairs
+-- --- Autopairs (smarter boundary + same-opener) ---
 local expr_opts = { expr = true, noremap = true, silent = true, replace_keycodes = true }
 
 -- Utility: current line char at cursor (next) and before (prev)
 local function get_chars()
-  local col = vim.fn.col('.')
+  local col  = vim.fn.col('.')
   local line = vim.fn.getline('.')
-  local nextc = line:sub(col, col)
-  local prevc = line:sub(col-1, col-1)
-  return prevc, nextc
+  local prev = (col > 1) and line:sub(col-1, col-1) or ""
+  local next = line:sub(col, col)
+  return prev, next
 end
 
--- Insert an opener+closer unless we're mid-word
-local function open_pair(open, close, always)
+local function is_boundary_char(c)
+  return c == "" or c:match("[%s%p]") ~= nil
+end
+
+-- Insert an opener+closer with smarter rules:
+-- * if previous char is SAME opener -> insert single opener (enables [[, ((, {{, ""))
+-- * mode == "always" -> pair regardless
+-- * mode == "boundary" -> pair only when both sides are boundary chars
+local function open_pair(open, close, mode)
   return function()
     local prevc, nextc = get_chars()
-    -- Brackets/braces/parens: always pair if "always" is true
-    if always then
-      return open .. close .. "<Left>"
-    end
-    -- Quotes: only pair if prev is start/space/punct and next is end/space/punct
-    local prev_ok = (prevc == "" or prevc:match("[%s%p]"))
-    local next_ok = (nextc == "" or nextc:match("[%s%p]"))
-    if prev_ok and next_ok then
-      return open .. close .. "<Left>"
-    else
+    if prevc == open then                 -- same opener twice
       return open
     end
+    if mode == "always" then              -- aggressive pairing
+      return open .. close .. "<Left>"
+    end
+    -- boundary pairing
+    if mode == "boundary" then
+      if is_boundary_char(prevc) and is_boundary_char(nextc) then
+        return open .. close .. "<Left>"
+      end
+    end
+    return open                           -- default single insert
   end
 end
 
+-- Closer: if next is already the closer, step over; else insert
 local function close_pair(close)
   return function()
     local _, nextc = get_chars()
@@ -245,21 +254,22 @@ local function backspace_pair()
 end
 
 -- Mappings for autopairs
-map("i", "(", open_pair("(", ")", true), expr_opts)
-map("i", "[", open_pair("[", "]", true), expr_opts)
-map("i", "{", open_pair("{", "}", true), expr_opts)
-map("i", ")", close_pair(")"),     expr_opts)
-map("i", "]", close_pair("]"),     expr_opts)
-map("i", "}", close_pair("}"),     expr_opts)
+-- Switch paren/brack/brace to boundary mode (not always)
+map("i", "(", open_pair("(", ")", "boundary"), expr_opts)
+map("i", "[", open_pair("[", "]", "boundary"), expr_opts)
+map("i", "{", open_pair("{", "}", "boundary"), expr_opts)
+map("i", ")", close_pair(")"), expr_opts)
+map("i", "]", close_pair("]"), expr_opts)
+map("i", "}", close_pair("}"), expr_opts)
 
--- Quotes: keep boundary-aware so we don't break don't/it's
-map("i", "'", open_pair("'", "'"),  expr_opts)
-map("i", '"', open_pair('"', '"'),  expr_opts)
+-- Quotes: boundary-aware so we don't break don't/it's; supports "" runs
+map("i", "'", open_pair("'", "'", "boundary"), expr_opts)
+map("i", '"', open_pair('"', '"', "boundary"), expr_opts)
 
 -- Smart backspace
 map("i", "<BS>", backspace_pair, expr_opts)
 
--- Make <CR> add a newline *inside* braces/brackets like many editors:
+-- Make <CR> add a newline *inside* (), [], {} when cursor is between the pair
 map("i", "<CR>", function()
   if vim.fn.pumvisible() == 1 then return "<CR>" end
   local prevc, nextc = get_chars()
@@ -282,7 +292,6 @@ api.nvim_create_autocmd({ "Syntax", "BufEnter" }, {
       pcall(fn.matchdelete, vim.b[args.buf].todo_match_id)
     end
     vim.b[args.buf].todo_match_id = fn.matchadd("TodoKeyword", [[\v<(TODO|FIXME|NOTE)>]])
-
     -- one trailing whitespace match per buffer
     if vim.b[args.buf].trail_match_id then
       pcall(fn.matchdelete, vim.b[args.buf].trail_match_id)
