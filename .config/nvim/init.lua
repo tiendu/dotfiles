@@ -208,26 +208,25 @@ local function is_boundary_char(c)
   return c == "" or c:match("[%s%p]") ~= nil
 end
 
--- Insert an opener+closer with smarter rules:
--- * if previous char is SAME opener -> insert single opener (enables [[, ((, {{, ""))
--- * mode == "always" -> pair regardless
--- * mode == "boundary" -> pair only when both sides are boundary chars
 local function open_pair(open, close, mode)
   return function()
     local prevc, nextc = get_chars()
-    if prevc == open then                 -- same opener twice
+    -- same opener twice: allow unlimited runs and mirror closer if right next to it
+    if prevc == open then
+      if nextc == close then
+        return open .. "<C-o>i" .. close .. "<Left>"
+      end
       return open
     end
-    if mode == "always" then              -- aggressive pairing
+    if mode == "always" then
       return open .. close .. "<Left>"
     end
-    -- boundary pairing
     if mode == "boundary" then
       if is_boundary_char(prevc) and is_boundary_char(nextc) then
         return open .. close .. "<Left>"
       end
     end
-    return open                           -- default single insert
+    return open
   end
 end
 
