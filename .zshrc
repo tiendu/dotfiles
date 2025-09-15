@@ -90,6 +90,11 @@ setopt AUTOCD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
 setopt INTERACTIVE_COMMENTS LONG_LIST_JOBS NO_BEEP GLOBDOTS
 setopt PROMPT_SUBST NO_FLOW_CONTROL PIPE_FAIL
 
+setopt NO_CLOBBER RM_STAR_WAIT
+
+setopt AUTO_PARAM_SLASH NO_CASE_GLOB NUMERIC_GLOBSORT
+setopt COMPLETE_ALIASES NOTIFY WARN_CREATE_GLOBAL
+
 ##### Vim Mode & Keybinds
 bindkey -v
 autoload -Uz up-line-or-search down-line-or-search
@@ -186,9 +191,24 @@ _update_prompt() {
 }
 _prompt_precmd() {
   _update_prompt $?
-  RPROMPT="${VIM_MODE:-}"
+  # RPROMPT="${VIM_MODE:-}"
 }
+
+##### Show duration if last command took > 2s
+REPORTTIME=0
+_show_duration_preexec() { __cmd_started=$EPOCHREALTIME }
+_show_duration_precmd() {
+  local st=${__cmd_started:-$EPOCHREALTIME}
+  local elapsed=$(( EPOCHREALTIME - st ))
+  if (( ${elapsed%.*} >= 2 )); then
+    print -P "%F{yellow}%B[${elapsed}s]%b%f"
+  fi
+}
+
 autoload -Uz add-zsh-hook
+
+add-zsh-hook preexec _show_duration_preexec
+add-zsh-hook precmd  _show_duration_precmd
 add-zsh-hook precmd _prompt_precmd
 
 ##### Syntax Highlighting (valid commands only)
