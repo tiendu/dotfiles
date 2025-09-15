@@ -345,7 +345,6 @@ if [[ $- == *i* ]]; then
 fi
 
 ##### Interactive-only setup (keeps non-interactive shells fast)
-# Interactive-only setup (keeps non-interactive shells fast)
 if [[ $- == *i* ]]; then
   autoload -Uz compinit compaudit
   # Harden completion dirs (safe + quiet)
