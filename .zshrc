@@ -197,32 +197,7 @@ _prompt_precmd() {
 # Cleaner redraw
 setopt PROMPT_CR
 
-##### Show duration if last command took > 2s
-REPORTTIME=0
-_show_duration_preexec() { 
-  typeset -g __cmd_started=$EPOCHREALTIME
-  RPROMPT= 
-}
-_humanize_time() {
-  local -i sec=$1
-  local out=""
-  (( sec >= 3600 )) && { out+="$(( sec / 3600 ))h"; sec=$(( sec % 3600 )); }
-  (( sec >= 60   )) && { out+="$(( sec / 60 ))m";   sec=$(( sec % 60 )); }
-  out+="${sec}s"
-  echo $out
-}
-_show_duration_precmd() {
-  local st=${__cmd_started:-$EPOCHREALTIME}
-  local raw=$(( EPOCHREALTIME - st ))
-  local sec=${raw%.*}   # integer seconds
-  if (( sec >= 2 )); then
-    print -P "%F{yellow}%B[$(_humanize_time $sec)]%b%f"
-  fi
-}
-
 autoload -Uz add-zsh-hook
-add-zsh-hook preexec _show_duration_preexec
-add-zsh-hook precmd  _show_duration_precmd
 add-zsh-hook precmd _prompt_precmd
 
 ##### Syntax Highlighting (valid commands only)
