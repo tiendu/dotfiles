@@ -21,16 +21,18 @@ export VISUAL="nvim"
 export LESS="e M q R F X z -3"
 
 ##### Tool Initializers
-command -v rg >/dev/null && alias grep="rg"
+if command -v rg >/dev/null; then
+  grep() { command rg --hidden --smart-case "$@"; }
+fi
 command -v fd >/dev/null && alias find="fd"
 if command -v eza >/dev/null; then
-  alias ls="eza"
-  alias ll="eza -l"
-  alias la="eza -la"
-  alias tree="eza --tree --level=3"
+  alias ls="eza"; alias ll="eza -l"; alias la="eza -la"; alias tree="eza --tree --level=3"
 else
-  alias ls="ls --color=auto"
-  alias tree="ls -R"
+  if [[ "$OSTYPE" == darwin* ]]; then
+    alias ls="ls -G"; alias tree="ls -R"
+  else
+    alias ls="ls --color=auto"; alias tree="ls -R"
+  fi
 fi
 command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
@@ -237,11 +239,20 @@ _highlight_finish() { region_highlight=() }
 zle -N zle-line-pre-redraw _highlight_pre_redraw
 zle -N zle-line-finish _highlight_finish
 
-##### Autopair
+# Autopair
 if [[ $- == *i* ]]; then
   _autopair() {
+    (( ${#BUFFER} > 4000 )) && return
     local key="$1" close="$2" mode="$3"
     local prev="${LBUFFER[-1]}"
+
+    # If escaped, insert literally
+    if [[ "$prev" == '\' ]]; then
+      LBUFFER+="$key"
+      return
+    fi
+
+    # Double-tap same opener -> insert another opener (and keep existing closer if any)
     if [[ "$prev" == "$key" ]]; then
       LBUFFER+="$key"
       if [[ $RBUFFER[1] == "$close" ]]; then
@@ -249,15 +260,20 @@ if [[ $- == *i* ]]; then
       fi
       return
     fi
+
+    # If the next char is already the closer, just move over it
     if [[ $RBUFFER[1] == "$close" ]]; then
       zle forward-char
       return
     fi
+
+    # Pairing behaviors
     if [[ "$mode" == "always" ]]; then
       LBUFFER+="$key$close"
       zle backward-char
       return
     fi
+
     if [[ "$mode" == "boundary" ]]; then
       local next="${RBUFFER[1]}"
       if [[ -z "$prev" || "$prev" == [[:space:][:punct:]] ]] && \
@@ -267,12 +283,11 @@ if [[ $- == *i* ]]; then
         return
       fi
     fi
+
+    # Default: just insert opener
     LBUFFER+="$key"
   }
-  zle -N _ap-apos  ; _ap-apos()  { _autopair "'" "'" "boundary" }
-  zle -N _ap-quot  ; _ap-quot()  { _autopair '"' '"' "boundary" }
-  bindkey -M viins "'" _ap-apos
-  bindkey -M viins '"' _ap-quot
+
   _autopair-close() {
     local close="$1"
     if [[ $RBUFFER[1] == "$close" ]]; then
@@ -281,18 +296,7 @@ if [[ $- == *i* ]]; then
       LBUFFER+="$close"
     fi
   }
-  zle -N _ap-open-paren ; _ap-open-paren() { _autopair "(" ")" "boundary" }
-  zle -N _ap-close-paren; _ap-close-paren(){ _autopair-close ")" }
-  bindkey -M viins '(' _ap-open-paren
-  bindkey -M viins ')' _ap-close-paren
-  zle -N _ap-open-brack ; _ap-open-brack() { _autopair "[" "]" "boundary" }
-  zle -N _ap-close-brack; _ap-close-brack(){ _autopair-close "]" }
-  bindkey -M viins '[' _ap-open-brack
-  bindkey -M viins ']' _ap-close-brack
-  zle -N _ap-open-brace ; _ap-open-brace() { _autopair "{" "}" "boundary" }
-  zle -N _ap-close-brace; _ap-close-brace(){ _autopair-close "}" }
-  bindkey -M viins '{' _ap-open-brace
-  bindkey -M viins '}' _ap-close-brace
+
   _ap-backspace() {
     if [[ -n $LBUFFER && -n $RBUFFER ]]; then
       local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
@@ -306,27 +310,70 @@ if [[ $- == *i* ]]; then
     fi
     zle backward-delete-char
   }
+
+  # Define widgets AFTER functions
+  _ap-apos()       { _autopair "'" "'" "boundary" }
+  _ap-quot()       { _autopair '"' '"' "boundary" }
+  _ap-open-paren() { _autopair "(" ")" "boundary" }
+  _ap-close-paren(){ _autopair-close ")" }
+  _ap-open-brack() { _autopair "[" "]" "boundary" }
+  _ap-close-brack(){ _autopair-close "]" }
+  _ap-open-brace() { _autopair "{" "}" "boundary" }
+  _ap-close-brace(){ _autopair-close "}" }
+
+  zle -N _ap-apos
+  zle -N _ap-quot
+  zle -N _ap-open-paren
+  zle -N _ap-close-paren
+  zle -N _ap-open-brack
+  zle -N _ap-close-brack
+  zle -N _ap-open-brace
+  zle -N _ap-close-brace
   zle -N _ap-backspace
+
+  # Bindings (vi insert mode only)
+  bindkey -M viins "'"  _ap-apos
+  bindkey -M viins '"'  _ap-quot
+  bindkey -M viins '('  _ap-open-paren
+  bindkey -M viins ')'  _ap-close-paren
+  bindkey -M viins '['  _ap-open-brack
+  bindkey -M viins ']'  _ap-close-brack
+  bindkey -M viins '{'  _ap-open-brace
+  bindkey -M viins '}'  _ap-close-brace
   bindkey -M viins '^?' _ap-backspace
   bindkey -M viins '^H' _ap-backspace
 fi
 
 ##### Interactive-only setup (keeps non-interactive shells fast)
+# Interactive-only setup (keeps non-interactive shells fast)
 if [[ $- == *i* ]]; then
-  autoload -Uz compinit
+  autoload -Uz compinit compaudit
+  # Harden completion dirs (safe + quiet)
+  compaudit | while read -r p; do chmod g-w,o-w "$p" 2>/dev/null || true; done
+
   zmodload zsh/complist
-  local _compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compdump"
-  mkdir -p -- "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compcache"
+
+  # Cache locations
+  typeset -g _compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compdump"
+  typeset -g _compcache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compcache"
+  mkdir -p -- "$_compcache" "${_compdump:h}"
+
+  # Fast init with cache file
   compinit -C -d "$_compdump"
+
+  # Completion styles
   zstyle ':completion:*' use-cache on
-  zstyle ':completion:*' cache-path "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compcache"
+  zstyle ':completion:*' cache-path "$_compcache"
   zstyle ':completion:*' menu select
-  zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}' \
-                                 'r:|[._-]=* r:|=*'  # Partial/fuzzy-ish
+  zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}' 'r:|[._-]=* r:|=*'  # partial/fuzzy-ish
   zstyle ':completion:*' group-name ''
   zstyle ':completion:*' list-colors ''
   zstyle ':completion:*:history-words' menu yes select
   zstyle ':completion:*:history-words' list-colors ''
+
+  # (nice) detect newly installed commands without restarting shell
+  zstyle ':completion:*' rehash true
+
   export PROMPT_EOL_MARK=""
 fi
 
