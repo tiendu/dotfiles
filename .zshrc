@@ -1,7 +1,7 @@
 # ~/.zshrc
 ##### Global Color Variables
 autoload -U colors && colors
-RESET="%f%k"          RESET_BOLD="%f%k%b"
+RESET="%f"            RESET_BOLD="%f%b"
 RED="%F{red}"         BOLD_RED="%B%F{red}"
 GREEN="%F{green}"     BOLD_GREEN="%B%F{green}"
 YELLOW="%F{yellow}"   BOLD_YELLOW="%B%F{yellow}"
@@ -180,7 +180,7 @@ _shorten_path() {
 
 _update_prompt() {
   local s=$1 d=$(_dir_info)
-  PROMPT=" %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD}  %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${d}
+  PROMPT=" %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${d}
  $([[ $s -eq 0 ]] && echo "${BOLD_GREEN}>${RESET_BOLD}" || echo "${BOLD_RED}<${RESET_BOLD}") "
   PS2="${BOLD_BLUE}>>${RESET_BOLD} "
 }
