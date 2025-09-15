@@ -203,11 +203,20 @@ _show_duration_preexec() {
   typeset -g __cmd_started=$EPOCHREALTIME
   RPROMPT= 
 }
+_humanize_time() {
+  local -i sec=$1
+  local out=""
+  (( sec >= 3600 )) && { out+="$(( sec / 3600 ))h"; sec=$(( sec % 3600 )); }
+  (( sec >= 60   )) && { out+="$(( sec / 60 ))m";   sec=$(( sec % 60 )); }
+  out+="${sec}s"
+  echo $out
+}
 _show_duration_precmd() {
   local st=${__cmd_started:-$EPOCHREALTIME}
-  local elapsed=$(( EPOCHREALTIME - st ))
-  if (( ${elapsed%.*} >= 2 )); then
-    print -P "%F{yellow}%B[${elapsed}s]%b%f"
+  local raw=$(( EPOCHREALTIME - st ))
+  local sec=${raw%.*}   # integer seconds
+  if (( sec >= 2 )); then
+    print -P "%F{yellow}%B[$(_humanize_time $sec)]%b%f"
   fi
 }
 
