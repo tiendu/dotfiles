@@ -194,9 +194,15 @@ _prompt_precmd() {
   # RPROMPT="${VIM_MODE:-}"
 }
 
+# Cleaner redraw
+setopt PROMPT_CR
+
 ##### Show duration if last command took > 2s
 REPORTTIME=0
-_show_duration_preexec() { __cmd_started=$EPOCHREALTIME }
+_show_duration_preexec() { 
+  typeset -g __cmd_started=$EPOCHREALTIME
+  RPROMPT= 
+}
 _show_duration_precmd() {
   local st=${__cmd_started:-$EPOCHREALTIME}
   local elapsed=$(( EPOCHREALTIME - st ))
@@ -206,7 +212,6 @@ _show_duration_precmd() {
 }
 
 autoload -Uz add-zsh-hook
-
 add-zsh-hook preexec _show_duration_preexec
 add-zsh-hook precmd  _show_duration_precmd
 add-zsh-hook precmd _prompt_precmd
