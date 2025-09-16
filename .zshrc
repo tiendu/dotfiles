@@ -239,7 +239,7 @@ _highlight_finish() { region_highlight=() }
 zle -N zle-line-pre-redraw _highlight_pre_redraw
 zle -N zle-line-finish _highlight_finish
 
-# Autopair
+##### Autopair
 if [[ $- == *i* ]]; then
   _autopair() {
     (( ${#BUFFER} > 4000 )) && return
@@ -258,12 +258,6 @@ if [[ $- == *i* ]]; then
       if [[ $RBUFFER[1] == "$close" ]]; then
         RBUFFER="$close$RBUFFER"
       fi
-      return
-    fi
-
-    # If the next char is already the closer, just move over it
-    if [[ $RBUFFER[1] == "$close" ]]; then
-      zle forward-char
       return
     fi
 
