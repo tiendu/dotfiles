@@ -242,35 +242,31 @@ zle -N zle-line-finish _highlight_finish
 ##### Autopair
 if [[ $- == *i* ]]; then
   : ${AP_MAX:=4000}
-
   _autopair() {
     (( ${#BUFFER} > AP_MAX )) && return
     local key="$1" close="$2" mode="$3" prev="${LBUFFER[-1]}" next="${RBUFFER[1]}"
-
     [[ $prev == '\' ]] && { LBUFFER+="$key"; return; }
-
     if [[ $prev == "$key" ]]; then
       LBUFFER+="$key"; [[ $next == "$close" ]] && RBUFFER="$close$RBUFFER"; return
     fi
-
     # Don't meddle during completion/menu or when input is pending, just insert literally
     if [[ -n $COMPSYS && ( $WIDGET == (menu-*) || $PENDING -gt 0 ) ]]; then
       LBUFFER+="$key"; return
     fi
-
+    if [[ "$key" == '"' || "$key" == "'" ]]; then
+      if [[ "$next" == [[:alnum:]_] ]]; then LBUFFER+="$key"; return; fi
+      # Extra conservative: right after '=' with a word ahead, insert single
+      if [[ "$prev" == "=" && "$next" == [[:alnum:]_] ]]; then LBUFFER+="$key"; return; fi
+    fi
     if [[ $mode == always ]]; then LBUFFER+="$key$close"; zle backward-char; return; fi
-
     if [[ $mode == boundary ]]; then
       if [[ -z "$prev" || "$prev" == [[:space:][:punct:]] ]] && [[ -z "$next" || "$next" == [[:space:][:punct:]] ]]; then
         LBUFFER+="$key$close"; zle backward-char; return
       fi
     fi
-
     LBUFFER+="$key"
   }
-
   _autopair_close() { local close="$1"; [[ ${RBUFFER[1]} == "$close" ]] && zle forward-char || LBUFFER+="$close"; }
-
   _ap_backspace() {
     if [[ -n $LBUFFER && -n $RBUFFER ]]; then
       local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
@@ -279,18 +275,15 @@ if [[ $- == *i* ]]; then
     fi
     zle backward-delete-char
   }
-
   # Thin wrappers
   _ap_apos(){ _autopair "'" "'" boundary }; _ap_quot(){ _autopair '"' '"' boundary }
   _ap_open-paren(){ _autopair "(" ")" boundary }; _ap_close-paren(){ _autopair_close ")" }
   _ap_open-brack(){ _autopair "[" "]" boundary }; _ap_close-brack(){ _autopair_close "]" }
   _ap_open-brace(){ _autopair "{" "}" boundary }; _ap_close-brace(){ _autopair_close "}" }
-
   # Widgets
   zle -N _ap_apos; zle -N _ap_quot; zle -N _ap_open-paren; zle -N _ap_close-paren
   zle -N _ap_open-brack; zle -N _ap_close-brack; zle -N _ap_open-brace; zle -N _ap_close-brace
   zle -N _ap_backspace
-
   # Bindings (vi insert mode)
   bindkey -M viins \
     "'"  _ap_apos   '"'  _ap_quot \
@@ -305,17 +298,13 @@ if [[ $- == *i* ]]; then
   autoload -Uz compinit compaudit
   # Harden completion dirs (safe + quiet)
   compaudit | while read -r p; do chmod g-w,o-w "$p" 2>/dev/null || true; done
-
   zmodload zsh/complist
-
   # Cache locations
   typeset -g _compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compdump"
   typeset -g _compcache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compcache"
   mkdir -p -- "$_compcache" "${_compdump:h}"
-
   # Fast init with cache file
   compinit -C -d "$_compdump"
-
   # Completion styles
   zstyle ':completion:*' use-cache on
   zstyle ':completion:*' cache-path "$_compcache"
@@ -325,10 +314,8 @@ if [[ $- == *i* ]]; then
   zstyle ':completion:*' list-colors ''
   zstyle ':completion:*:history-words' menu yes select
   zstyle ':completion:*:history-words' list-colors ''
-
-  # (nice) detect newly installed commands without restarting shell
+  # Detect newly installed commands without restarting shell
   zstyle ':completion:*' rehash true
-
   export PROMPT_EOL_MARK=""
 fi
 

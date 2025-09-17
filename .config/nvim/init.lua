@@ -192,7 +192,7 @@ api.nvim_create_autocmd("TextYankPost", {
   end,
 })
 
--- --- Autopairs (smarter boundary + same-opener) ---
+-- --- Autopair
 local expr_opts = { expr = true, noremap = true, silent = true, replace_keycodes = true }
 
 -- Utility: current line char at cursor (next) and before (prev)
@@ -211,6 +211,13 @@ end
 local function open_pair(open, close, mode)
   return function()
     local prevc, nextc = get_chars()
+    if (open == '"' or open == "'") and nextc:match("[%w_]") then
+      return open
+    end
+    -- Extra conservative: right after '=' with a word ahead
+    if (open == '"' or open == "'") and prevc == "=" and nextc:match("[%w_]") then
+      return open
+    end
     -- same opener twice: allow unlimited runs and mirror closer if right next to it
     if prevc == open then
       if nextc == close then
