@@ -261,9 +261,13 @@ if [[ $- == *i* ]]; then
         LBUFFER+="$key"; return
       fi
     fi
-    # SPECIAL: make "(" pair after identifiers or right after ) ] }
+    # SPECIAL: make "(" pair after identifiers or right after ) ] }, but not before "?"
     if [[ "$key" == "(" ]]; then
+      # don't pair if the next char is "?" (regex lookaheads, non-capturing, etc.)
+      if [[ "$next" == "?" ]]; then LBUFFER+="$key"; return; fi
+      # if the next char is already ")", just insert "("
       if [[ "$next" == "$close" ]]; then LBUFFER+="$key"; return; fi
+      # pair after word chars and after closing delimiters (foo( … ), f()( … ), arr[i]( … ))
       if [[ "$prev" == [[:alnum:]_] || "$prev" == [\)\]\}] ]]; then
         LBUFFER+="$key$close"; zle backward-char; return
       fi
