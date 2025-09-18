@@ -254,10 +254,12 @@ if [[ $- == *i* ]]; then
       LBUFFER+="$key"; return
     fi
     if [[ "$key" == '"' || "$key" == "'" ]]; then
-      # quotes: don't pair if a wordy thing starts next ($, ${, alnum, _)
-      if [[ "$next" == [[:alnum:]_'$'] ]]; then LBUFFER+="$key"; return; fi
-      # extra conservative: right after '=' with a word ahead, insert single
-      if [[ "$prev" == "=" && "$next" == [[:alnum:]_] ]]; then LBUFFER+="$key"; return; fi
+      # Don't pair if next starts with $, or alnum/_
+      if [[ "$next" == [[:alnum:]_] || "$RBUFFER" == \$* ]]; then LBUFFER+="$key"; return; fi
+      # Extra conservative: right after '=' with a word ahead, insert single
+      if [[ "$prev" == "=" && ( "$next" == [[:alnum:]_] || "$RBUFFER" == \$* ) ]]; then
+        LBUFFER+="$key"; return
+      fi
     fi
     if [[ $mode == always ]]; then LBUFFER+="$key$close"; zle backward-char; return; fi
     if [[ $mode == boundary ]]; then

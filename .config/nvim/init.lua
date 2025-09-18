@@ -211,11 +211,11 @@ end
 local function open_pair(open, close, mode)
   return function()
     local prevc, nextc = get_chars()
-    -- quotes: don't pair if next is wordy ($ for $, ${...}, alnum, _)
+    -- don't pair quotes if a word continues OR any $-expansion starts
     if (open == '"' or open == "'") and (nextc:match("[%w_]") or nextc == "$") then
       return open
     end
-    -- extra conservative: right after '=' with a word ahead
+    -- extra conservative: right after '=' with a word or $-expansion ahead
     if (open == '"' or open == "'") and prevc == "=" and (nextc:match("[%w_]") or nextc == "$") then
       return open
     end
