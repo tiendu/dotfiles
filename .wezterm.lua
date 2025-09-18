@@ -9,7 +9,7 @@ config.font = wezterm.font_with_fallback {
   { family = 'JetBrains Mono' },
 }
 config.font_size = 16.0
-config.window_background_opacity = 0.75
+config.window_background_opacity = 0.70
 config.window_decorations = "RESIZE"
 config.enable_scroll_bar = true
 config.enable_wayland = false
