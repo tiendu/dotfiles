@@ -261,21 +261,37 @@ if [[ $- == *i* ]]; then
         LBUFFER+="$key"; return
       fi
     fi
-    # SPECIAL: make "(" pair after identifiers/keywords, but not before ? " '
-    if [[ "$key" == "(" ]]; then
-      # don't pair if the next char is one of ? " '
-      if [[ "$next" == [\?\"\'] ]]; then
-        LBUFFER+="$key"; return
-      fi
-      # if the next char is already ")", just insert "("
-      if [[ "$next" == "$close" ]]; then
-        LBUFFER+="$key"; return
-      fi
-      # pair after word chars and after closing delimiters
-      if [[ "$prev" == [[:alnum:]_] || "$prev" == [\)\]\}] ]]; then
-        LBUFFER+="$key$close"; zle backward-char; return
-      fi
-    fi
+    # --- rules
+    case "$key" in
+      # quotes: don't pair before word or any $-expansion (or backticks)
+      "'"|'"')
+        if [[ "$next" == ${~_ap_word} || "$RBUFFER" == \$* || "$next" == \` ]]; then
+          LBUFFER+="$key"; return
+        fi
+        if [[ "$prev" == "=" && ( "$next" == ${~_ap_word} || "$RBUFFER" == \$* || "$next" == \` ) ]]; then
+          LBUFFER+="$key"; return
+        fi
+        ;;
+      "(")
+        # skip before ? " ' (regex/string cases)
+        if [[ "$next" == [\?\"\'] ]]; then LBUFFER+="$key"; return; fi
+        # $() command substitution
+        if [[ "$prev" == '$' && "$next" != [\?\"\'] ]]; then
+          LBUFFER+="()"; zle backward-char; return
+        fi
+        # pair after identifiers or ) ] }
+        if [[ "$next" != "$close" && ( "$prev" == ${~_ap_word} || "$prev" == [\)\]\}] ) ]]; then
+          LBUFFER+="$key$close"; zle backward-char; return
+        fi
+        ;;
+      "[")
+        # pair after identifiers or ) ] }
+        if [[ "$next" != "$close" && ( "$prev" == ${~_ap_word} || "$prev" == [\)\]\}] ) ]]; then
+          LBUFFER+="$key$close"; zle backward-char; return
+        fi
+        ;;
+    esac
+    
     if [[ $mode == always ]]; then LBUFFER+="$key$close"; zle backward-char; return; fi
     if [[ $mode == boundary ]]; then
       if [[ -z "$prev" || "$prev" == [[:space:][:punct:]] ]] && [[ -z "$next" || "$next" == [[:space:][:punct:]] ]]; then
