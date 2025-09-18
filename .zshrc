@@ -261,6 +261,13 @@ if [[ $- == *i* ]]; then
         LBUFFER+="$key"; return
       fi
     fi
+    # SPECIAL: make "(" pair after identifiers or right after ) ] }
+    if [[ "$key" == "(" ]]; then
+      if [[ "$next" == "$close" ]]; then LBUFFER+="$key"; return; fi
+      if [[ "$prev" == [[:alnum:]_] || "$prev" == [\)\]\}] ]]; then
+        LBUFFER+="$key$close"; zle backward-char; return
+      fi
+    fi
     if [[ $mode == always ]]; then LBUFFER+="$key$close"; zle backward-char; return; fi
     if [[ $mode == boundary ]]; then
       if [[ -z "$prev" || "$prev" == [[:space:][:punct:]] ]] && [[ -z "$next" || "$next" == [[:space:][:punct:]] ]]; then
