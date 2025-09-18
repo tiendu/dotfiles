@@ -218,9 +218,9 @@ local function open_pair(open, close, mode)
     if (open == '"' or open == "'") and prevc == "=" and (nextc:match("[%w_]") or nextc == "$") then
       return open
     end
-    -- SPECIAL CASE: '(' should pair after identifiers/keywords, but not before '?'
+    -- SPECIAL CASE: '(' should pair after identifiers/keywords, but not before ? " '
     if open == "(" then
-      if nextc == "?" then
+      if nextc == "?" or nextc == '"' or nextc == "'" then
         return open
       end
       if is_ident_char(prevc) or prevc == ")" or prevc == "]" or prevc == "}" then
