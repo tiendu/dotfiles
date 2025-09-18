@@ -70,7 +70,7 @@ else
     pbcopy() { :; } ; pbpaste() { echo ""; }
   fi
 fi
-_paste_clip_after()  { LBUFFER+=$(pbpaste); }
+_paste_clip_after()  { LBUFFER+="$(pbpaste)"; }
 _paste_clip_before() { RBUFFER="$(pbpaste)$RBUFFER"; }
 zle -N _paste_clip_after
 zle -N _paste_clip_before
@@ -78,24 +78,24 @@ bindkey -M vicmd 'p' _paste_clip_after
 bindkey -M vicmd 'P' _paste_clip_before
 bindkey -M viins '^V' _paste_clip_after
 
-##### History & Shell options
-HISTSIZE=10000
-SAVEHIST=10000
-HISTFILE=${HISTFILE:-$HOME/.zsh_history}
-setopt APPEND_HISTORY SHARE_HISTORY INC_APPEND_HISTORY
-setopt HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS
-setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_VERIFY
-setopt EXTENDED_HISTORY HIST_FIND_NO_DUPS HIST_SAVE_NO_DUPS
+##### History
+HISTSIZE=10000 SAVEHIST=10000 HISTFILE=${HISTFILE:-$HOME/.zsh_history}
+setopt APPEND_HISTORY SHARE_HISTORY INC_APPEND_HISTORY EXTENDED_HISTORY \
+       HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS \
+       HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_VERIFY \
+       HIST_FIND_NO_DUPS HIST_SAVE_NO_DUPS   # history rules
 
-setopt CORRECT MENUCOMPLETE AUTO_MENU LIST_PACKED
-setopt AUTOCD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
-setopt INTERACTIVE_COMMENTS LONG_LIST_JOBS NO_BEEP GLOBDOTS
-setopt PROMPT_SUBST NO_FLOW_CONTROL PIPE_FAIL
+##### Completion / Correction
+setopt CORRECT MENUCOMPLETE AUTO_MENU LIST_PACKED COMPLETE_ALIASES  # tab/typos
 
-setopt NO_CLOBBER RM_STAR_WAIT
+##### Directories
+setopt AUTOCD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS  # cd stack
 
-setopt AUTO_PARAM_SLASH NO_CASE_GLOB NUMERIC_GLOBSORT
-setopt COMPLETE_ALIASES NOTIFY WARN_CREATE_GLOBAL
+##### General
+setopt INTERACTIVE_COMMENTS LONG_LIST_JOBS NO_BEEP GLOBDOTS PROMPT_SUBST \
+       NO_FLOW_CONTROL PIPE_FAIL NO_CLOBBER RM_STAR_WAIT \
+       AUTO_PARAM_SLASH NO_CASE_GLOB NUMERIC_GLOBSORT \
+       NOTIFY WARN_CREATE_GLOBAL  # misc opts
 
 ##### Vim mode & Keybinds
 bindkey -v
@@ -117,7 +117,7 @@ bindkey -M vicmd 'R' history-beginning-search-menu
 
 # Insert "cd " when tab is hit on empty line
 _first_tab() {
-  if [[ -z $BUFFER ]]; then
+  if (( CURSOR == 0 )) && [[ -z $BUFFER ]]; then
     BUFFER="cd "
     CURSOR=${#BUFFER}
     zle list-choices
@@ -254,8 +254,9 @@ if [[ $- == *i* ]]; then
       LBUFFER+="$key"; return
     fi
     if [[ "$key" == '"' || "$key" == "'" ]]; then
-      if [[ "$next" == [[:alnum:]_] ]]; then LBUFFER+="$key"; return; fi
-      # Extra conservative: right after '=' with a word ahead, insert single
+      # quotes: don't pair if a wordy thing starts next ($, ${, alnum, _)
+      if [[ "$next" == [[:alnum:]_'$'] ]]; then LBUFFER+="$key"; return; fi
+      # extra conservative: right after '=' with a word ahead, insert single
       if [[ "$prev" == "=" && "$next" == [[:alnum:]_] ]]; then LBUFFER+="$key"; return; fi
     fi
     if [[ $mode == always ]]; then LBUFFER+="$key$close"; zle backward-char; return; fi
