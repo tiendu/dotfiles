@@ -204,9 +204,8 @@ local function get_chars()
   return prev, next
 end
 
-local function is_boundary_char(c)
-  return c == "" or c:match("[%s%p]") ~= nil
-end
+local function is_boundary_char(c) return c == "" or c:match("[%s%p]") ~= nil end
+local function is_ident_char(c) return c ~= "" and c:match("[%w_]") ~= nil end
 
 local function open_pair(open, close, mode)
   return function()
