@@ -230,13 +230,13 @@ local function open_pair(open, close, mode)
       if prevc == "$" and nextc ~= ")" then
         return open .. close .. "<Left>"   -- $() ; second '(' still gives $(( ))
       end
-      if nextc ~= ")" and (is_ident(prevc) or prevc == ")" or prevc == "]" or prevc == "}") then
+      if nextc ~= ")" and (is_ident_char(prevc) or prevc == ")" or prevc == "]" or prevc == "}") then
         return open .. close .. "<Left>"
       end
     end
     -- '[' pairs after identifiers or )]}
     if open == "[" then
-      if nextc ~= "]" and (is_ident(prevc) or prevc == ")" or prevc == "]" or prevc == "}") then
+      if nextc ~= "]" and (is_ident_char(prevc) or prevc == ")" or prevc == "]" or prevc == "}") then
         return open .. close .. "<Left>"
       end
     end
