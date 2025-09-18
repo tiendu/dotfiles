@@ -218,15 +218,29 @@ local function open_pair(open, close, mode)
     if (open == '"' or open == "'") and prevc == "=" and (nextc:match("[%w_]") or nextc == "$") then
       return open
     end
-    -- SPECIAL CASE: '(' should pair after identifiers/keywords, but not before ? " '
+    -- --- rules
+    -- quotes: don't pair before word or any $-expansion; also right after '='
+    if (open == '"' or open == "'") then
+      if nextc:match("[%w_]") or nextc == "$" or nextc == "`" then return open end
+      if prevc == "=" and (nextc:match("[%w_]") or nextc == "$" or nextc == "`") then return open end
+    end
+    -- '(' pairs after identifiers or )]} unless next is ? " ' ; also $() when prev is $
     if open == "(" then
-      if nextc == "?" or nextc == '"' or nextc == "'" then
-        return open
+      if nextc == "?" or nextc == '"' or nextc == "'" then return open end
+      if prevc == "$" and nextc ~= ")" then
+        return open .. close .. "<Left>"   -- $() ; second '(' still gives $(( ))
       end
-      if is_ident_char(prevc) or prevc == ")" or prevc == "]" or prevc == "}" then
+      if nextc ~= ")" and (is_ident(prevc) or prevc == ")" or prevc == "]" or prevc == "}") then
         return open .. close .. "<Left>"
       end
     end
+    -- '[' pairs after identifiers or )]}
+    if open == "[" then
+      if nextc ~= "]" and (is_ident(prevc) or prevc == ")" or prevc == "]" or prevc == "}") then
+        return open .. close .. "<Left>"
+      end
+    end
+    
     -- same opener twice: allow unlimited runs and mirror closer if right next to it
     if prevc == open then
       if nextc == close then
