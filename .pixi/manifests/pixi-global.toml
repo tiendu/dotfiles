@@ -1,0 +1,45 @@
+version = 1
+
+[envs.deven]
+channels = ["conda-forge", "bioconda"]
+
+[envs.deven.dependencies]
+fish = "*"
+zsh = "*"
+"fd-find" = "*"
+eza = "*"
+ripgrep = "*"
+zoxide = "*"
+pixi-pack = "*"
+tmux = "*"
+nvim = "*"
+glow-md = "*"
+bat = "*"
+lua = "*"
+luarocks = "*"
+python = "3.8.*"
+uv = "*"
+ruff = "*"
+fzf = "*"
+
+[envs.deven.exposed]
+fish = "fish"
+fish_indent = "fish_indent"
+fish_key_reader = "fish_key_reader"
+bat = "bat"
+nvim = "nvim"
+tmux = "tmux"
+fd = "fd"
+eza = "eza"
+rg = "rg"
+zoxide = "zoxide"
+pixi-pack = "pixi-pack"
+zsh = "zsh"
+glow = "glow"
+lua = "lua"
+luarocks = "luarocks"
+python = "python"
+pip = "pip"
+uv = "uv"
+ruff = "ruff"
+fzf = "fzf"

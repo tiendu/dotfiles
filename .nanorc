@@ -1,30 +1,50 @@
 # sudo nano ~/.nanorc
 # Non-default settings
-set atblanks # wrap line at blanks.
-set cutfromcursor # CTRL+K cuts from cursor position to end of line.
-set nohelp # disable the help information (CTRL+G to view the help screen).
-set softwrap # enable softwrap of lines.
-set suspend # enables CTRL+Z to suspend nano.
-set tabsize 4 # set tab-to-spaces size to 4.
-set tabstospaces # convert tab key press to spaces.
-include "/usr/share/nano/*.nanorc" # enable the syntax highlighting.
-set speller "aspell -x -c" # set what spelling utility to use.
-set constantshow # display useful information e.g. line number and position in the bottom bar.
-set linenumbers # lines are numbered.
-set casesensitive # case insensitive search.
-set historylog # save the last 100 history searches for later use.
-set positionlog # save the cursor position between editing sessions.
-set zap # allows highlighting text (CTRL+SHIFT+ARROW) and delete it with backspace.
-set autoindent # a new line will have the same number of leading spaces as the previous one.
-set indicator # display a scroll bar on the right that shows the position and size of the current view port.
-set minibar # display file name and other information in the bottom bar. Removes top bar.
-
-# Enable and set a working backup directory
-set backup # create backups of your current file.
-set backupdir "~/.cache/nano/backups/" # the location of the backups.
+set atblanks                   # Wrap lines at blanks
+set cutfromcursor              # Ctrl+K cuts from cursor position to end of line
+set nohelp                     # Disable help information (Ctrl+G to view the help screen)
+set softwrap                   # Enable softwrap of lines
+set tabsize 4                  # Set tab-to-spaces size to 4
+set tabstospaces               # Convert tab key press to spaces
+set constantshow               # Display useful information (e.g., line number) in the bottom bar
+set linenumbers                # Enable line numbering
+set casesensitive              # Case-sensitive search
+set historylog                 # Save the last 100 history searches for later use
+set positionlog                # Save the cursor position between editing sessions
+set zap                        # Allow highlighting text (Ctrl+Shift+Arrow) and delete it with backspace
+set autoindent                 # New line will have the same number of leading spaces as the previous one
+set indicator                  # Display a scroll bar on the right
+set minibar                    # Display file name and other information in the bottom bar, and remove the top bar
+set regexp                     # Use regular expression for searching
+set backup                     # Create backups of your current file
+set trimblanks                 # Remove trailing white space when saving
+set smarthome                  # Home key jumps to start of line first, then to true home
+set afterends                  # Ctrl+Right moves to word ends instead of word starts
+set multibuffer                # Read files into separate buffers instead of inserting
+set mouse                      # Enable mouse support
+set numbercolor yellow,normal  # Set color for line numbers
+set scrollercolor grey,normal  # Set color for scroll bar
 
 # Shortcut key bindings
-bind ^C copy main # CTRC+C - Copy
-bind ^V paste all # CTRL+V - Paste
-bind ^F whereis all # CTRL+F - Find
-bind ^S savefile main # CTRL+S - Save 
+bind ^Q exit all           # Ctrl+Q to exit
+bind ^Z suspend main       # Ctrl+Z to suspend
+bind M-R redo main         # Alt+R to redo
+bind ^C copy main          # Ctrl+C to copy
+bind ^V paste main         # Ctrl+V to paste
+bind ^X cut main           # Ctrl+X to cut
+bind ^K zap main           # Ctrl+K to delete the line
+bind ^H chopwordleft all   # Ctrl+H to delete word to the left
+bind M-/ comment main      # Alt+/ to comment/uncomment
+bind ^Space complete main  # Ctrl+Space to autocomplete
+
+bind M-C location main     # Alt+C to show cursor position
+bind ^E wherewas all       # Ctrl+E to search backwards
+bind M-E findprevious all  # Alt+E to search backwards without prompt
+bind ^R replace main       # Ctrl+R to replace
+bind ^_ gotoline main      # Ctrl+_ to go to line number
+bind ^G firstline all      # Ctrl+G to go to the first line
+bind M-G lastline all      # Alt+G to go to the last line
+bind ^B pageup all         # Ctrl+B to page up (vim-like support)
+bind ^F pagedown all       # Ctrl+F to page down (vim-like support)
+bind M-F nextword all      # Alt+F to move to the next word
+bind M-B prevword all      # Alt+B to move to the previous word

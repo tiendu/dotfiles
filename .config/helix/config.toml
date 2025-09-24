@@ -1,0 +1,46 @@
+# ~/.config/helix/config.toml
+theme = "dracula"
+
+[editor]
+line-number = "relative"
+mouse = true
+color-modes = true
+bufferline = "always"
+idle-timeout = 100
+gutters = ["diff", "line-numbers", "spacer"]
+
+[editor.soft-wrap]
+enable = true
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.file-picker]
+hidden = false
+
+[editor.statusline]
+left = ["mode", "spinner"]
+center = ["file-name"]
+right = ["diagnostics", "selections", "position", "file-encoding", "file-line-ending", "file-type"]
+separator = "│"
+mode.normal = "NORMAL"
+mode.insert = "INSERT"
+mode.select = "SELECT"
+
+[editor.whitespace]
+render = "all"
+
+[editor.indent-guides]
+render = true
+character = "╎"
+skip-levels = 1
+
+[keys.normal.space]
+w = ":w"
+q = ":q"
+
+[keys.insert]
+j = { k = "normal_mode" }
+k = { j = "normal_mode" }
