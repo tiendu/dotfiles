@@ -221,6 +221,8 @@ _custom_highlight() {
   local expect_for_var=0
   local in_for_list=0
   local expect_func_name=0
+  local in_test=0      # [[ ... ]]
+  local in_arith=0     # (( ... ))
   for word in "${words[@]}"; do
     [[ -z "${word// }" ]] && continue
     rel_idx="${remaining%%${word}*}"
@@ -228,6 +230,31 @@ _custom_highlight() {
     idx_end=$((idx_start + ${#word}))
     offset=$((idx_end))
     remaining="${remaining#"$rel_idx$word"}"
+    # [[  and  ((  entry/exit (neutralize command checks inside)
+    if [[ $word == '[[' ]]; then
+      region_highlight+=("$idx_start $idx_end fg=yellow,bold")
+      in_test=1; found_command=0
+      continue
+    fi
+    if (( in_test )) && [[ $word == ']]' ]]; then
+      region_highlight+=("$idx_start $idx_end fg=yellow,bold")
+      in_test=0; found_command=0
+      continue
+    fi
+    if [[ $word == '(((' || $word == '((' ]]; then
+      region_highlight+=("$idx_start $idx_end fg=yellow,bold")
+      in_arith=1; found_command=0
+      continue
+    fi
+    if (( in_arith )) && [[ $word == '))' ]]; then
+      region_highlight+=("$idx_start $idx_end fg=yellow,bold")
+      in_arith=0; found_command=0
+      continue
+    fi
+    if (( in_test || in_arith )); then
+      region_highlight+=("$idx_start $idx_end fg=white")
+      continue
+    fi
     # delimiters reset
     if [[ " ${delimiters[*]} " == *" $word "* ]]; then
       found_command=0
