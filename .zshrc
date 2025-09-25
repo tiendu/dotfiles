@@ -216,30 +216,63 @@ _custom_highlight() {
   local offset=0 remaining="$buffer" found_command=0 word rel_idx idx_start idx_end
   local -a words=(${(z)buffer})
   local -a delimiters=(";" "|" "||" "&&" "|&" "&" "(" ")" ";;&" ";|")
-  local -a reserved=(if then else elif fi do done case esac while until for repeat select time function coproc '!')
-  local -a starts_cmd_after=(then do elif else time '!')
+  local -a reserved=(if then else elif fi do done case esac while until for repeat select time function coproc '!' in)
+  local -a starts_cmd_after=(then do elif else time '!' fi done esac)
+  local expect_for_var=0
+  local in_for_list=0
+  local expect_func_name=0
   for word in "${words[@]}"; do
     [[ -z "${word// }" ]] && continue
-    # Absolute positions for region_highlight
     rel_idx="${remaining%%${word}*}"
     idx_start=$((offset + ${#rel_idx}))
     idx_end=$((idx_start + ${#word}))
     offset=$((idx_end))
     remaining="${remaining#"$rel_idx$word"}"
-    # Reset on delimiters
+    # delimiters reset
     if [[ " ${delimiters[*]} " == *" $word "* ]]; then
       found_command=0
+      in_for_list=0
+      expect_for_var=0
+      expect_func_name=0
       continue
     fi
-    # Color reserved words; and some of them reset command start for next token
+    # reserved words
     if [[ " ${reserved[*]} " == *" $word "* ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
+      case $word in
+        for) expect_for_var=1; found_command=0 ;;
+        in)  in_for_list=1; found_command=0 ;;
+        do)  in_for_list=0; found_command=0 ;;
+        function) expect_func_name=1; found_command=0 ;;
+      esac
       if [[ " ${starts_cmd_after[*]} " == *" $word "* ]]; then
         found_command=0
       fi
       continue
     fi
-    # First word after a reset → validate as a command (green/red)
+    # after "for" --> variable
+    if (( expect_for_var )); then
+      region_highlight+=("$idx_start $idx_end fg=blue,bold")
+      expect_for_var=0
+      continue
+    fi
+    # after "function" --> function name
+    if (( expect_func_name )); then
+      region_highlight+=("$idx_start $idx_end fg=blue,bold")
+      expect_func_name=0
+      continue
+    fi
+    # inside "in" list
+    if (( in_for_list )); then
+      region_highlight+=("$idx_start $idx_end fg=white")
+      continue
+    fi
+    # assignments at command start
+    if (( found_command == 0 )) && [[ $word == [A-Za-z_][A-Za-z0-9_]*=* ]]; then
+      region_highlight+=("$idx_start $idx_end fg=blue")
+      continue
+    fi
+    # first word = command check
     if (( found_command == 0 )); then
       if whence -w -- "$word" &>/dev/null; then
         region_highlight+=("$idx_start $idx_end fg=green,bold")
