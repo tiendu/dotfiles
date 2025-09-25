@@ -78,6 +78,17 @@ bindkey -M vicmd 'p' _paste_clip_after
 bindkey -M vicmd 'P' _paste_clip_before
 bindkey -M viins '^V' _paste_clip_after
 
+##### Tiny helpers
+mkcd(){ mkdir -p -- "$1" && cd -- "$1"; }
+extract(){ case "$1" in
+  *.tar.bz2) tar xjf "$1" ;; *.tar.gz) tar xzf "$1" ;; *.zip) unzip -q "$1" ;;
+  *.tar.xz) tar xJf "$1" ;; *.rar) unrar x -idq "$1" ;; *) echo "Unknown archive"; return 1;;
+esac }
+please(){ sudo -- $(fc -ln -1 | sed 's/^[[:space:]]*//'); }
+# Terminal title with cwd and last cmd status
+precmd(){ print -Pn '\e]0;%n@%m: %~\a'; }
+preexec(){ print -Pn '\e]0;%n@%m: %~ — ${(q)1}\a'; }
+
 ##### History & Shell options
 HISTSIZE=10000
 SAVEHIST=10000
@@ -86,6 +97,7 @@ setopt APPEND_HISTORY SHARE_HISTORY INC_APPEND_HISTORY
 setopt HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS
 setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_VERIFY
 setopt EXTENDED_HISTORY HIST_FIND_NO_DUPS HIST_SAVE_NO_DUPS
+setopt INC_APPEND_HISTORY_TIME HIST_FCNTL_LOCK
 
 setopt CORRECT MENUCOMPLETE AUTO_MENU LIST_PACKED
 setopt AUTOCD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
@@ -309,7 +321,9 @@ fi
 if [[ $- == *i* ]]; then
   autoload -Uz compinit compaudit
   # Harden completion dirs (safe + quiet)
-  compaudit | while read -r p; do chmod g-w,o-w "$p" 2>/dev/null || true; done
+  compaudit | while read -r p; do
+    [[ $p == $HOME/* ]] && chmod g-w,o-w "$p" 2>/dev/null || true
+  done
   zmodload zsh/complist
   # Cache locations
   typeset -g _compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compdump"
@@ -321,7 +335,9 @@ if [[ $- == *i* ]]; then
   zstyle ':completion:*' use-cache on
   zstyle ':completion:*' cache-path "$_compcache"
   zstyle ':completion:*' menu select
-  zstyle ':completion:' matcher-list 'm:{a-z}={A-Za-z}' 'r:|[._-]= r:|=*'  # partial/fuzzy-ish
+  zstyle ':completion:*' matcher-list \
+  'm:{a-z}={A-Za-z}' \
+  'r:|[._-]=** r:|=*'
   zstyle ':completion:*' group-name ''
   zstyle ':completion:*' list-colors ''
   zstyle ':completion:*:history-words' menu yes select
@@ -331,6 +347,7 @@ if [[ $- == *i* ]]; then
   export PROMPT_EOL_MARK=""
 fi
 
-[[ -d "$HOME/miniforge/bin" ]] && PATH="$HOME/miniforge/bin:$PATH"
-[[ -d "/opt/homebrew/bin" ]]   && PATH="/opt/homebrew/bin:$PATH"
+typeset -Ug path fpath
+[[ -d "/opt/homebrew/bin" ]]   && path=(/opt/homebrew/bin $path)
+[[ -d "$HOME/miniforge/bin" ]] && path=($HOME/miniforge/bin $path)
 export PATH
