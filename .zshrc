@@ -21,10 +21,10 @@ export VISUAL="nvim"
 export LESS="e M q R F X z -3"
 
 ##### Tool initializers
-if command -v rg >/dev/null; then
-  grep() { command rg --hidden --smart-case "$@"; }
+if [[ $- == *i* ]]; then
+  command -v rg >/dev/null && alias grep='rg --hidden --smart-case'
+  command -v fd >/dev/null && alias find='fd'
 fi
-command -v fd >/dev/null && alias find="fd"
 if command -v eza >/dev/null; then
   alias ls="eza"; alias ll="eza -l"; alias la="eza -la"; alias tree="eza --tree --level=3"
 else
@@ -84,10 +84,6 @@ extract(){ case "$1" in
   *.tar.bz2) tar xjf "$1" ;; *.tar.gz) tar xzf "$1" ;; *.zip) unzip -q "$1" ;;
   *.tar.xz) tar xJf "$1" ;; *.rar) unrar x -idq "$1" ;; *) echo "Unknown archive"; return 1;;
 esac }
-please(){ sudo -- $(fc -ln -1 | sed 's/^[[:space:]]*//'); }
-# Terminal title with cwd and last cmd status
-precmd(){ print -Pn '\e]0;%n@%m: %~\a'; }
-preexec(){ print -Pn '\e]0;%n@%m: %~ — ${(q)1}\a'; }
 
 ##### History & Shell options
 HISTSIZE=10000
