@@ -320,30 +320,36 @@ if [[ $- == *i* ]]; then
   : ${AP_MAX:=4000}
   _autopair() {
     (( ${#BUFFER} > AP_MAX )) && return
-    local key="$1" close="$2" mode="$3" prev="${LBUFFER[-1]}" next="${RBUFFER[1]}"
-    [[ $prev == '\' ]] && { LBUFFER+="$key"; return; }
+    local key="$1" close="$2" mode="${3:-boundary}"
+    local prev="${LBUFFER[-1]-}" next="${RBUFFER[1]-}"
+    # don't meddle: escaped char, menu-complete, or pending input
+    [[ $prev == '\' || ( -n $COMPSYS && ( $WIDGET == (menu-*) || $PENDING -gt 0 ) ) ]] && { LBUFFER+="$key"; return; }
+    # double-tap opener (insert literal; nudge existing closer right)
     if [[ $prev == "$key" ]]; then
       LBUFFER+="$key"; [[ $next == "$close" ]] && RBUFFER="$close$RBUFFER"; return
     fi
-    # Don't meddle during completion/menu or when input is pending, just insert literally
-    if [[ -n $COMPSYS && ( $WIDGET == (menu-*) || $PENDING -gt 0 ) ]]; then
+    # quotes: be conservative near words / after '='
+    if [[ $key == \' || $key == \" ]]; then
+      [[ $next == [[:alnum:]_] || ( $prev == "=" && $next == [[:alnum:]_] ) ]] && { LBUFFER+="$key"; return; }
+    fi
+    # hard stop: after dot/dollar/equals, insert literal (covers .[, .(, .{, $({, =( )
+    if [[ $prev == [.$=] ]]; then
       LBUFFER+="$key"; return
     fi
-    if [[ "$key" == '"' || "$key" == "'" ]]; then
-      if [[ "$next" == [[:alnum:]_] ]]; then LBUFFER+="$key"; return; fi
-      # Extra conservative: right after '=' with a word ahead, insert single
-      if [[ "$prev" == "=" && "$next" == [[:alnum:]_] ]]; then LBUFFER+="$key"; return; fi
-    fi
-    # Skip for variable declarations
-    if [[ "$next" == [\$\?\!\.\,\:\;\=] && "$next" != "$close" ]]; then LBUFFER+="$key"; return; fi
-    # Skip before path
-    if [[ "$next" == /* || "$next" == "~"* ]]; then LBUFFER+="$key"; return; fi
-    if [[ $mode == always ]]; then LBUFFER+="$key$close"; zle backward-char; return; fi
+    # pair right after identifiers/closers
+    case "$key" in
+      '('|'['|'{')
+        [[ $prev == [[:alnum:]_] || $prev == [\)\]\}] ]] && { LBUFFER+="$key$close"; zle backward-char; return; }
+      ;;
+    esac
+    # skip when next is var/punct (not the closer) or looks like a path start
+    [[ ( $next == [\$\?\!\.\,\:\;\=] && $next != "$close" ) || $next == /* || $next == "~"* ]] && { LBUFFER+="$key"; return; }
+    # mode-based pairing
+    [[ $mode == always ]] && { LBUFFER+="$key$close"; zle backward-char; return; }
     if [[ $mode == boundary ]]; then
-      if [[ -z "$prev" || "$prev" == [[:space:][:punct:]] ]] && [[ -z "$next" || "$next" == [[:space:][:punct:]] ]]; then
-        LBUFFER+="$key$close"; zle backward-char; return
-      fi
+      [[ -z $prev || $prev == [[:space:][:punct:]] ]] && [[ -z $next || $next == [[:space:][:punct:]] ]] && { LBUFFER+="$key$close"; zle backward-char; return; }
     fi
+    # default: literal insert
     LBUFFER+="$key"
   }
   _autopair_close() { local close="$1"; [[ ${RBUFFER[1]} == "$close" ]] && zle forward-char || LBUFFER+="$close"; }
