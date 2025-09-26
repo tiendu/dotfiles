@@ -215,18 +215,22 @@ local function open_pair(open, close, mode)
     if vim.fn.pumvisible() == 1 then
       return open
     end
-    -- skip-over for quotes
-    if open == close and nextc == close then
+    -- skip-over when the closer is already there (quotes or any pair)
+    if nextc == close then
       return "<Right>"
     end
-    -- conservative around words / after '='
+    -- quotes: be conservative near words / after '='
     if (open == '"' or open == "'") and nextc:match("[%w_]") then
       return open
     end
-    if (open == '"' or open == "'") and prev == "=" and nextc:match("[%w_]") then
+    if (open == '"' or open == "'") and prevc == "=" and nextc:match("[%w_]") then
       return open
     end
-    -- skip variable declarations
+    -- HARD STOP: after dot/dollar/equals → insert literal (covers .[, .(, .{, $({, =( ))
+    if prevc and prevc:match("[.%$=]") then
+      return open
+    end
+    -- skip variable/punct next (but allow if it's exactly the closer)
     if nextc:match("[$%?!%.,:;=]") and nextc ~= close then
       return open
     end
@@ -234,6 +238,7 @@ local function open_pair(open, close, mode)
     if nextc == "/" or nextc == "~" then
       return open
     end
+    -- modes
     if mode == "always" then
       return open .. close .. "<Left>"
     end
