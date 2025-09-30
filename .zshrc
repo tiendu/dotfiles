@@ -330,68 +330,68 @@ zle -N zle-line-finish _highlight_finish
 
 ##### Autopair
 if [[ $- == *i* ]]; then
-  : ${AP_MAX:=4000}
-  _autopair_open() {
-    (( ${#BUFFER} > AP_MAX )) && return
-    local key="$1" close="$2" mode="${3:-boundary}"
-    local prev="${LBUFFER[-1]-}" next="${RBUFFER[1]-}"
-    # don't meddle: escaped char, menu-complete, or pending input
+  : ${AP_MAX:=4000}
+  _autopair_open() {
+    (( ${#BUFFER} > AP_MAX )) && return
+    local key="$1" close="$2" mode="${3:-boundary}"
+    local prev="${LBUFFER[-1]-}" next="${RBUFFER[1]-}"
+    # don't meddle: escaped char, menu-complete, or pending input
     [[ $prev == \\ || ( -n "$COMPSYS" && ( $WIDGET == menu-* || $PENDING -gt 0 ) ) ]] && { LBUFFER+="$key"; return; }
-    # double-tap opener (insert literal; nudge existing closer right)
-    if [[ $prev == "$key" ]]; then
-      LBUFFER+="$key"; [[ $next == "$close" ]] && RBUFFER="$close$RBUFFER"; return
-    fi
-    # quotes: be conservative near words / after '='
-    if [[ $key == \' || $key == \" ]]; then
-      [[ $next == [[:alnum:]_] || ( $prev == "=" && $next == [[:alnum:]_] ) ]] && { LBUFFER+="$key"; return; }
-    fi
-    # hard stop: after dot/dollar/equals, insert literal (covers .[, .(, .{, $({, =( )
-    if [[ $prev == [.$=] ]]; then
-      LBUFFER+="$key"; return
-    fi
-    # pair right after identifiers/closers
-    case "$key" in
-      '('|'['|'{')
-        [[ $prev == [[:alnum:]_] || $prev == [\)\]\}] ]] && { LBUFFER+="$key$close"; zle backward-char; return; }
-      ;;
-    esac
-    # skip when next is var/punct (not the closer) or looks like a path start
+    # double-tap opener (insert literal; nudge existing closer right)
+    if [[ $prev == "$key" ]]; then
+      LBUFFER+="$key"; [[ $next == "$close" ]] && RBUFFER="$close$RBUFFER"; return
+    fi
+    # quotes: be conservative near words / after '='
+    if [[ $key == \' || $key == \" ]]; then
+      [[ $next == [[:alnum:]_] || ( $prev == "=" && $next == [[:alnum:]_] ) ]] && { LBUFFER+="$key"; return; }
+    fi
+    # hard stop: after dot/dollar/equals, insert literal (covers .[, .(, .{, $({, =( )
+    if [[ $prev == [.$=] ]]; then
+      LBUFFER+="$key"; return
+    fi
+    # pair right after identifiers/closers
+    case "$key" in
+      '('|'['|'{')
+        [[ $prev == [[:alnum:]_] || $prev == [\)\]\}] ]] && { LBUFFER+="$key$close"; zle backward-char; return; }
+      ;;
+    esac
+    # skip when next is var/punct (not the closer) or looks like a path start
     [[ ( $next == [\$\?\!\.\,\:\;\=] && $next != "$close" ) || $next == /* || $next == \~* ]] && { LBUFFER+="$key"; return; }
-    # mode-based pairing
-    [[ $mode == always ]] && { LBUFFER+="$key$close"; zle backward-char; return; }
-    if [[ $mode == boundary ]]; then
-      [[ -z $prev || $prev == [[:space:][:punct:]] ]] && [[ -z $next || $next == [[:space:][:punct:]] ]] && { LBUFFER+="$key$close"; zle backward-char; return; }
-    fi
-    # default: literal insert
-    LBUFFER+="$key"
-  }
-  _autopair_close() { local close="$1"; [[ ${RBUFFER[1]} == "$close" ]] && zle forward-char || LBUFFER+="$close"; }
-  _ap_backspace() {
-    if [[ -n $LBUFFER && -n $RBUFFER ]]; then
-      local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
-      case "$l$r" in "''"|\"\"|\(\)|\[\]|\{\}) LBUFFER=${LBUFFER[1,-2]}; RBUFFER=${RBUFFER[2,-1]}; return;;
-      esac
-    fi
-    zle backward-delete-char
-  }
-  # Thin wrappers
-  _ap_apos(){ _autopair_open "'" "'" boundary }; _ap_quot(){ _autopair_open '"' '"' boundary }
-  _ap_open_paren(){ _autopair_open "(" ")" boundary }; _ap_close_paren(){ _autopair_close ")" }
-  _ap_open_brack(){ _autopair_open "[" "]" boundary }; _ap_close_brack(){ _autopair_close "]" }
-  _ap_open_brace(){ _autopair_open "{" "}" boundary }; _ap_close_brace(){ _autopair_close "}" }
-  # Widgets
-  zle -N _ap_apos; zle -N _ap_quot;
-  zle -N _ap_open_paren; zle -N _ap_close_paren
-  zle -N _ap_open_brack; zle -N _ap_close_brack
-  zle -N _ap_open_brace; zle -N _ap_close_brace
-  zle -N _ap_backspace
-  # Bindings (vi insert mode)
-  bindkey -M viins \
-    "'"  _ap_apos   '"'  _ap_quot \
-    '('  _ap_open_paren  ')'  _ap_close_paren \
-    '['  _ap_open_brack  ']'  _ap_close_brack \
-    '{'  _ap_open_brace  '}'  _ap_close_brace \
-    '^?' _ap_backspace   '^H' _ap_backspace
+    # mode-based pairing
+    [[ $mode == always ]] && { LBUFFER+="$key$close"; zle backward-char; return; }
+    if [[ $mode == boundary ]]; then
+      [[ -z $prev || $prev == [[:space:][:punct:]] ]] && [[ -z $next || $next == [[:space:][:punct:]] ]] && { LBUFFER+="$key$close"; zle backward-char; return; }
+    fi
+    # default: literal insert
+    LBUFFER+="$key"
+  }
+  _autopair_close() { local close="$1"; [[ ${RBUFFER[1]} == "$close" ]] && zle forward-char || LBUFFER+="$close"; }
+  _ap_backspace() {
+    if [[ -n $LBUFFER && -n $RBUFFER ]]; then
+      local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
+      case "$l$r" in "''"|\"\"|\(\)|\[\]|\{\}) LBUFFER=${LBUFFER[1,-2]}; RBUFFER=${RBUFFER[2,-1]}; return;;
+      esac
+    fi
+    zle backward-delete-char
+  }
+  # Thin wrappers
+  _ap_apos(){ _autopair_open "'" "'" boundary }; _ap_quot(){ _autopair_open '"' '"' boundary }
+  _ap_open_paren(){ _autopair_open "(" ")" boundary }; _ap_close_paren(){ _autopair_close ")" }
+  _ap_open_brack(){ _autopair_open "[" "]" boundary }; _ap_close_brack(){ _autopair_close "]" }
+  _ap_open_brace(){ _autopair_open "{" "}" boundary }; _ap_close_brace(){ _autopair_close "}" }
+  # Widgets
+  zle -N _ap_apos; zle -N _ap_quot
+  zle -N _ap_open_paren; zle -N _ap_close_paren
+  zle -N _ap_open_brack; zle -N _ap_close_brack
+  zle -N _ap_open_brace; zle -N _ap_close_brace
+  zle -N _ap_backspace
+  # Bindings (vi insert mode)
+  bindkey -M viins \
+    "'"  _ap_apos   '"'  _ap_quot \
+    '('  _ap_open_paren  ')'  _ap_close_paren \
+    '['  _ap_open_brack  ']'  _ap_close_brack \
+    '{'  _ap_open_brace  '}'  _ap_close_brace \
+    '^?' _ap_backspace   '^H' _ap_backspace
 fi
 
 ##### Interactive-only setup (keeps non-interactive shells fast)
