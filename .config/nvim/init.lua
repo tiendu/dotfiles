@@ -216,6 +216,14 @@ local function open_pair(open, close, mode)
     if vim.fn.pumvisible() == 1 then
       return open
     end
+    -- double-tap opener
+    if prevc == open then
+      if nextc == close then
+        return open .. close .. "<Left>"
+      else
+        return open
+      end
+    end
     -- idempotence/skip-over when the closer is already there
     if nextc == close then
       return "<Right>"
