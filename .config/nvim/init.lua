@@ -196,7 +196,6 @@ api.nvim_create_autocmd("TextYankPost", {
 local expr_opts = { expr = true, noremap = true, silent = true, replace_keycodes = true }
 
 -- Helpers
--- get current line char at cursor (next) and before (prev)
 local function get_chars()
   local col  = vim.fn.col('.')
   local line = vim.fn.getline('.')
@@ -204,9 +203,11 @@ local function get_chars()
   local next = line:sub(col, col)
   return prev, next
 end
-local function is_boundary_char(c)
-  return c == "" or c:match("[%s%p]") ~= nil
-end
+local function is_word(c) return c and c:match("[%w_]") end
+local function is_closer(c) return c and c:match("[%)%]%}]") end
+local function is_hardstop(c) return c and c:match("[.%$=]") end
+local function is_busy(c) return c and c:match("[$%?!%.,:;=]") end
+local function is_boundary_char(c) return c == "" or c:match("[%s%p]") ~= nil end
 
 local function open_pair(open, close, mode)
   return function()
@@ -215,38 +216,41 @@ local function open_pair(open, close, mode)
     if vim.fn.pumvisible() == 1 then
       return open
     end
-    -- skip-over when the closer is already there (quotes or any pair)
+    -- idempotence/skip-over when the closer is already there
     if nextc == close then
       return "<Right>"
     end
-    -- quotes: be conservative near words / after '='
-    if (open == '"' or open == "'") and nextc:match("[%w_]") then
+    -- quotes: conservative near words / after '=' / after closers
+    if open == '"' or open == "'" then
+      if is_word(nextc) or (prevc == "=" and is_word(nextc)) or is_word(prevc) or is_closer(prevc) then
+        return open
+      end
+    end
+    -- HARD STOP: after dot/dollar/equals → literal
+    if is_hardstop(prevc) then
       return open
     end
-    if (open == '"' or open == "'") and prevc == "=" and nextc:match("[%w_]") then
+    -- identifier-adjacent pairing for ([{, but NOT after closers (handled below)
+    if (open == "(" or open == "[" or open == "{") and is_word(prevc) then
+      return open .. close .. "<Left>"
+    end
+    -- skip when next looks "busy" or like a path start (unless it's exactly the closer, handled earlier)
+    if is_busy(nextc) or nextc == "/" or nextc == "~" then
       return open
     end
-    -- HARD STOP: after dot/dollar/equals → insert literal (covers .[, .(, .{, $({, =( ))
-    if prevc and prevc:match("[.%$=]") then
-      return open
-    end
-    -- skip variable/punct next (but allow if it's exactly the closer)
-    if nextc:match("[$%?!%.,:;=]") and nextc ~= close then
-      return open
-    end
-    -- path avoidance
-    if nextc == "/" or nextc == "~" then
-      return open
-    end
-    -- modes
+    -- mode-based pairing
     if mode == "always" then
       return open .. close .. "<Left>"
     end
     if mode == "boundary" then
-      if is_boundary_char(prevc) and is_boundary_char(nextc) then
-        return open .. close .. "<Left>"
+      -- do not boundary-pair immediately after a closer like ) ] }
+      if not is_closer(prevc) then
+        if is_boundary_char(prevc) and is_boundary_char(nextc) then
+          return open .. close .. "<Left>"
+        end
       end
     end
+    -- default: literal
     return open
   end
 end
