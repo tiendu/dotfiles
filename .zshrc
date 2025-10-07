@@ -127,8 +127,8 @@ bindkey -M vicmd '/' history-incremental-search-forward
 bindkey -M vicmd '?' history-incremental-search-backward
 bindkey -M viins 'jk' vi-cmd-mode
 bindkey -M viins 'kj' vi-cmd-mode
-bindkey -M viins '^?' backward-delete-char
-bindkey -M viins '^H' backward-delete-char
+bindkey -M viins $'\x7f' backward-delete-char
+bindkey -M viins $'\x08' backward-delete-char
 
 # History menu: list all matches that start with current prefix
 autoload -Uz history-beginning-search-menu
@@ -399,7 +399,12 @@ if [[ $- == *i* ]]; then
   _ap_backspace() {
     if [[ -n $LBUFFER && -n $RBUFFER ]]; then
       local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
-      case "$l$r" in "''"|\"\"|\(\)|\[\]|\{\}) LBUFFER=${LBUFFER[1,-2]}; RBUFFER=${RBUFFER[2,-1]}; return;;
+      case "$l$r" in
+        "''"|'""'|"()"|"[]"|"{}")
+          LBUFFER=${LBUFFER[1,-2]}
+          RBUFFER=${RBUFFER[2,-1]}
+          return
+        ;;
       esac
     fi
     zle backward-delete-char
@@ -421,7 +426,7 @@ if [[ $- == *i* ]]; then
     '('  _ap_open_paren  ')'  _ap_close_paren \
     '['  _ap_open_brack  ']'  _ap_close_brack \
     '{'  _ap_open_brace  '}'  _ap_close_brace \
-    '^?' _ap_backspace   '^H' _ap_backspace
+    $'\x7f' _ap_backspace  $'\x08' _ap_backspace
 fi
 
 ##### Interactive-only setup (keeps non-interactive shells fast)
