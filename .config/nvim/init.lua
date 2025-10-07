@@ -195,13 +195,16 @@ api.nvim_create_autocmd("TextYankPost", {
 -- --- Autopair
 local expr_opts = { expr = true, noremap = true, silent = true, replace_keycodes = true }
 
+-- Safe keycode helper (treats <BS>, <Del>, <Left>, etc. as real keys)
+local function K(keys) return vim.keycode(keys, true, false, true) end
+
 -- Helpers
 local function get_chars()
   local col  = vim.fn.col('.')
   local line = vim.fn.getline('.')
   local prev = (col > 1) and line:sub(col-1, col-1) or ""
-  local next = line:sub(col, col)
-  return prev, next
+  local nextc = line:sub(col, col)
+  return prev, nextc
 end
 local function is_word(c) return c and c:match("[%w_]") end
 local function is_closer(c) return c and c:match("[%)%]%}]") end
@@ -216,17 +219,17 @@ local function open_pair(open, close, mode)
     if vim.fn.pumvisible() == 1 then
       return open
     end
-    -- double-tap opener
+    -- double-tap opener -> literal; if closer is next, nudge it right
     if prevc == open then
       if nextc == close then
-        return open .. close .. "<Left>"
+        return open .. close .. K("<Left>")
       else
         return open
       end
     end
     -- idempotence/skip-over when the closer is already there
     if nextc == close then
-      return "<Right>"
+      return K("<Right>")
     end
     -- quotes: conservative near words / after '=' / after closers
     if open == '"' or open == "'" then
@@ -238,9 +241,9 @@ local function open_pair(open, close, mode)
     if is_hardstop(prevc) then
       return open
     end
-    -- identifier-adjacent pairing for ([{, but NOT after closers (handled below)
+    -- identifier-adjacent pairing for ([{, but NOT after closers
     if (open == "(" or open == "[" or open == "{") and is_word(prevc) then
-      return open .. close .. "<Left>"
+      return open .. close .. K("<Left>")
     end
     -- skip when next looks "busy" or like a path start (unless it's exactly the closer, handled earlier)
     if is_busy(nextc) or nextc == "/" or nextc == "~" then
@@ -248,13 +251,13 @@ local function open_pair(open, close, mode)
     end
     -- mode-based pairing
     if mode == "always" then
-      return open .. close .. "<Left>"
+      return open .. close .. K("<Left>")
     end
     if mode == "boundary" then
       -- do not boundary-pair immediately after a closer like ) ] }
       if not is_closer(prevc) then
         if is_boundary_char(prevc) and is_boundary_char(nextc) then
-          return open .. close .. "<Left>"
+          return open .. close .. K("<Left>")
         end
       end
     end
@@ -268,7 +271,7 @@ local function close_pair(close)
   return function()
     local _, nextc = get_chars()
     if nextc == close then
-      return "<Right>"
+      return K("<Right>")
     else
       return close
     end
@@ -280,13 +283,13 @@ local function backspace_pair()
   local prevc, nextc = get_chars()
   local pairs = { ["'"]="'", ['"']='"', ["("]=")", ["["]="]", ["{"]="}" }
   if pairs[prevc] and pairs[prevc] == nextc then
-    return "<BS><Del>"
+    return K("<BS>") .. K("<Del>")
   end
-  return "<BS>"
+  return K("<BS>")
 end
 
 -- Mappings for autopairs
--- Switch paren/brack/brace to boundary mode (not always)
+-- Brackets/braces/paren in boundary mode
 map("i", "(", open_pair("(", ")", "boundary"), expr_opts)
 map("i", "[", open_pair("[", "]", "boundary"), expr_opts)
 map("i", "{", open_pair("{", "}", "boundary"), expr_opts)
@@ -298,18 +301,20 @@ map("i", "}", close_pair("}"), expr_opts)
 map("i", "'", open_pair("'", "'", "boundary"), expr_opts)
 map("i", '"', open_pair('"', '"', "boundary"), expr_opts)
 
--- Smart backspace
+-- Smart backspace (and Ctrl-H, if you like)
 map("i", "<BS>", backspace_pair, expr_opts)
+map("i", "<C-h>", backspace_pair, expr_opts)
 
 -- Make <CR> add a newline *inside* (), [], {} when cursor is between the pair
 map("i", "<CR>", function()
-  if vim.fn.pumvisible() == 1 then return "<CR>" end
+  if vim.fn.pumvisible() == 1 then return K("<CR>") end
   local prevc, nextc = get_chars()
   local matchers = { ["("]=")", ["["]="]", ["{"]="}" }
   if matchers[prevc] and matchers[prevc] == nextc then
-    return "<CR><Esc>O"
+    -- Insert newline, leave insert mode, open a new line above (cursor inside pair)
+    return K("<CR>") .. K("<Esc>") .. "O"
   end
-  return "<CR>"
+  return K("<CR>")
 end, expr_opts)
 
 -- --- Highlight TODOs & trailing whitespace (no match leaks) ---
