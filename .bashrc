@@ -68,11 +68,20 @@ else
 fi
 
 #### prompt (time :: cwd, newline, arrow)
+RED='\[\e[31m\]'; GREEN='\[\e[32m\]'; BLUE='\[\e[34m\]'
+MAGENTA='\[\e[35m\]'; CYAN='\[\e[36m\]'
+BOLD='\[\e[1m\]'; RESET='\[\e[0m\]'
+
 __last_status=0
 __ps1(){
   __last_status=$?
-  local arrow=">"
-  [ $__last_status -ne 0 ] && arrow="<"
-  PS1="[\t] \w\n$arrow "
+  local arrow
+  if [[ $__last_status -eq 0 ]]; then
+    arrow="${GREEN}>${RESET}"
+  else
+    arrow="${RED}<${RESET}"
+  fi
+  PS1="${BLUE}\t${RESET} :: ${MAGENTA}\w${RESET}\n ${arrow} "
+  PS2="${CYAN}>>${RESET} "
 }
 PROMPT_COMMAND=__ps1
