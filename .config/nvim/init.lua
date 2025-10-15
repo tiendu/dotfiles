@@ -231,11 +231,16 @@ local function open_pair(open, close, mode)
     end
     -- quotes: conservative near words / after '=' / after closers
     if open == '"' or open == "'" then
-      if is_word(nextc) or (prevc == "=" and is_word(nextc)) or is_word(prevc) or is_closer(prevc) then
+      -- allow pairing after '=' only if the next char is a boundary (EOL/space/punct)
+      if prevc == "=" and is_boundary_char(nextc) then
+        return open .. close .. "<Left>"
+      end
+      -- conservative: block near words/closers
+      if is_word(nextc) or is_word(prevc) or is_closer(prevc) then
         return open
       end
     end
-    -- HARD STOP: after dot/dollar/equals → literal
+    -- HARD STOP: after dot/dollar/equals -> literal
     if is_hardstop(prevc) then
       return open
     end
