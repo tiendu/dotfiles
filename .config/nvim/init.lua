@@ -225,10 +225,6 @@ local function open_pair(open, close, mode)
         return open
       end
     end
-    -- idempotence/skip-over when the closer is already there
-    if nextc == close then
-      return "<Right>"
-    end
     -- quotes: conservative near words / after '=' / after closers
     if open == '"' or open == "'" then
       -- allow pairing after '=' only if the next char is a boundary (EOL/space/punct)
