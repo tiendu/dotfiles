@@ -213,7 +213,6 @@ local function is_boundary_char(c) return c == "" or c:match("[%s%p]") ~= nil en
 local function open_pair(open, close, mode)
   return function()
     local prevc, nextc = get_chars()
-    -- don't meddle during completion menu
     if vim.fn.pumvisible() == 1 then
       return open
     end
@@ -227,34 +226,33 @@ local function open_pair(open, close, mode)
     end
     -- quotes: conservative near words / after '=' / after closers
     if open == '"' or open == "'" then
-      -- allow pairing after '=' only if the next char is a boundary (EOL/space/punct)
       if prevc == "=" and is_boundary_char(nextc) then
+        -- idempotence near '='
+        if nextc == close then return open end
         return open .. close .. "<Left>"
       end
-      -- conservative: block near words/closers
       if is_word(nextc) or is_word(prevc) or is_closer(prevc) then
         return open
       end
     end
-    -- HARD STOP: after dot/dollar/equals -> literal
-    if is_hardstop(prevc) then
-      return open
-    end
+    if is_hardstop(prevc) then return open end
     -- identifier-adjacent pairing for ([{, but NOT after closers
     if (open == "(" or open == "[" or open == "{") and is_word(prevc) then
+      if nextc == close then return open end            -- <— idempotence
       return open .. close .. "<Left>"
     end
-    -- skip when next looks "busy" or like a path start
     if is_busy(nextc) or nextc == "/" or nextc == "~" then
       return open
     end
-    -- mode-based pairing
+    -- mode-based pairing with idempotence
     if mode == "always" then
+      if nextc == close then return open end            -- <— idempotence
       return open .. close .. "<Left>"
     end
     if mode == "boundary" then
       if not is_closer(prevc) then
         if is_boundary_char(prevc) and is_boundary_char(nextc) then
+          if nextc == close then return open end        -- <— idempotence
           return open .. close .. "<Left>"
         end
       end
