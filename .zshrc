@@ -339,7 +339,7 @@ if [[ $- == *i* ]]; then
     if [[ $prev == \\ || ( -n "$COMPSYS" && ( $WIDGET == menu-* || $PENDING -gt 0 ) ) ]]; then
       LBUFFER+="$key"; return
     fi
-    # double-tap opener -> still insert a fresh pair (no idempotence)
+    # double-tap opener -> still insert a fresh pair
     if [[ $prev == "$key" ]]; then
       LBUFFER+="$key$close"; zle backward-char
       return
@@ -375,7 +375,7 @@ if [[ $- == *i* ]]; then
     if [[ ( $next == [\?\$\!\.\,\:\;\=] ) || $next == /* || $next == \~* ]]; then
       LBUFFER+="$key"; return
     fi
-    # mode-based pairing (no idempotence)
+    # mode-based pairing
     if [[ $mode == always ]]; then
       LBUFFER+="$key$close"; zle backward-char; return
     fi
