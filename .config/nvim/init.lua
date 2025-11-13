@@ -207,7 +207,6 @@ end
 local function is_word(c) return c and c:match("[%w_]") end
 local function is_closer(c) return c and c:match("[%)%]%}]") end
 local function is_hardstop(c) return c and c:match("[.%$=]") end
-local function is_busy(c) return c and c:match("[$%?!%.,:;=]") end
 local function is_boundary_char(c) return c == "" or c:match("[%s%p]") ~= nil end
 
 local function open_pair(open, close, mode)
@@ -239,8 +238,8 @@ local function open_pair(open, close, mode)
     if (open == "(" or open == "[" or open == "{") and is_word(prevc) then
       return open .. close .. "<Left>"
     end
-    -- skip when next looks "busy" or like a path start
-    if is_busy(nextc) or nextc == "/" or nextc == "~" then
+    -- skip when next looks like a path start
+    if nextc == "/" or nextc == "~" then
       return open
     end
     -- mode-based pairing (no idempotence)
