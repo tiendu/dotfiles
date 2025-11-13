@@ -371,8 +371,8 @@ if [[ $- == *i* ]]; then
         fi
       ;;
     esac
-    # skip when next looks "busy" or like a path start
-    if [[ ( $next == [\?\$\!\.\,\:\;\=] ) || $next == /* || $next == \~* ]]; then
+    # skip when next looks like a path start
+    if [[ $next == [/~] ]]; then
       LBUFFER+="$key"; return
     fi
     # mode-based pairing
