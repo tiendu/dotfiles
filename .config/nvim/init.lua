@@ -206,7 +206,7 @@ end
 
 local function is_word(c) return c and c:match("[%w_]") end
 local function is_closer(c) return c and c:match("[%)%]%}]") end
-local function is_hardstop(c) return c and c:match("[.%$=]") end
+local function is_hardstop(c) return c ~= "" and c:match("[.%=]") ~= nil end
 local function is_boundary_char(c) return c == "" or c:match("[%s%p]") ~= nil end
 
 local function open_pair(open, close, mode)
