@@ -358,8 +358,12 @@ if [[ $- == *i* ]]; then
         LBUFFER+="$key"; return
       fi
     fi
-    # hard stops: after dot/dollar/equals -> literal
-    if [[ $prev == [.$=] ]]; then
+    # hard stops: after dot/equals -> literal (keep obj.method( and x=( simple)
+    if [[ $prev == [.=] ]]; then
+      LBUFFER+="$key"; return
+    fi
+    # optional: avoid pairing "(" right after "$" (so $((... doesn't get weird))
+    if [[ $prev == '$' && $key == '(' ]]; then
       LBUFFER+="$key"; return
     fi
     # identifier-adjacent pairing for ([{, but NOT after closers
