@@ -149,11 +149,12 @@ _first_tab() {
 zle -N _first_tab
 bindkey -M viins '^I' _first_tab
 
-##### RPROMPT for Vim mode
+##### Vim mode
 function zle-keymap-select {
   local normal="%K{yellow}${BOLD_WHITE} NOR %k${RESET_BOLD}"
   local insert="%K{green}${BOLD_WHITE} INS %k${RESET_BOLD}"
   VIM_MODE=$([[ $KEYMAP == vicmd ]] && echo $normal || echo $insert)
+  _update_prompt $?
   zle reset-prompt
 }
 zle -N zle-keymap-select
@@ -212,7 +213,6 @@ _update_prompt() {
 }
 _prompt_precmd() {
   _update_prompt $?
-  # RPROMPT="${VIM_MODE:-}"
 }
 
 # Cleaner redraw
