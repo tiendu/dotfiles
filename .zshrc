@@ -224,23 +224,17 @@ add-zsh-hook precmd _prompt_precmd
 ##### Syntax highlighting
 _custom_highlight() {
   region_highlight=()
-  # Pre-split common block delimiters so ${(z)} tokenization sees them
   local buffer="$BUFFER"
-  buffer=${buffer//\[\[/ ' [[ '}
-  buffer=${buffer//\]\]/ ' ]] '}
-  buffer=${buffer//\(\(/ ' (( '}
-  buffer=${buffer//\)\)/ ' )) '}
-  local offset=0 remaining="$buffer" found_command=0
-  local word rel_idx idx_start idx_end
+  local offset=0 remaining="$buffer" found_command=0 word rel_idx idx_start idx_end
   local -a words=(${(z)buffer})
-  local -a delimiters=(";" "|" "||" "&&" "|&" "&" "(" ")" ";;&" ";|" "\n")
+  local -a delimiters=(";" "|" "||" "&&" "|&" "&" "(" ")" ";;&" ";|")
   local -a reserved=(if then else elif fi do done case esac while until for repeat select time function coproc '!' in)
   local -a starts_cmd_after=(then do elif else time '!' fi done esac)
   local expect_for_var=0
   local in_for_list=0
   local expect_func_name=0
-  local in_test=0   # [[ ... ]]
-  local in_arith=0  # (( ... ))
+  local in_test=0      # [[ ... ]]
+  local in_arith=0     # (( ... ))
   for word in "${words[@]}"; do
     [[ -z "${word// }" ]] && continue
     rel_idx="${remaining%%${word}*}"
@@ -248,7 +242,7 @@ _custom_highlight() {
     idx_end=$((idx_start + ${#word}))
     offset=$((idx_end))
     remaining="${remaining#"$rel_idx$word"}"
-    # [[  and  ((  entry/exit (neutralize command checks inside)
+    # [[ entry/exit (neutralize command checks inside)
     if [[ $word == '[[' ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
       in_test=1; found_command=0
@@ -259,7 +253,39 @@ _custom_highlight() {
       in_test=0; found_command=0
       continue
     fi
-    if [[ $word == '((' ]]; then
+    # full token like "((i++))" or "((a+=b))"
+    if [[ $word == \(\(*\)\) ]]; then
+      # highlight leading "(("
+      region_highlight+=("$idx_start $((idx_start+2)) fg=yellow,bold")
+      # highlight trailing "))"
+      region_highlight+=("$((idx_end-2)) $idx_end fg=yellow,bold")
+      # neutralize inside
+      if (( idx_end - idx_start > 4 )); then
+        region_highlight+=("$((idx_start+2)) $((idx_end-2)) fg=white")
+      fi
+      found_command=0
+      continue
+    fi
+    # open arithmetic at start of token: "((foo"
+    if [[ $word == \(\(* ]]; then
+      region_highlight+=("$idx_start $((idx_start+2)) fg=yellow,bold")
+      in_arith=1; found_command=0
+      if (( idx_end - idx_start > 2 )); then
+        region_highlight+=("$((idx_start+2)) $idx_end fg=white")
+      fi
+      continue
+    fi
+    # close arithmetic at end of token: "foo))"
+    if (( in_arith )) && [[ $word == *\)\) ]]; then
+      if (( idx_end - idx_start > 2 )); then
+        region_highlight+=("$idx_start $((idx_end-2)) fg=white")
+      fi
+      region_highlight+=("$((idx_end-2)) $idx_end fg=yellow,bold")
+      in_arith=0; found_command=0
+      continue
+    fi
+    # standalone "((" and "))" (when user typed spaces)
+    if [[ $word == '((' || $word == '(((' ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
       in_arith=1; found_command=0
       continue
@@ -269,7 +295,7 @@ _custom_highlight() {
       in_arith=0; found_command=0
       continue
     fi
-    # inside test/arithmetic: don't validate commands; just paint neutral
+    # inside [[ ... ]] or (( ... )): don't validate commands; just paint neutral
     if (( in_test || in_arith )); then
       region_highlight+=("$idx_start $idx_end fg=white")
       continue
