@@ -38,12 +38,31 @@ command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
 ##### Aliases for interactive shell
 if [[ $- == *i* ]]; then
-  alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' g='git' e='nvim'
+  alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' e='nvim'
   alias h='fc -ln 1'
   alias ta="tmux attach || tmux new"
   alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
   alias ..='cd ..' ...='cd ../..' ....='cd ../../..'
 fi
+
+##### Minimal safe git aliases
+alias g='git'
+# status & log (always know where you are)
+alias gs='git status -sb'
+alias gl='git log --oneline --decorate --graph --max-count=15'
+# update branch safely
+alias gf='git fetch --prune'
+alias gup='git fetch --prune && git rebase origin/main'
+# staging / undo
+alias ga='git add -p'                 # stage hunks (best habit)
+alias gr='git restore'                # discard working changes (paths)
+alias grs='git restore --staged'      # unstage
+# push safely
+alias gp='git push'
+alias gpf='git push --force-with-lease'
+# stash (with message)
+alias gst='git stash push -m'
+alias gstp='git stash pop'
 
 ##### Cross-platform clipboard
 # pbcopy [file...] or stdin; pbpaste prints content
