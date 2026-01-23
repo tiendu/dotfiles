@@ -413,19 +413,6 @@ if [[ $- == *i* ]]; then
     if [[ $prev == [.=] ]]; then
       LBUFFER+="$key"; return
     fi
-    # optional: avoid pairing "(" right after "$" (so $((... doesn't get weird))
-    if [[ $prev == '$' && $key == '(' ]]; then
-      LBUFFER+="$key"; return
-    fi
-    # identifier-adjacent pairing for ([{, but NOT after closers
-    case "$key" in
-      '('|'['|'{')
-        if [[ $prev == [[:alnum:]_] ]]; then
-          LBUFFER+="$key$close"; zle backward-char
-          return
-        fi
-      ;;
-    esac
     # skip when next looks like a path start
     if [[ $next == [/~] ]]; then
       LBUFFER+="$key"; return
@@ -445,8 +432,7 @@ if [[ $- == *i* ]]; then
     # default: literal insert
     LBUFFER+="$key"
   }
-  _autopair_close() { local close="$1"; [[ ${RBUFFER[1]} == "$close" ]] && zle forward-char || LBUFFER+="$close"; }
-  _ap_backspace() {
+  _autopair_backspace() {
     if [[ -n $LBUFFER && -n $RBUFFER ]]; then
       local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
       case "$l$r" in
@@ -457,26 +443,19 @@ if [[ $- == *i* ]]; then
         ;;
       esac
     fi
-    zle backward-delete-char
+    zle .backward-delete-char
   }
   # Thin wrappers
-  _ap_apos(){ _autopair_open $'\'' $'\'' boundary }; _ap_quot(){ _autopair_open $'\"' $'\"' boundary }
-  _ap_open_paren(){ _autopair_open "(" ")" boundary }; _ap_close_paren(){ _autopair_close ")" }
-  _ap_open_brack(){ _autopair_open "[" "]" boundary }; _ap_close_brack(){ _autopair_close "]" }
-  _ap_open_brace(){ _autopair_open "{" "}" boundary }; _ap_close_brace(){ _autopair_close "}" }
+  _ap_apos(){ _autopair_open $'\'' $'\'' boundary }
+  _ap_quot(){ _autopair_open $'\"' $'\"' boundary }
   # Widgets
-  zle -N _ap_apos; zle -N _ap_quot
-  zle -N _ap_open_paren; zle -N _ap_close_paren
-  zle -N _ap_open_brack; zle -N _ap_close_brack
-  zle -N _ap_open_brace; zle -N _ap_close_brace
-  zle -N _ap_backspace
+  zle -N _ap_apos
+  zle -N _ap_quot
+  zle -N _autopair_backspace
   # Bindings (vi insert mode)
   bindkey -M viins \
     "'"  _ap_apos   '"'  _ap_quot \
-    '('  _ap_open_paren  ')'  _ap_close_paren \
-    '['  _ap_open_brack  ']'  _ap_close_brack \
-    '{'  _ap_open_brace  '}'  _ap_close_brace \
-    $'\x7f' _ap_backspace  $'\x08' _ap_backspace
+    $'\x7f' _autopair_backspace  $'\x08' _autopair_backspace
 fi
 
 ##### Interactive-only setup (keeps non-interactive shells fast)
