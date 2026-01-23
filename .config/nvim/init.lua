@@ -197,9 +197,9 @@ local expr_opts = { expr = true, noremap = true, silent = true, replace_keycodes
 
 -- Helpers
 local function get_chars()
-  local col  = vim.fn.col('.')
-  local line = vim.fn.getline('.')
-  local prevc = (col > 1) and line:sub(col-1, col-1) or ""
+  local col  = vim.fn.col(".")
+  local line = vim.fn.getline(".")
+  local prevc = (col > 1) and line:sub(col - 1, col - 1) or ""
   local nextc = line:sub(col, col)
   return prevc, nextc
 end
@@ -212,16 +212,16 @@ local function is_boundary_char(c) return c == "" or c:match("[%s%p]") ~= nil en
 local function open_pair(open, close, mode)
   return function()
     local prevc, nextc = get_chars()
-    -- don't meddle during completion menu
     if vim.fn.pumvisible() == 1 then return open end
-    -- double-tap opener -> literal; if closer is next, still insert a fresh pair (no idempotence)
+
+    -- double-tap opener -> insert fresh pair
     if prevc == open then
       return open .. close .. "<Left>"
     end
+
     -- quotes: conservative near words / after '=' / after closers
     if open == '"' or open == "'" then
       if prevc == "=" then
-        -- allow pairing after '=' only if the next char is boundary (EOL/space/punct)
         if is_boundary_char(nextc) then
           return open .. close .. "<Left>"
         else
@@ -232,44 +232,31 @@ local function open_pair(open, close, mode)
         return open
       end
     end
-    -- HARD STOP: after dot/dollar/equals -> literal
+
+    -- HARD STOP: after dot/equals -> literal
     if is_hardstop(prevc) then return open end
-    -- identifier-adjacent pairing for ([{, but NOT after closers
-    if (open == "(" or open == "[" or open == "{") and is_word(prevc) then
-      return open .. close .. "<Left>"
-    end
-    -- skip when next looks like a path start
+
+    -- skip when nextc looks like a path start
     if nextc == "/" or nextc == "~" then
       return open
     end
-    -- mode-based pairing (no idempotence)
+
+    -- mode-based pairing
     if mode == "always" then
       return open .. close .. "<Left>"
     end
     if mode == "boundary" then
-      if not is_closer(prevc) then
-        if is_boundary_char(prevc) and is_boundary_char(nextc) then
-          return open .. close .. "<Left>"
-        end
+      if not is_closer(prevc) and is_boundary_char(prevc) and is_boundary_char(nextc) then
+        return open .. close .. "<Left>"
       end
     end
     return open
   end
 end
 
-local function close_pair(close)
-  return function()
-    local _, nextc = get_chars()
-    if nextc == close then
-      return "<Right>"
-    else
-      return close
-    end
-  end
-end
-
 local function backspace_pair()
   local prevc, nextc = get_chars()
+  -- keep bracket-pair deletion even though we don't autopair brackets
   local pairs = { ["'"]="'", ['"']='"', ["("]=")", ["["]="]", ["{"]="}" }
   if pairs[prevc] and pairs[prevc] == nextc then
     return "<BS><Del>"
@@ -277,20 +264,14 @@ local function backspace_pair()
   return "<BS>"
 end
 
--- Autopair mappings
-map("i", "(", open_pair("(", ")", "boundary"), expr_opts)
-map("i", "[", open_pair("[", "]", "boundary"), expr_opts)
-map("i", "{", open_pair("{", "}", "boundary"), expr_opts)
-map("i", ")", close_pair(")"), expr_opts)
-map("i", "]", close_pair("]"), expr_opts)
-map("i", "}", close_pair("}"), expr_opts)
-
+-- Autopair mappings — quotes only
 map("i", "'", open_pair("'", "'", "boundary"), expr_opts)
 map("i", '"', open_pair('"', '"', "boundary"), expr_opts)
 
 map("i", "<BS>", backspace_pair, expr_opts)
 map("i", "<C-h>", backspace_pair, expr_opts)
 
+-- Keep your smart <CR> only for brackets that already exist
 map("i", "<CR>", function()
   if vim.fn.pumvisible() == 1 then return "<CR>" end
   local prevc, nextc = get_chars()
