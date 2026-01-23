@@ -208,6 +208,7 @@ local function is_word(c) return c and c:match("[%w_]") end
 local function is_closer(c) return c and c:match("[%)%]%}]") end
 local function is_hardstop(c) return c ~= "" and c:match("[\\.%=]") ~= nil end
 local function is_boundary_char(c) return c == "" or c:match("[%s%p]") ~= nil end
+local function is_pathstart(c) return c == "/" or c == "~" end
 
 local function open_pair(open, close, mode)
   return function()
@@ -237,9 +238,7 @@ local function open_pair(open, close, mode)
     if is_hardstop(prevc) then return open end
 
     -- skip when nextc looks like a path start
-    if nextc == "/" or nextc == "~" then
-      return open
-    end
+    if is_pathstart(nextc) then return open end
 
     -- mode-based pairing
     if mode == "always" then
