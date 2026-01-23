@@ -375,10 +375,20 @@ zle -N zle-line-finish _highlight_finish
 ##### Autopair
 if [[ $- == *i* ]]; then
   : ${AP_MAX:=4000}
+
+  _ap_prevc() { print -r -- "${LBUFFER[-1]-}"; }
+  _ap_nextc() { print -r -- "${RBUFFER[1]-}"; }
+  
+  _ap_is_word()     { [[ -n $1 && $1 == [[:alnum:]_] ]]; }
+  _ap_is_closer()   { [[ -n $1 && $1 == [\)\]\}] ]]; }
+  _ap_is_hardstop() { [[ -n $1 && $1 == [\\.=] ]]; }          # \ . =
+  _ap_is_boundary() { [[ -z $1 || $1 == [[:space:][:punct:]] ]]; }
+  _ap_is_pathstart(){ [[ -n $1 && $1 == [/~] ]]; }
+  
   _autopair_open() {
     (( ${#BUFFER} > AP_MAX )) && { LBUFFER+="$1"; return; }
     local key="$1" close="$2" mode="${3:-boundary}"
-    local prev="${LBUFFER[-1]-}" next="${RBUFFER[1]-}"
+    local prev="$(_ap_prevc)" next="$(_ap_nextc)"
     # escaped char, or completion/menu/pending input -> literal
     if [[ $prev == \\ || ( -n "$COMPSYS" && ( $WIDGET == menu-* || $PENDING -gt 0 ) ) ]]; then
       LBUFFER+="$key"; return
@@ -391,23 +401,23 @@ if [[ $- == *i* ]]; then
     # quotes are conservative: no pairing after words/closers or x="word"
     if [[ $key == \' || $key == \" ]]; then
       if [[ $prev == "=" ]]; then
-        # allow only if next is boundary
-        if [[ -z $next || $next == [[:space:][:punct:]] ]]; then
+        # allow pairing after '=' only if next is boundary
+        if _ap_is_boundary "$next"; then
           LBUFFER+="$key$close"; zle backward-char; return
         else
           LBUFFER+="$key"; return
         fi
       fi
-      if [[ $next == [[:alnum:]_] || $prev == [[:alnum:]_\)\]\}] ]]; then
+      if _ap_is_word "$next" || _ap_is_word "$prev" || _ap_is_closer "$prev"; then
         LBUFFER+="$key"; return
       fi
     fi
-    # hard stops: after dot/equals -> literal (keep obj.method( and x=( simple)
-    if [[ $prev == [.=] ]]; then
+    # hard stops: after dot/equals/backslash -> literal
+    if _ap_is_hardstop "$prev"; then
       LBUFFER+="$key"; return
     fi
     # skip when next looks like a path start
-    if [[ $next == [/~] ]]; then
+    if _ap_is_pathstart "$next"; then
       LBUFFER+="$key"; return
     fi
     # mode-based pairing
@@ -416,8 +426,8 @@ if [[ $- == *i* ]]; then
     fi
     if [[ $mode == boundary ]]; then
       # do not boundary-pair immediately after a closer
-      if [[ $prev != [\)\]\}] ]]; then
-        if [[ ( -z $prev || $prev == [[:space:][:punct:]] ) && ( -z $next || $next == [[:space:][:punct:]] ) ]]; then
+      if ! _ap_is_closer "$prev"; then
+        if _ap_is_boundary "$prev" && _ap_is_boundary "$next"; then
           LBUFFER+="$key$close"; zle backward-char; return
         fi
       fi
