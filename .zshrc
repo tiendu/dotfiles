@@ -246,7 +246,6 @@ _custom_highlight() {
   local buffer="$BUFFER"
   local offset=0 remaining="$buffer" found_command=0 word rel_idx idx_start idx_end
   local -a words=(${(z)buffer})
-  # Don't reset command-state on bare parentheses (less weird in shell)
   local -a delimiters=(";" "|" "||" "&&" "|&" "&" ";;&" ";|")
   local -a reserved=(if then else elif fi do done case esac while until for repeat select time function coproc '!' in)
   local -a starts_cmd_after=(then do elif else time '!' fi done esac)
@@ -350,6 +349,12 @@ _custom_highlight() {
     # variables
     if [[ $word == '$'* || $word == '${'* ]]; then
       region_highlight+=("$idx_start $idx_end fg=blue")
+      continue
+    fi
+    if [[ $word == '(' || $word == ')' || $word == '{' || $word == '}' || $word == '[' || $word == ']' ]]; then
+      region_highlight+=("$idx_start $idx_end fg=white")
+      # optional: consider them boundaries so next word can be a command
+      found_command=0
       continue
     fi
     if (( found_command == 0 )); then
