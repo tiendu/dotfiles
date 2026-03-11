@@ -491,9 +491,12 @@ if [[ $- == *i* ]]; then
   export PROMPT_EOL_MARK=""
 fi
 
-typeset -Ug path fpath
+typeset -Ug path fpath manpath
 [[ -d "/opt/homebrew/bin" ]]   && path=(/opt/homebrew/bin $path)
 for d in /opt/homebrew/opt/*/libexec/gnubin; do
   [[ -d "$d" ]] && path=($d $path)
+done
+for d in /opt/homebrew/opt/*/libexec/gnuman; do
+  [[ -d $d ]] && manpath=($d $manpath)
 done
 [[ -d "$HOME/miniforge/bin" ]] && path=($HOME/miniforge/bin $path)
