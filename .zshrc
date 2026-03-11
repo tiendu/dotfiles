@@ -493,5 +493,7 @@ fi
 
 typeset -Ug path fpath
 [[ -d "/opt/homebrew/bin" ]]   && path=(/opt/homebrew/bin $path)
+for d in /opt/homebrew/opt/*/libexec/gnubin; do
+  [[ -d "$d" ]] && path=($d $path)
+done
 [[ -d "$HOME/miniforge/bin" ]] && path=($HOME/miniforge/bin $path)
-export PATH
