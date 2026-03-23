@@ -226,9 +226,12 @@ _shorten_path() {
 }
 _update_prompt() {
   local s=$1 d=$(_dir_info) vm="${VIM_MODE:-}"
+  local pc="${BOLD_GREEN}#${RESET_BOLD}"
+  (( s != 0 )) && pc="${BOLD_RED}#${RESET_BOLD}"
+
   PROMPT=" ${vm} :: %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${d}
- $([[ $s -eq 0 ]] && echo "${BOLD_GREEN}>${RESET_BOLD}" || echo "${BOLD_RED}<${RESET_BOLD}") "
-  PS2="${BOLD_BLUE}>>${RESET_BOLD} "
+ ${pc} "
+  PS2="  "
 }
 _prompt_precmd() {
   _update_prompt $?
