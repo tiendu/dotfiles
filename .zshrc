@@ -268,8 +268,8 @@ _update_prompt() {
     st="%K{cyan} ${BOLD_RED}${s}${RESET_BOLD} %k"
   fi
 
-  PROMPT=" ${vm} :: %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${d} :: ${st}
- ${BOLD_WHITE}#${RESET_BOLD} "
+  PROMPT="${vm} :: %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${d} :: ${st}
+${BOLD_WHITE}#${RESET_BOLD} "
   PS2="  "
 }
 
