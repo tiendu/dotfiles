@@ -168,73 +168,87 @@ _first_tab() {
 zle -N _first_tab
 bindkey -M viins '^I' _first_tab
 
+typeset -gi LAST_STATUS=0
+
 ##### Vim mode
 function zle-keymap-select {
-  local normal="%K{yellow}${BOLD_WHITE} NOR %k${RESET_BOLD}"
-  local insert="%K{green}${BOLD_WHITE} INS %k${RESET_BOLD}"
-  VIM_MODE=$([[ $KEYMAP == vicmd ]] && echo $normal || echo $insert)
-  _update_prompt $?
-  zle reset-prompt
+  local normal="%K{yellow}${BOLD_WHITE} NOR %k${RESET_BOLD}"
+  local insert="%K{green}${BOLD_WHITE} INS %k${RESET_BOLD}"
+
+  if [[ $KEYMAP == vicmd ]]; then
+    VIM_MODE="$normal"
+  else
+    VIM_MODE="$insert"
+  fi
+
+  _update_prompt $LAST_STATUS
+  zle reset-prompt
 }
 zle -N zle-keymap-select
 zle -N zle-line-init zle-keymap-select
 
 ##### Directory metrics
-typeset -g  _dm_pwd="" _dm_size="" _dm_count=0
+typeset -g  _dm_pwd="" _dm_size="" _dm_count=0
 typeset -gi _dm_ts=0 _DM_TTL=3 _DM_MAX_ENTRIES=4000
 
 _humanize_size() {
-  local -F 2 s=$1; local -a u=(B KB MB GB TB PB); local i=1
-  while (( s >= 1024 && i < ${#u} )); do s=$(( s / 1024.0 )); (( i++ )); done
-  printf '%.1f%s' $s $u[i]
+  local -F 2 s=$1; local -a u=(B KB MB GB TB PB); local i=1
+  while (( s >= 1024 && i < ${#u} )); do s=$(( s / 1024.0 )); (( i++ )); done
+  printf '%.1f%s' $s $u[i]
 }
 _dir_metrics() {
-  local now=$EPOCHSECONDS
-  if [[ $_dm_pwd == "$PWD" ]] && (( now - _dm_ts < _DM_TTL )); then
-    return
-  fi
-  local -a entries
-  entries=( *(DN) )
-  _dm_count=${#entries}
-  if (( _dm_count == 0 )); then
-    _dm_size="0B"
-  elif (( _dm_count > _DM_MAX_ENTRIES )); then
-    _dm_size="--"
-  else
-    local -A S; local -i bytes=0
-    local f
-    for f in *(.DN); do
-      zstat -H S -- "$f" 2>/dev/null && (( bytes += S[size] ))
-    done
-    _dm_size=$(_humanize_size $bytes)
-  fi
-  _dm_pwd=$PWD
-  _dm_ts=$now
+  local now=$EPOCHSECONDS
+  if [[ $_dm_pwd == "$PWD" ]] && (( now - _dm_ts < _DM_TTL )); then
+    return
+  fi
+  local -a entries
+  entries=( *(DN) )
+  _dm_count=${#entries}
+  if (( _dm_count == 0 )); then
+    _dm_size="0B"
+  elif (( _dm_count > _DM_MAX_ENTRIES )); then
+    _dm_size="--"
+  else
+    local -A S; local -i bytes=0
+    local f
+    for f in *(.DN); do
+      zstat -H S -- "$f" 2>/dev/null && (( bytes += S[size] ))
+    done
+    _dm_size=$(_humanize_size $bytes)
+  fi
+  _dm_pwd=$PWD
+  _dm_ts=$now
 }
-chpwd() { _dm_ts=0; }  # invalidate cache on cd
+chpwd() { _dm_ts=0; }  # invalidate cache on cd
 _dir_info() { _dir_metrics; print -r -- "${BOLD_CYAN}${_dm_count} | ${_dm_size}${RESET_BOLD}"; }
 _shorten_path() {
-  local full="${1:-$PWD}" prefix=""
-  [[ "$full" == "$HOME"* ]] && prefix="~" full="${full/#$HOME/}"
-  local -a parts; IFS='/' read -rA parts <<< "${full#/}"
-  (( ${#parts} == 0 )) && { print -r -- "${prefix}/"; return; }
-  if (( ${#parts} > 4 )); then
-    print -r -- "${prefix}/${(j:/:)parts[1,2]}/.../${(j:/:)parts[-2,-1]}"
-  else
-    print -r -- "${prefix}/${(j:/:)parts}"
-  fi
+  local full="${1:-$PWD}" prefix=""
+  [[ "$full" == "$HOME"* ]] && prefix="~" full="${full/#$HOME/}"
+  local -a parts; IFS='/' read -rA parts <<< "${full#/}"
+  (( ${#parts} == 0 )) && { print -r -- "${prefix}/"; return; }
+  if (( ${#parts} > 4 )); then
+    print -r -- "${prefix}/${(j:/:)parts[1,2]}/.../${(j:/:)parts[-2,-1]}"
+  else
+    print -r -- "${prefix}/${(j:/:)parts}"
+  fi
 }
 _update_prompt() {
-  local s=$1 d=$(_dir_info) vm="${VIM_MODE:-}"
-  local pc="${BOLD_GREEN}#${RESET_BOLD}"
-  (( s != 0 )) && pc="${BOLD_RED}#${RESET_BOLD}"
+  local s=$1 d=$(_dir_info) vm="${VIM_MODE:-}"
+  local st
 
-  PROMPT=" ${vm} :: %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${d}
- ${pc} "
-  PS2="  "
+  if (( s == 0 )); then
+    st="%K{cyan} ${BOLD_GREEN}0${RESET_BOLD} %k"
+  else
+    st="%K{cyan} ${BOLD_RED}${s}${RESET_BOLD} %k"
+  fi
+
+  PROMPT=" ${vm} :: %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${d} :: ${st}
+ ${BOLD_WHITE}\#${RESET_BOLD} "
+  PS2="  "
 }
 _prompt_precmd() {
-  _update_prompt $?
+  LAST_STATUS=$?
+  _update_prompt $LAST_STATUS
 }
 
 # Cleaner redraw
