@@ -291,10 +291,13 @@ _custom_highlight() {
   local offset=0 remaining="$buffer" found_command=0 word rel_idx idx_start idx_end
   local -a words=(${(z)buffer})
   local -a delimiters=(";" "|" "||" "&&" "|&" "&" ";;&" ";|")
+  local -a redirects=("<" ">" ">>" "<<" "<<<" "<>" ">|" "2>" "2>>" "&>" "&>>" "1>" "1>>" "1>&2" "2>&1")
   local -a reserved=(if then else elif fi do done case esac while until for repeat select time function coproc '!' in)
   local -a starts_cmd_after=(then do elif else time '!' fi done esac)
   local expect_for_var=0 in_for_list=0 expect_func_name=0
   local in_test=0 in_arith=0
+  local expect_redir_target=0
+
   for word in "${words[@]}"; do
     [[ -z "${word// }" ]] && continue
     rel_idx="${remaining%%${word}*}"
@@ -302,17 +305,21 @@ _custom_highlight() {
     idx_end=$((idx_start + ${#word}))
     offset=$((idx_end))
     remaining="${remaining#"$rel_idx$word"}"
+
     if [[ $word == '[[' ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
-      in_test=1; found_command=0
+      in_test=1
+      found_command=0
       continue
     fi
+
     if (( in_test )) && [[ $word == ']]' ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
-      in_test=0; found_command=0
+      in_test=0
+      found_command=0
       continue
     fi
-    # full token like "((i++))" or "((a+=b))"
+
     if [[ $word == '((('* && $word == *'))' && ${#word} -ge 4 ]]; then
       region_highlight+=("$idx_start $((idx_start+2)) fg=yellow,bold")
       region_highlight+=("$((idx_end-2)) $idx_end fg=yellow,bold")
@@ -322,43 +329,67 @@ _custom_highlight() {
       found_command=0
       continue
     fi
+
     if [[ $word == \(\(* ]]; then
       region_highlight+=("$idx_start $((idx_start+2)) fg=yellow,bold")
-      in_arith=1; found_command=0
+      in_arith=1
+      found_command=0
       if (( idx_end - idx_start > 2 )); then
         region_highlight+=("$((idx_start+2)) $idx_end fg=white")
       fi
       continue
     fi
+
     if (( in_arith )) && [[ $word == *\)\) ]]; then
       if (( idx_end - idx_start > 2 )); then
         region_highlight+=("$idx_start $((idx_end-2)) fg=white")
       fi
       region_highlight+=("$((idx_end-2)) $idx_end fg=yellow,bold")
-      in_arith=0; found_command=0
+      in_arith=0
+      found_command=0
       continue
     fi
+
     if [[ $word == '((' || $word == '(((' ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
-      in_arith=1; found_command=0
+      in_arith=1
+      found_command=0
       continue
     fi
+
     if (( in_arith )) && [[ $word == '))' ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
-      in_arith=0; found_command=0
+      in_arith=0
+      found_command=0
       continue
     fi
+
     if (( in_test || in_arith )); then
       region_highlight+=("$idx_start $idx_end fg=white")
       continue
     fi
+
     if [[ " ${delimiters[*]} " == *" $word "* ]]; then
       found_command=0
       in_for_list=0
       expect_for_var=0
       expect_func_name=0
+      expect_redir_target=0
       continue
     fi
+
+    if [[ " ${redirects[*]} " == *" $word "* ]]; then
+      region_highlight+=("$idx_start $idx_end fg=yellow,bold")
+      expect_redir_target=1
+      continue
+    fi
+
+    if (( expect_redir_target )); then
+      region_highlight+=("$idx_start $idx_end fg=magenta")
+      expect_redir_target=0
+      continue
+    fi
+
     if [[ " ${reserved[*]} " == *" $word "* ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
       case $word in
@@ -372,35 +403,40 @@ _custom_highlight() {
       fi
       continue
     fi
+
     if (( expect_for_var )); then
       region_highlight+=("$idx_start $idx_end fg=blue,bold")
       expect_for_var=0
       continue
     fi
+
     if (( expect_func_name )); then
       region_highlight+=("$idx_start $idx_end fg=blue,bold")
       expect_func_name=0
       continue
     fi
+
     if (( in_for_list )); then
       region_highlight+=("$idx_start $idx_end fg=white")
       continue
     fi
+
     if (( found_command == 0 )) && [[ $word == [A-Za-z_][A-Za-z0-9_]*=* ]]; then
       region_highlight+=("$idx_start $idx_end fg=blue")
       continue
     fi
-    # variables
+
     if [[ $word == '$'* || $word == '${'* ]]; then
       region_highlight+=("$idx_start $idx_end fg=blue")
       continue
     fi
+
     if [[ $word == '(' || $word == ')' || $word == '{' || $word == '}' || $word == '[' || $word == ']' ]]; then
       region_highlight+=("$idx_start $idx_end fg=white")
-      # optional: consider them boundaries so next word can be a command
       found_command=0
       continue
     fi
+
     if (( found_command == 0 )); then
       if whence -w -- "$word" &>/dev/null; then
         region_highlight+=("$idx_start $idx_end fg=green,bold")
