@@ -61,6 +61,11 @@ PROMPT_COMMAND='__ec=$?; history -a; history -n; __prompt "$__ec"'
 ```
 
 ```
+# ~/.bash_profile
+[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
+```
+
+```
 -- ~/.config/nvim/init.lua
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
