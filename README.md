@@ -2,33 +2,65 @@
 
 ```bash
 sudo apt update && sudo apt upgrade -y && \
-sudo apt install neovim tmux coreutils git podman wget curl unzip zip htop
+sudo apt install -y bash-completion neovim tmux coreutils git podman wget curl unzip zip htop ripgrep fd-find
 ```
 
 Minimal footprint configs:
 
 ```
-# ~/.zshrc
-bindkey -v
-bindkey -M viins 'jk' vi-cmd-mode
-bindkey -M viins 'kj' vi-cmd-mode
-alias e='nvim'
-alias l='ls'
-alias z='cd'
-alias g='git'
-export EDITOR='nvim'
-autoload -Uz compinit; compinit
-HISTFILE=~/.zsh_history
+# ~/.bashrc
+case $- in *i*) ;; *) return ;; esac
+
+export EDITOR="nvim"
+export VISUAL="nvim"
+
+HISTFILE="$HOME/.bash_history"
 HISTSIZE=10000
-SAVEHIST=10000
-setopt append_history
-setopt inc_append_history
-setopt share_history
-setopt hist_ignore_dups
-setopt hist_reduce_blanks
-setopt hist_verify
-setopt extended_history
-PROMPT='%F{magenta}>>>%f %F{cyan}%D{%H:%M:%S}%f :: %F{yellow}%~%f $ '
+HISTFILESIZE=20000
+HISTCONTROL=ignoredups:erasedups
+shopt -s histappend checkwinsize
+PROMPT_COMMAND='history -a; history -n'
+
+set -o vi
+bind 'set show-mode-in-prompt on'
+bind 'set vi-cmd-mode-string "\1\033[1;33m\2 NOR \1\033[0m\2 "'
+bind 'set vi-ins-mode-string "\1\033[1;32m\2 INS \1\033[0m\2 "'
+bind '"jk": vi-movement-mode'
+bind '"kj": vi-movement-mode'
+bind '"\C-p": history-search-backward'
+bind '"\C-n": history-search-forward'
+
+alias e='nvim'
+alias g='git'
+alias gs='git status -sb'
+alias l='ls'
+alias ll='ls -lh'
+alias la='ls -la'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ta='tmux attach 2>/dev/null || tmux new -s main'
+
+mkcd() { mkdir -p -- "$1" && cd -- "$1"; }
+
+if command -v eza >/dev/null 2>&1; then
+  alias ls='eza'
+  alias l='eza'
+  alias ll='eza -lh'
+  alias la='eza -la'
+fi
+
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init bash)"
+fi
+
+__prompt() {
+  local ec=$?
+  local c='\[\033[1;36m\]' y='\[\033[1;33m\]' g='\[\033[1;32m\]' r='\[\033[1;31m\]' m='\[\033[1;35m\]' x='\[\033[0m\]'
+  local s="${g}${ec}${x}"
+  [ "$ec" -ne 0 ] && s="${r}${ec}${x}"
+  PS1="${c}\A${x} :: ${y}\w${x} :: ${s}\n${m}>>>${x} "
+}
+PROMPT_COMMAND='history -a; history -n; __prompt'
 ```
 
 ```
