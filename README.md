@@ -19,12 +19,8 @@ HISTSIZE=10000
 HISTFILESIZE=20000
 HISTCONTROL=ignoredups:erasedups
 shopt -s histappend checkwinsize
-PROMPT_COMMAND='history -a; history -n'
 
 set -o vi
-bind 'set show-mode-in-prompt on'
-bind 'set vi-cmd-mode-string "\1\033[1;33m\2 NOR \1\033[0m\2 "'
-bind 'set vi-ins-mode-string "\1\033[1;32m\2 INS \1\033[0m\2 "'
 bind '"jk": vi-movement-mode'
 bind '"kj": vi-movement-mode'
 bind '"\C-p": history-search-backward'
@@ -54,13 +50,14 @@ if command -v zoxide >/dev/null 2>&1; then
 fi
 
 __prompt() {
-  local ec=$?
+  local ec="$1"
   local c='\[\033[1;36m\]' y='\[\033[1;33m\]' g='\[\033[1;32m\]' r='\[\033[1;31m\]' m='\[\033[1;35m\]' x='\[\033[0m\]'
   local s="${g}${ec}${x}"
   [ "$ec" -ne 0 ] && s="${r}${ec}${x}"
-  PS1="${c}\A${x} :: ${y}\w${x} :: ${s}\n${m}>>>${x} "
+  PS1="${c}\A${x} :: ${y}\w${x} :: ${s}\n${m}#${x} "
 }
-PROMPT_COMMAND='history -a; history -n; __prompt'
+
+PROMPT_COMMAND='__ec=$?; history -a; history -n; __prompt "$__ec"'
 ```
 
 ```
