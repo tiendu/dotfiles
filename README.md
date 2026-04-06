@@ -120,22 +120,50 @@ export MANPATH
 -- ~/.config/nvim/init.lua
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
+
 vim.opt.number = true
 vim.opt.relativenumber = true
-vim.opt.tabstop = 4
-vim.opt.shiftwidth = 4
+vim.opt.tabstop = 2
+vim.opt.shiftwidth = 2
 vim.opt.expandtab = true
+vim.opt.smartindent = true
+vim.opt.shiftround = true
 vim.opt.clipboard = "unnamedplus"
+vim.opt.wrap = false
+vim.opt.undofile = true
+vim.opt.autoread = true
+vim.opt.confirm = true
+vim.opt.mouse = "a"
+vim.opt.hlsearch = true
+vim.opt.incsearch = true
+vim.opt.ignorecase = true
+vim.opt.smartcase = true
+vim.opt.fixendofline = true
+vim.opt.endofline = true
+vim.opt.joinspaces = false
+
 local transparent_groups = {
   "Normal",
   "NormalFloat",
   "FloatBorder",
   "Pmenu",
-  "PmenuSel",
 }
+
 for _, group in ipairs(transparent_groups) do
   vim.api.nvim_set_hl(0, group, { bg = "none" })
 end
+
+local map, kmopts = vim.keymap.set, { silent = true }
+
+map("n", "<leader>w", "<Cmd>w<CR>", kmopts)
+map("n", "<leader>q", "<Cmd>q<CR>", kmopts)
+map("n", "<leader>x", "<Cmd>wq<CR>", kmopts)
+map("n", "<Esc>", "<Cmd>nohlsearch<CR>", kmopts)
+
+map("i", "jk", "<Esc>", kmopts)
+map("i", "kj", "<Esc>", kmopts)
+map("i", "jj", "<Esc>", kmopts)
+map("i", "kk", "<Esc>", kmopts)
 ```
 
 ```
