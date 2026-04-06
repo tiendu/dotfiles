@@ -143,6 +143,33 @@ map("n", "<leader>q", "<cmd>q<cr>", opts)
 map("n", "<leader>x", "<cmd>wq<cr>", opts)
 map("n", "<esc>", "<cmd>nohlsearch<cr>", opts)
 map("i", "jk", "<esc>", opts)
+
+local function set_transparent_bg()
+  local groups = {
+    "Normal",
+    "NormalNC",
+    "SignColumn",
+    "EndOfBuffer",
+    "LineNr",
+    "CursorLineNr",
+    "FoldColumn",
+    "StatusLine",
+    "StatusLineNC",
+    "NormalFloat",
+    "FloatBorder",
+    "Pmenu",
+  }
+
+  for _, group in ipairs(groups) do
+    vim.api.nvim_set_hl(0, group, { bg = "none" })
+  end
+end
+
+vim.api.nvim_create_autocmd("ColorScheme", {
+  callback = set_transparent_bg,
+})
+
+set_transparent_bg()
 ```
 
 ```
@@ -192,6 +219,7 @@ config.font = wezterm.font_with_fallback {
 config.font_size = 16.0
 config.window_background_opacity = 0.75
 
+config.window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = true
 
 return config
