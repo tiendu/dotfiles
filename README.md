@@ -147,9 +147,6 @@ map("i", "jk", "<esc>", opts)
 
 ```
 # ~/.tmux.conf
-# ~/.tmux.conf
-
-# Prefix
 unbind C-b
 set -g prefix C-a
 bind C-a send-prefix
