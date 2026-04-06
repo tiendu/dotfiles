@@ -39,25 +39,54 @@ alias ta='tmux attach 2>/dev/null || tmux new -s main'
 mkcd() { mkdir -p -- "$1" && cd -- "$1"; }
 
 if command -v eza >/dev/null 2>&1; then
-  alias ls='eza'
-  alias l='eza'
-  alias ll='eza -lh'
-  alias la='eza -la'
+  alias ls='eza'
+  alias l='eza'
+  alias ll='eza -lh'
+  alias la='eza -la'
 fi
 
 if command -v zoxide >/dev/null 2>&1; then
-  eval "$(zoxide init bash)"
+  eval "$(zoxide init bash)"
 fi
 
 __prompt() {
-  local ec="$1"
-  local c='\[\033[1;36m\]' y='\[\033[1;33m\]' g='\[\033[1;32m\]' r='\[\033[1;31m\]' m='\[\033[1;35m\]' x='\[\033[0m\]'
-  local s="${g}${ec}${x}"
-  [ "$ec" -ne 0 ] && s="${r}${ec}${x}"
-  PS1="${c}\A${x} :: ${y}\w${x} :: ${s}\n${m}#${x} "
+  local ec="$1"
+  local c='\[\033[1;36m\]' y='\[\033[1;33m\]' g='\[\033[1;32m\]' r='\[\033[1;31m\]' m='\[\033[1;35m\]' x='\[\033[0m\]'
+  local s="${g}${ec}${x}"
+  [ "$ec" -ne 0 ] && s="${r}${ec}${x}"
+  PS1="${c}\A${x} :: ${y}\w${x} :: ${s}\n${m}#${x} "
 }
 
 PROMPT_COMMAND='__ec=$?; history -a; history -n; __prompt "$__ec"'
+
+path_prepend() {
+  case ":$PATH:" in
+    ":$1:") ;;
+    *) PATH="$1:$PATH" ;;
+  esac
+}
+
+manpath_prepend() {
+  case ":${MANPATH:-}:" in
+    ":$1:") ;;
+    *) MANPATH="$1${MANPATH:+:$MANPATH}" ;;
+  esac
+}
+
+path_prepend "/opt/homebrew/bin"
+
+for d in /opt/homebrew/opt/*/libexec/gnubin; do
+  [[ -d "$d" ]] && path_prepend "$d"
+done
+
+for d in /opt/homebrew/opt/*/libexec/gnuman; do
+  [[ -d "$d" ]] && manpath_prepend "$d"
+done
+
+path_prepend "$HOME/miniforge/bin"
+
+export PATH
+export MANPATH
 ```
 
 ```
