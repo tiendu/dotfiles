@@ -2,7 +2,7 @@
 
 ```bash
 sudo apt update && sudo apt upgrade -y && \
-sudo apt install -y bash-completion neovim tmux coreutils git podman wget curl unzip zip htop ripgrep fd-find
+sudo apt install -y neovim tmux coreutils git podman wget curl unzip zip htop ripgrep fd-find
 ```
 
 Minimal footprint configs:
@@ -184,13 +184,15 @@ bind r source-file ~/.tmux.conf \; display-message "tmux reloaded"
 -- ~/.wezterm.lua
 local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
-config.color_scheme = 'Homebrew'
+config.color_scheme = 'Sakura'
 
 config.font = wezterm.font_with_fallback {
   weight = 'Bold',
 }
 config.font_size = 16.0
 config.window_background_opacity = 0.75
+
+config.hide_tab_bar_if_only_one_tab = true
 
 return config
 ```
