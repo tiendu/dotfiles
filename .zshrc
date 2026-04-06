@@ -1,4 +1,5 @@
 # ~/.zshrc
+
 ##### Global Color Variables
 autoload -U colors && colors
 RESET="%f"            RESET_BOLD="%f%b"
@@ -20,107 +21,142 @@ export EDITOR="nvim"
 export VISUAL="nvim"
 export LESS="e M q R F X z -3"
 
+##### Tunables
+typeset -gi ZSH_HL_MAX_LEN=${ZSH_HL_MAX_LEN:-1000}
+typeset -gi ZSH_AP_MAX_LEN=${ZSH_AP_MAX_LEN:-4000}
+
+##### Path
+typeset -Ug path fpath manpath
+[[ -d "/opt/homebrew/bin" ]] && path=(/opt/homebrew/bin $path)
+for d in /opt/homebrew/opt/*/libexec/gnubin; do
+  [[ -d "$d" ]] && path=($d $path)
+done
+for d in /opt/homebrew/opt/*/libexec/gnuman; do
+  [[ -d "$d" ]] && manpath=($d $manpath)
+done
+[[ -d "$HOME/miniforge/bin" ]] && path=($HOME/miniforge/bin $path)
+
 ##### Tool initializers
-if [[ $- == *i* ]]; then
-  command -v rg >/dev/null && alias grep='rg --hidden --smart-case'
-  command -v fd >/dev/null && alias find='fd'
-fi
 if command -v eza >/dev/null; then
-  alias ls="eza"; alias ll="eza -l"; alias la="eza -la"; alias tree="eza --tree --level=3"
+  alias ls="eza"
+  alias ll="eza -l"
+  alias la="eza -la"
+  alias tree="eza --tree --level=3"
 else
   if [[ "$OSTYPE" == darwin* ]]; then
-    alias ls="ls -G"; alias tree="ls -R"
+    alias ls="ls -G"
   else
-    alias ls="ls --color=auto"; alias tree="ls -R"
+    alias ls="ls --color=auto"
   fi
 fi
-command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
+
+if [[ $- == *i* ]] && command -v zoxide >/dev/null; then
+  eval "$(zoxide init zsh)"
+fi
 
 ##### Aliases for interactive shell
 if [[ $- == *i* ]]; then
-  alias rm='rm -i' cp='cp -i' mv='mv -i' l='ls' e='nvim'
+  alias rm='rm -i'
+  alias cp='cp -i'
+  alias mv='mv -i'
+  alias l='ls'
+  alias e='nvim'
   alias h='fc -ln 1'
-  alias ta="tmux attach || tmux new"
+  alias ta='tmux attach || tmux new'
   alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-  alias ..='cd ..' ...='cd ../..' ....='cd ../../..'
+  alias ..='cd ..'
+  alias ...='cd ../..'
+  alias ....='cd ../../..'
 fi
 
 ##### Minimal safe git aliases
 alias g='git'
-# status & log (always know where you are)
 alias gs='git status -sb'
 alias gl='git log --oneline --decorate --graph --max-count=15'
-# update branch safely
 alias gf='git fetch --prune'
-alias gup='git fetch --prune && git rebase origin/main'
-# staging / undo
-alias ga='git add -p'                 # stage hunks (best habit)
-alias gr='git restore'                # discard working changes (paths)
-alias grs='git restore --staged'      # unstage
-# push safely
+alias ga='git add -p'
+alias gr='git restore'
 alias gp='git push'
-alias gpf='git push --force-with-lease'
-# stash (with message)
-alias gst='git stash push -m'
-alias gstp='git stash pop'
 
 ##### Cross-platform clipboard
-# pbcopy [file...] or stdin; pbpaste prints content
 if [[ $OSTYPE == darwin* ]]; then
   pbcopy() {
     if (( $# )); then
       command cat -- "$@" | command pbcopy
     else
-      command pbcopy  # reads from stdin
+      command pbcopy
     fi
   }
   pbpaste() { command pbpaste; }
 else
   if command -v wl-copy &>/dev/null; then
     pbcopy() {
-      if (( $# )); then command cat -- "$@" | command wl-copy
-      else command wl-copy
+      if (( $# )); then
+        command cat -- "$@" | command wl-copy
+      else
+        command wl-copy
       fi
     }
     pbpaste() { command wl-paste; }
   elif command -v xclip &>/dev/null; then
     pbcopy() {
-      if (( $# )); then command cat -- "$@" | command xclip -selection clipboard
-      else command xclip -selection clipboard
+      if (( $# )); then
+        command cat -- "$@" | command xclip -selection clipboard
+      else
+        command xclip -selection clipboard
       fi
     }
     pbpaste() { command xclip -selection clipboard -o; }
   elif command -v xsel &>/dev/null; then
     pbcopy() {
-      if (( $# )); then command cat -- "$@" | command xsel --clipboard --input
-      else command xsel --clipboard --input
+      if (( $# )); then
+        command cat -- "$@" | command xsel --clipboard --input
+      else
+        command xsel --clipboard --input
       fi
     }
     pbpaste() { command xsel --clipboard --output; }
   else
-    pbcopy() { :; }
-    pbpaste() { printf ''; }
+    pbcopy() { cat >/dev/null; }
+    pbpaste() { return 1; }
   fi
 fi
-_paste_clip_after()  { LBUFFER+=$(pbpaste); }
-_paste_clip_before() { RBUFFER="$(pbpaste)$RBUFFER"; }
-zle -N _paste_clip_after
-zle -N _paste_clip_before
-bindkey -M vicmd 'p' _paste_clip_after
-bindkey -M vicmd 'P' _paste_clip_before
-bindkey -M viins '^V' _paste_clip_after
+
+if [[ $- == *i* ]]; then
+  _paste_clip_after()  { LBUFFER+=$(pbpaste 2>/dev/null); }
+  _paste_clip_before() { RBUFFER="$(pbpaste 2>/dev/null)$RBUFFER"; }
+
+  zle -N _paste_clip_after
+  zle -N _paste_clip_before
+
+  bindkey -M vicmd 'p' _paste_clip_after
+  bindkey -M vicmd 'P' _paste_clip_before
+  bindkey -M viins '^V' _paste_clip_after
+fi
 
 ##### Tiny helpers
-mkcd(){ mkdir -p -- "$1" && cd -- "$1"; }
-extract(){ case "$1" in
-  *.tar.bz2) tar xjf "$1" ;; *.tar.gz) tar xzf "$1" ;; *.zip) unzip -q "$1" ;;
-  *.tar.xz) tar xJf "$1" ;; *.rar) unrar x -idq "$1" ;; *) echo "Unknown archive"; return 1;;
-esac }
+mkcd() {
+  [[ -n $1 ]] || return 1
+  mkdir -p -- "$1" && cd -- "$1"
+}
+
+extract() {
+  [[ -f $1 ]] || { echo "Not a file: $1"; return 1; }
+  case "$1" in
+    *.tar.bz2) tar xjf "$1" ;;
+    *.tar.gz)  tar xzf "$1" ;;
+    *.zip)     unzip -q "$1" ;;
+    *.tar.xz)  tar xJf "$1" ;;
+    *.rar)     unrar x -idq "$1" ;;
+    *) echo "Unknown archive"; return 1 ;;
+  esac
+}
 
 ##### History & Shell options
 HISTSIZE=10000
 SAVEHIST=10000
 HISTFILE=${HISTFILE:-$HOME/.zsh_history}
+
 setopt APPEND_HISTORY SHARE_HISTORY INC_APPEND_HISTORY
 setopt HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS
 setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_VERIFY
@@ -131,14 +167,13 @@ setopt CORRECT MENUCOMPLETE AUTO_MENU LIST_PACKED
 setopt AUTOCD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
 setopt INTERACTIVE_COMMENTS LONG_LIST_JOBS NO_BEEP GLOBDOTS
 setopt PROMPT_SUBST NO_FLOW_CONTROL PIPE_FAIL ALWAYS_TO_END
-
 setopt NO_CLOBBER RM_STAR_WAIT
-
 setopt AUTO_PARAM_SLASH NO_CASE_GLOB NUMERIC_GLOBSORT
 setopt COMPLETE_ALIASES NOTIFY WARN_CREATE_GLOBAL
 
 ##### Vim mode & Keybinds
 bindkey -v
+
 autoload -Uz up-line-or-search down-line-or-search
 bindkey -M viins '^P' up-line-or-search
 bindkey -M viins '^N' down-line-or-search
@@ -149,13 +184,10 @@ bindkey -M viins 'kj' vi-cmd-mode
 bindkey -M viins $'\x7f' backward-delete-char
 bindkey -M viins $'\x08' backward-delete-char
 
-# History menu: list all matches that start with current prefix
 autoload -Uz history-beginning-search-menu
 zle -N history-beginning-search-menu
-bindkey -M viins '^R' history-beginning-search-menu
 bindkey -M vicmd 'R' history-beginning-search-menu
 
-# Insert "cd " when tab is hit on empty line
 _first_tab() {
   if [[ -z $BUFFER ]]; then
     BUFFER="cd "
@@ -170,8 +202,8 @@ bindkey -M viins '^I' _first_tab
 
 typeset -gi LAST_STATUS=0
 
-##### Vim mode
-function zle-keymap-select {
+##### Prompt
+zle-keymap-select() {
   local normal="%K{yellow}${BOLD_WHITE} NOR %k${RESET_BOLD}"
   local insert="%K{green}${BOLD_WHITE} INS %k${RESET_BOLD}"
 
@@ -181,61 +213,11 @@ function zle-keymap-select {
     VIM_MODE="$insert"
   fi
 
-  _update_prompt $LAST_STATUS
+  _update_prompt "$LAST_STATUS"
   zle reset-prompt
 }
 zle -N zle-keymap-select
 zle -N zle-line-init zle-keymap-select
-
-##### Directory metrics
-typeset -g _dm_pwd="" _dm_size="" _dm_count=0
-typeset -gi _dm_ts=0 _DM_TTL=3 _DM_MAX_ENTRIES=4000
-
-_humanize_size() {
-  local -F 2 s=$1
-  local -a u=(B KB MB GB TB PB)
-  local i=1
-  while (( s >= 1024 && i < ${#u} )); do
-    s=$(( s / 1024.0 ))
-    (( i++ ))
-  done
-  printf '%.1f%s' $s $u[i]
-}
-
-_dir_metrics() {
-  local now=$EPOCHSECONDS
-  if [[ $_dm_pwd == "$PWD" ]] && (( now - _dm_ts < _DM_TTL )); then
-    return
-  fi
-
-  local -a entries
-  entries=( *(DN) )
-  _dm_count=${#entries}
-
-  if (( _dm_count == 0 )); then
-    _dm_size="0B"
-  elif (( _dm_count > _DM_MAX_ENTRIES )); then
-    _dm_size="--"
-  else
-    local -A S
-    local -i bytes=0
-    local f
-    for f in *(.DN); do
-      zstat -H S -- "$f" 2>/dev/null && (( bytes += S[size] ))
-    done
-    _dm_size=$(_humanize_size $bytes)
-  fi
-
-  _dm_pwd=$PWD
-  _dm_ts=$now
-}
-
-chpwd() { _dm_ts=0; }  # invalidate cache on cd
-
-_dir_info() {
-  _dir_metrics
-  print -r -- "${BOLD_CYAN}${_dm_count} | ${_dm_size}${RESET_BOLD}"
-}
 
 _shorten_path() {
   local full="${1:-$PWD}" prefix=""
@@ -244,10 +226,10 @@ _shorten_path() {
   local -a parts
   IFS='/' read -rA parts <<< "${full#/}"
 
-  (( ${#parts} == 0 )) && {
+  if (( ${#parts} == 0 )); then
     print -r -- "${prefix}/"
     return
-  }
+  fi
 
   if (( ${#parts} > 4 )); then
     print -r -- "${prefix}/${(j:/:)parts[1,2]}/.../${(j:/:)parts[-2,-1]}"
@@ -258,7 +240,6 @@ _shorten_path() {
 
 _update_prompt() {
   local s=$1
-  local d=$(_dir_info)
   local vm="${VIM_MODE:-}"
   local st
 
@@ -268,19 +249,17 @@ _update_prompt() {
     st="%K{cyan} ${BOLD_RED}${s}${RESET_BOLD} %k"
   fi
 
-  PROMPT="${vm} :: %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${d} :: ${st}
+  PROMPT="${vm} :: %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${st}
 ${BOLD_WHITE}#${RESET_BOLD} "
   PS2="  "
 }
 
 _prompt_precmd() {
   LAST_STATUS=$?
-  _update_prompt $LAST_STATUS
+  _update_prompt "$LAST_STATUS"
 }
 
-# Cleaner redraw
 setopt PROMPT_CR
-
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _prompt_precmd
 
@@ -288,6 +267,8 @@ add-zsh-hook precmd _prompt_precmd
 _custom_highlight() {
   region_highlight=()
   local buffer="$BUFFER"
+  (( ${#buffer} > ZSH_HL_MAX_LEN )) && return
+
   local offset=0 remaining="$buffer" found_command=0 word rel_idx idx_start idx_end
   local -a words=(${(z)buffer})
   local -a delimiters=(";" "|" "||" "&&" "|&" "&" ";;&" ";|")
@@ -321,30 +302,30 @@ _custom_highlight() {
     fi
 
     if [[ $word == '((('* && $word == *'))' && ${#word} -ge 4 ]]; then
-      region_highlight+=("$idx_start $((idx_start+2)) fg=yellow,bold")
-      region_highlight+=("$((idx_end-2)) $idx_end fg=yellow,bold")
+      region_highlight+=("$idx_start $((idx_start + 2)) fg=yellow,bold")
+      region_highlight+=("$((idx_end - 2)) $idx_end fg=yellow,bold")
       if (( idx_end - idx_start > 4 )); then
-        region_highlight+=("$((idx_start+2)) $((idx_end-2)) fg=white")
+        region_highlight+=("$((idx_start + 2)) $((idx_end - 2)) fg=white")
       fi
       found_command=0
       continue
     fi
 
     if [[ $word == \(\(* ]]; then
-      region_highlight+=("$idx_start $((idx_start+2)) fg=yellow,bold")
+      region_highlight+=("$idx_start $((idx_start + 2)) fg=yellow,bold")
       in_arith=1
       found_command=0
       if (( idx_end - idx_start > 2 )); then
-        region_highlight+=("$((idx_start+2)) $idx_end fg=white")
+        region_highlight+=("$((idx_start + 2)) $idx_end fg=white")
       fi
       continue
     fi
 
     if (( in_arith )) && [[ $word == *\)\) ]]; then
       if (( idx_end - idx_start > 2 )); then
-        region_highlight+=("$idx_start $((idx_end-2)) fg=white")
+        region_highlight+=("$idx_start $((idx_end - 2)) fg=white")
       fi
-      region_highlight+=("$((idx_end-2)) $idx_end fg=yellow,bold")
+      region_highlight+=("$((idx_end - 2)) $idx_end fg=yellow,bold")
       in_arith=0
       found_command=0
       continue
@@ -447,74 +428,87 @@ _custom_highlight() {
     fi
   done
 }
-_highlight_pre_redraw() { (( ${#BUFFER} > 4000 )) && { region_highlight=(); return; }; _custom_highlight }
-_highlight_finish() { region_highlight=() }
+
+_highlight_pre_redraw() { _custom_highlight; }
+_highlight_finish() { region_highlight=(); }
+
 zle -N zle-line-pre-redraw _highlight_pre_redraw
 zle -N zle-line-finish _highlight_finish
 
 ##### Autopair
 if [[ $- == *i* ]]; then
-  : ${AP_MAX:=4000}
-
   _ap_prevc() { print -r -- "${LBUFFER[-1]-}"; }
   _ap_nextc() { print -r -- "${RBUFFER[1]-}"; }
-  
+
   _ap_is_word()     { [[ -n $1 && $1 == [[:alnum:]_] ]]; }
   _ap_is_closer()   { [[ -n $1 && $1 == [\)\]\}] ]]; }
-  _ap_is_hardstop() { [[ -n $1 && $1 == [\\.=] ]]; }          # \ . =
+  _ap_is_hardstop() { [[ -n $1 && $1 == [\\.=] ]]; }
   _ap_is_boundary() { [[ -z $1 || $1 == [[:space:][:punct:]] ]]; }
   _ap_is_pathstart(){ [[ -n $1 && $1 == [/~] ]]; }
-  
+
   _autopair_open() {
-    (( ${#BUFFER} > AP_MAX )) && { LBUFFER+="$1"; return; }
+    (( ${#BUFFER} > ZSH_AP_MAX_LEN )) && { LBUFFER+="$1"; return; }
+
     local key="$1" close="$2" mode="${3:-boundary}"
     local prev="$(_ap_prevc)" next="$(_ap_nextc)"
-    # escaped char, or completion/menu/pending input -> literal
+
     if [[ $prev == \\ || ( -n "$COMPSYS" && ( $WIDGET == menu-* || $PENDING -gt 0 ) ) ]]; then
-      LBUFFER+="$key"; return
-    fi
-    # double-tap opener -> still insert a fresh pair
-    if [[ $prev == "$key" ]]; then
-      LBUFFER+="$key$close"; zle backward-char
+      LBUFFER+="$key"
       return
     fi
-    # quotes are conservative: no pairing after words/closers or x="word"
+
+    if [[ $prev == "$key" ]]; then
+      LBUFFER+="$key$close"
+      zle backward-char
+      return
+    fi
+
     if [[ $key == \' || $key == \" ]]; then
       if [[ $prev == "=" ]]; then
-        # allow pairing after '=' only if next is boundary
         if _ap_is_boundary "$next"; then
-          LBUFFER+="$key$close"; zle backward-char; return
+          LBUFFER+="$key$close"
+          zle backward-char
+          return
         else
-          LBUFFER+="$key"; return
+          LBUFFER+="$key"
+          return
         fi
       fi
       if _ap_is_word "$next" || _ap_is_word "$prev" || _ap_is_closer "$prev"; then
-        LBUFFER+="$key"; return
+        LBUFFER+="$key"
+        return
       fi
     fi
-    # hard stops: after dot/equals/backslash -> literal
+
     if _ap_is_hardstop "$prev"; then
-      LBUFFER+="$key"; return
+      LBUFFER+="$key"
+      return
     fi
-    # skip when next looks like a path start
+
     if _ap_is_pathstart "$next"; then
-      LBUFFER+="$key"; return
+      LBUFFER+="$key"
+      return
     fi
-    # mode-based pairing
+
     if [[ $mode == always ]]; then
-      LBUFFER+="$key$close"; zle backward-char; return
+      LBUFFER+="$key$close"
+      zle backward-char
+      return
     fi
+
     if [[ $mode == boundary ]]; then
-      # do not boundary-pair immediately after a closer
       if ! _ap_is_closer "$prev"; then
         if _ap_is_boundary "$prev" && _ap_is_boundary "$next"; then
-          LBUFFER+="$key$close"; zle backward-char; return
+          LBUFFER+="$key$close"
+          zle backward-char
+          return
         fi
       fi
     fi
-    # default: literal insert
+
     LBUFFER+="$key"
   }
+
   _autopair_backspace() {
     if [[ -n $LBUFFER && -n $RBUFFER ]]; then
       local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
@@ -523,60 +517,54 @@ if [[ $- == *i* ]]; then
           LBUFFER=${LBUFFER[1,-2]}
           RBUFFER=${RBUFFER[2,-1]}
           return
-        ;;
+          ;;
       esac
     fi
     zle .backward-delete-char
   }
-  # Thin wrappers
-  _ap_apos(){ _autopair_open $'\'' $'\'' boundary }
-  _ap_quot(){ _autopair_open $'\"' $'\"' boundary }
-  # Widgets
+
+  _ap_apos() { _autopair_open $'\'' $'\'' boundary; }
+  _ap_quot() { _autopair_open $'"'  $'"'  boundary; }
+
   zle -N _ap_apos
   zle -N _ap_quot
   zle -N _autopair_backspace
-  # Bindings (vi insert mode)
-  bindkey -M viins \
-    "'"  _ap_apos   '"'  _ap_quot \
-    $'\x7f' _autopair_backspace  $'\x08' _autopair_backspace
+
+  bindkey -M viins "'"  _ap_apos
+  bindkey -M viins '"'  _ap_quot
+  bindkey -M viins $'\x7f' _autopair_backspace
+  bindkey -M viins $'\x08' _autopair_backspace
 fi
 
-##### Interactive-only setup (keeps non-interactive shells fast)
+##### Interactive-only setup
 if [[ $- == *i* ]]; then
   autoload -Uz compinit compaudit
-  # Harden completion dirs (safe + quiet)
-  compaudit | while read -r p; do
-    [[ $p == $HOME/* ]] && chmod g-w,o-w "$p" 2>/dev/null || true
-  done
   zmodload zsh/complist
-  # Cache locations
+
+  typeset -a _insecure
+  _insecure=($(compaudit 2>/dev/null))
+
   typeset -g _compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compdump"
   typeset -g _compcache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compcache"
   mkdir -p -- "$_compcache" "${_compdump:h}"
-  # Fast init with cache file
+
   compinit -C -d "$_compdump"
-  # Completion styles
+
   zstyle ':completion:*' use-cache on
   zstyle ':completion:*' cache-path "$_compcache"
   zstyle ':completion:*' menu select
   zstyle ':completion:*' matcher-list \
-  'm:{a-z}={A-Za-z}' \
-  'r:|[._-]=** r:|=*'
+    'm:{a-z}={A-Za-z}' \
+    'r:|[._-]=** r:|=*'
   zstyle ':completion:*' group-name ''
   zstyle ':completion:*' list-colors ''
   zstyle ':completion:*:history-words' menu yes select
   zstyle ':completion:*:history-words' list-colors ''
-  # Detect newly installed commands without restarting shell
   zstyle ':completion:*' rehash true
-  export PROMPT_EOL_MARK=""
-fi
 
-typeset -Ug path fpath manpath
-[[ -d "/opt/homebrew/bin" ]]   && path=(/opt/homebrew/bin $path)
-for d in /opt/homebrew/opt/*/libexec/gnubin; do
-  [[ -d "$d" ]] && path=($d $path)
-done
-for d in /opt/homebrew/opt/*/libexec/gnuman; do
-  [[ -d $d ]] && manpath=($d $manpath)
-done
-[[ -d "$HOME/miniforge/bin" ]] && path=($HOME/miniforge/bin $path)
+  export PROMPT_EOL_MARK=""
+
+  if (( ${#_insecure} )); then
+    print -P "%F{yellow}warning:%f insecure completion dirs detected"
+  fi
+fi
