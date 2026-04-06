@@ -38,6 +38,16 @@ alias ta='tmux attach 2>/dev/null || tmux new -s main'
 
 mkcd() { mkdir -p -- "$1" && cd -- "$1"; }
 
+extract() { 
+  case "$1" in
+    *.tar.gz) tar xzf "$1" ;;
+    *.tar.bz2) tar xjf "$1" ;;
+    *.tar.xz) tar xJf "$1" ;;
+    *.zip) unzip "$1" ;;
+    *) echo "unknown archive" ;;
+  esac
+}
+
 if command -v eza >/dev/null 2>&1; then
   alias ls='eza'
   alias l='eza'
@@ -47,6 +57,18 @@ fi
 
 if command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init bash)"
+fi
+
+if command -v pbcopy >/dev/null && command -v pbpaste >/dev/null; then
+  : # mac has it
+elif command -v xclip >/dev/null; then
+  pbcopy() { xclip -selection clipboard; }
+  pbpaste() { xclip -selection clipboard -o; }
+elif command -v xsel >/dev/null; then
+  pbcopy() { xsel --clipboard --input; }
+  pbpaste() { xsel --clipboard --output; }
+else
+  pbcopy() { :; }; pbpaste(){ :; }
 fi
 
 __prompt() {
