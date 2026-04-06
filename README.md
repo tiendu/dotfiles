@@ -131,39 +131,18 @@ vim.opt.shiftround = true
 vim.opt.clipboard = "unnamedplus"
 vim.opt.wrap = false
 vim.opt.undofile = true
-vim.opt.autoread = true
 vim.opt.confirm = true
-vim.opt.mouse = "a"
-vim.opt.hlsearch = true
-vim.opt.incsearch = true
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
-vim.opt.fixendofline = true
-vim.opt.endofline = true
-vim.opt.joinspaces = false
 
-local transparent_groups = {
-  "Normal",
-  "NormalFloat",
-  "FloatBorder",
-  "Pmenu",
-}
+local map = vim.keymap.set
+local opts = { silent = true }
 
-for _, group in ipairs(transparent_groups) do
-  vim.api.nvim_set_hl(0, group, { bg = "none" })
-end
-
-local map, kmopts = vim.keymap.set, { silent = true }
-
-map("n", "<leader>w", "<Cmd>w<CR>", kmopts)
-map("n", "<leader>q", "<Cmd>q<CR>", kmopts)
-map("n", "<leader>x", "<Cmd>wq<CR>", kmopts)
-map("n", "<Esc>", "<Cmd>nohlsearch<CR>", kmopts)
-
-map("i", "jk", "<Esc>", kmopts)
-map("i", "kj", "<Esc>", kmopts)
-map("i", "jj", "<Esc>", kmopts)
-map("i", "kk", "<Esc>", kmopts)
+map("n", "<leader>w", "<cmd>w<cr>", opts)
+map("n", "<leader>q", "<cmd>q<cr>", opts)
+map("n", "<leader>x", "<cmd>wq<cr>", opts)
+map("n", "<esc>", "<cmd>nohlsearch<cr>", opts)
+map("i", "jk", "<esc>", opts)
 ```
 
 ```
