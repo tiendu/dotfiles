@@ -147,12 +147,40 @@ map("i", "jk", "<esc>", opts)
 
 ```
 # ~/.tmux.conf
+# ~/.tmux.conf
+
+# Prefix
 unbind C-b
 set -g prefix C-a
 bind C-a send-prefix
+
+set -g default-terminal "tmux-256color"
+set -as terminal-overrides ",xterm-256color:RGB"
+set -g escape-time 0
+set -g history-limit 50000
+set -g renumber-windows on
+set -g base-index 1
+setw -g pane-base-index 1
+
 set -g mouse on
 setw -g mode-keys vi
-set-option -g set-clipboard on
+set -g set-clipboard on
+
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+
+bind -r H resize-pane -L 5
+bind -r J resize-pane -D 5
+bind -r K resize-pane -U 5
+bind -r L resize-pane -R 5
+
+bind -T copy-mode-vi v send -X begin-selection
+bind -T copy-mode-vi y send -X copy-selection-and-cancel
+
+bind z resize-pane -Z
+bind r source-file ~/.tmux.conf \; display-message "tmux reloaded"
 ```
 
 ```
