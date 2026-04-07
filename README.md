@@ -13,6 +13,7 @@ case $- in *i*) ;; *) return ;; esac
 
 export EDITOR="nvim"
 export VISUAL="nvim"
+export LESS="-I"
 
 HISTFILE="$HOME/.bash_history"
 HISTSIZE=10000
@@ -844,6 +845,11 @@ brew update --force --quiet
 
 ```bash
 fallocate -l 5T testfile.txt
+```
+
+```bash
+truncate -s 5T testfile.txt
+dd if=/dev/urandom of=testfile.txt bs=1M count=10 conv=notrunc
 ```
 
 ### Git: Reset to First Commit and Squash History
