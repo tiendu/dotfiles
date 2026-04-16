@@ -27,6 +27,9 @@ bind '"kj": vi-movement-mode'
 bind '"\C-p": history-search-backward'
 bind '"\C-n": history-search-forward'
 
+h() {
+  history | sed 's/^[[:space:]]*[0-9][0-9]*[[:space:]]*//'
+}
 alias e='nvim'
 alias g='git'
 alias gs='git status -sb'
