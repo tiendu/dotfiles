@@ -28,7 +28,7 @@ bind '"\C-p": history-search-backward'
 bind '"\C-n": history-search-forward'
 
 h() {
-  history | sed 's/^[[:space:]]*[0-9][0-9]*[[:space:]]*//'
+  history | sed 's/^[[:space:]]*[0-9][0-9]*[[:space:]]*//' | awk '!seen[$0]++'
 }
 alias e='nvim'
 alias g='git'
