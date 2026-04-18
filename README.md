@@ -209,6 +209,15 @@ bind -T copy-mode-vi y send -X copy-selection-and-cancel
 
 bind z resize-pane -Z
 bind r source-file ~/.tmux.conf \; display-message "tmux reloaded"
+
+set -g status-bg black
+set -g status-fg white
+set -g status-left ' #S '
+
+set -g window-status-format ' [#I:#W] '
+set -g window-status-style 'fg=white,bg=black'
+set -g window-status-current-format ' #[bold,fg=black,bg=white][#I:#W]#[] '
+set -g window-status-current-style 'bold,fg=black,bg=white'
 ```
 
 ```
