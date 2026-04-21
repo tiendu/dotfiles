@@ -18,7 +18,7 @@ zmodload zsh/datetime
 ##### General environment
 export EDITOR="nvim"
 export VISUAL="nvim"
-export LESS="e M q R F X z -3"
+export LESS='-iMQRFX'
 
 ##### Tunables
 typeset -gi ZSH_HL_MAX_LEN=${ZSH_HL_MAX_LEN:-1000}
