@@ -1,10 +1,12 @@
 # ~/.config/fish/config.fish
-
 ##### General
 set -g fish_greeting ''
 set -gx EDITOR nvim
 set -gx VISUAL nvim
 set -gx LESS '-iMQRFX'
+
+##### Tunables
+set -g FISH_AP_MAX_LEN 4000
 
 ##### PATH
 fish_add_path -g "$HOME/.pixi/bin"
@@ -59,6 +61,31 @@ end
 ##### Interactive shell only
 if status is-interactive
 
+    ##### Syntax highlighting colors
+    # Fish already has built-in syntax highlighting.
+    # These variables only tune the colors.
+
+    set fish_color_normal white
+    set fish_color_command green --bold
+    set fish_color_keyword yellow --bold
+    set fish_color_quote yellow
+    set fish_color_redirection magenta --bold
+    set fish_color_end cyan
+    set fish_color_error red --bold
+    set fish_color_param white
+    set fish_color_option cyan
+    set fish_color_comment brblack
+    set fish_color_operator yellow --bold
+    set fish_color_escape cyan
+    set fish_color_autosuggestion brblack
+    set fish_color_valid_path --underline
+    set fish_color_cwd magenta --bold
+    set fish_color_cwd_root red --bold
+    set fish_color_host normal
+    set fish_color_user normal
+    set fish_color_cancel red --reverse
+    set fish_color_search_match --background=brblack
+
     ##### Vi mode + keybindings
     function fish_user_key_bindings
         fish_vi_key_bindings
@@ -80,6 +107,14 @@ if status is-interactive
             bind -M $mode \ch 'commandline -f backward-char'
             bind -M $mode \cl 'commandline -f forward-char'
         end
+
+        # Autopair quotes, insert mode only.
+        bind -M insert "'" __fish_ap_single_quote
+        bind -M insert '"' __fish_ap_double_quote
+
+        # Smart backspace for empty paired quotes.
+        bind -M insert \b __fish_ap_backspace
+        bind -M insert \x7f __fish_ap_backspace
     end
 
     ##### Cursor shape
@@ -87,6 +122,100 @@ if status is-interactive
     set fish_cursor_insert line blink
     set fish_cursor_replace_one underscore
     set fish_cursor_visual block
+
+    ##### Autopair helpers
+    function __fish_ap_is_word
+        test -n "$argv[1]"; and string match -qr '^[A-Za-z0-9_]$' -- "$argv[1]"
+    end
+
+    function __fish_ap_is_closer
+        test -n "$argv[1]"; and string match -qr '^[\)\]\}]$' -- "$argv[1]"
+    end
+
+    function __fish_ap_is_boundary
+        test -z "$argv[1]"; and return 0
+        string match -qr '^[[:space:][:punct:]]$' -- "$argv[1]"
+    end
+
+    function __fish_ap_insert_pair
+        set -l open "$argv[1]"
+        set -l close "$argv[2]"
+
+        set -l buf (commandline -b)
+        set -l cursor (commandline -C)
+
+        if test (string length -- "$buf") -gt $FISH_AP_MAX_LEN
+            commandline -i "$open"
+            return
+        end
+
+        set -l prev ''
+        set -l next ''
+
+        if test "$cursor" -gt 0
+            set prev (string sub -s "$cursor" -l 1 -- "$buf")
+        end
+
+        set next (string sub -s (math "$cursor + 1") -l 1 -- "$buf")
+
+        # Escaped quote: \" or \'
+        if test "$prev" = '\'
+            commandline -i "$open"
+            return
+        end
+
+        # After assignment: VAR="|"
+        if test "$prev" = '='
+            if __fish_ap_is_boundary "$next"
+                commandline -i "$open$close"
+                commandline -C (math (commandline -C) - 1)
+                return
+            end
+        end
+
+        # Do not pair inside words or right after a closer.
+        if __fish_ap_is_word "$prev"; or __fish_ap_is_word "$next"; or __fish_ap_is_closer "$prev"
+            commandline -i "$open"
+            return
+        end
+
+        # Pair only at clean boundaries.
+        if __fish_ap_is_boundary "$prev"; and __fish_ap_is_boundary "$next"
+            commandline -i "$open$close"
+            commandline -C (math (commandline -C) - 1)
+            return
+        end
+
+        commandline -i "$open"
+    end
+
+    function __fish_ap_single_quote
+        __fish_ap_insert_pair "'" "'"
+    end
+
+    function __fish_ap_double_quote
+        __fish_ap_insert_pair '"' '"'
+    end
+
+    function __fish_ap_backspace
+        set -l buf (commandline -b)
+        set -l cursor (commandline -C)
+
+        if test "$cursor" -gt 0
+            set -l prev (string sub -s "$cursor" -l 1 -- "$buf")
+            set -l next (string sub -s (math "$cursor + 1") -l 1 -- "$buf")
+
+            switch "$prev$next"
+                case "''" '""'
+                    commandline -C (math "$cursor - 1")
+                    commandline -f delete-char
+                    commandline -f delete-char
+                    return
+            end
+        end
+
+        commandline -f backward-delete-char
+    end
 
     ##### Safer core utils
     alias rm 'rm -i'
@@ -263,10 +392,6 @@ if status is-interactive
                 end
             end
     end
-
-    ##### Prompt colors
-    set fish_color_cwd white
-    set fish_color_command white
 
     ##### Git prompt
     set __fish_git_prompt_show_informative_status true
