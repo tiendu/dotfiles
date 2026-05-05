@@ -138,10 +138,10 @@ __prompt() {
   local blue_bg='\[\033[44m\]'
   local magenta='\[\033[1;35m\]'
 
-  local st="${cyan_bg} ${green}0${reset} "
-  [[ "$s" -ne 0 ]] && st="${cyan_bg} ${red}${s}${reset} "
+  local st="${cyan_bg} ${green}0 ${reset} "
+  [[ "$s" -ne 0 ]] && st="${cyan_bg} ${red}${s} ${reset} "
 
-  PS1="${blue_bg} ${white}\A${reset} :: ${magenta}$(_shorten_path)${reset} :: ${st}
+  PS1="${blue_bg} ${white}\A ${reset} :: ${magenta}$(_shorten_path)${reset} :: ${st}
 ${white}#${reset} "
   PS2="  "
 }
