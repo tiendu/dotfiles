@@ -9,28 +9,27 @@ set -gx LESS '-iMQRFX'
 ##### PATH
 fish_add_path -g "$HOME/.pixi/bin"
 
-if test -d "$HOME/miniforge/bin"
-    fish_add_path -g "$HOME/miniforge/bin"
-end
-
-if test -d /opt/homebrew/bin
-    fish_add_path -g /opt/homebrew/bin
-end
+test -d "$HOME/miniforge/bin"; and fish_add_path -g "$HOME/miniforge/bin"
+test -d /opt/homebrew/bin; and fish_add_path -g /opt/homebrew/bin
 
 for d in /opt/homebrew/opt/*/libexec/gnubin
     test -d "$d"; and fish_add_path -g "$d"
 end
 
-##### Added paths persistence
+for d in /opt/homebrew/opt/*/libexec/gnuman
+    test -d "$d"; and set -gx MANPATH "$d" $MANPATH
+end
+
+##### Persistent user-added PATH entries
 set -g fish_added_paths_file "$HOME/.fish_added_paths"
 
-function a2p --description 'Add directory to PATH and make files executable'
+function a2p --description 'Add directory to PATH permanently and chmod files executable'
     if test (count $argv) -eq 0
         echo "Usage: a2p DIR"
         return 1
     end
 
-    set -l dir (realpath $argv[1] 2>/dev/null)
+    set -l dir (realpath "$argv[1]" 2>/dev/null)
 
     if not test -d "$dir"
         echo "Directory does not exist: $argv[1]"
@@ -47,9 +46,7 @@ function a2p --description 'Add directory to PATH and make files executable'
     end
 
     for file in "$dir"/*
-        if test -f "$file"
-            chmod +x "$file"
-        end
+        test -f "$file"; and chmod +x "$file"
     end
 end
 
@@ -59,12 +56,10 @@ if test -f "$fish_added_paths_file"
     end
 end
 
-##### Interactive only
+##### Interactive shell only
 if status is-interactive
 
-    ##### Vi mode
-    fish_vi_key_bindings
-
+    ##### Vi mode + keybindings
     function fish_user_key_bindings
         fish_vi_key_bindings
 
@@ -87,17 +82,24 @@ if status is-interactive
         end
     end
 
-    ##### Cursor
+    ##### Cursor shape
     set fish_cursor_default block
     set fish_cursor_insert line blink
     set fish_cursor_replace_one underscore
     set fish_cursor_visual block
 
-    ##### Aliases
+    ##### Safer core utils
     alias rm 'rm -i'
     alias cp 'cp -i'
     alias mv 'mv -i'
+
+    ##### Short aliases
     alias l 'ls'
+    alias e '_nvim'
+    alias ta 'tmux attach || tmux new'
+    alias config '/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
+    ##### Git aliases
     alias g 'git'
     alias gs 'git status -sb'
     alias gl 'git log --oneline --decorate --graph --max-count=15'
@@ -105,18 +107,15 @@ if status is-interactive
     alias ga 'git add -p'
     alias gr 'git restore'
     alias gp 'git push'
-    alias e '_nvim'
-    alias ta 'tmux attach || tmux new'
-    alias config '/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
-    ##### Editor helper
-    function _nvim --description 'Open file with nvim, delete if left empty'
+    ##### Open file with nvim; delete new empty file afterwards
+    function _nvim --description 'Open file with nvim, remove if left empty'
         if test (count $argv) -eq 0
             nvim
             return
         end
 
-        set -l file $argv[1]
+        set -l file "$argv[1]"
 
         if not test -e "$file"
             touch "$file"
@@ -129,33 +128,37 @@ if status is-interactive
         end
     end
 
-    ##### mkcd
-    function mkcd
+    ##### mkdir + cd
+    function mkcd --description 'Create directory and cd into it'
         test -n "$argv[1]"; or return 1
         mkdir -p -- "$argv[1]"
         cd -- "$argv[1]"
     end
 
-    ##### extract
-    function extract
-        test -f "$argv[1]"; or begin
-            echo "Not a file: $argv[1]"
+    ##### Extract archives
+    function extract --description 'Extract common archive formats'
+        set -l file "$argv[1]"
+
+        if not test -f "$file"
+            echo "Not a file: $file"
             return 1
         end
 
-        switch "$argv[1]"
+        switch "$file"
             case '*.tar.bz2'
-                tar xjf "$argv[1]"
-            case '*.tar.gz'
-                tar xzf "$argv[1]"
-            case '*.tar.xz'
-                tar xJf "$argv[1]"
+                tar xjf "$file"
+            case '*.tar.gz' '*.tgz'
+                tar xzf "$file"
+            case '*.tar.xz' '*.txz'
+                tar xJf "$file"
             case '*.zip'
-                unzip -q "$argv[1]"
+                unzip -q "$file"
             case '*.rar'
-                unrar x -idq "$argv[1]"
+                unrar x -idq "$file"
+            case '*.7z'
+                7z x "$file"
             case '*'
-                echo "Unknown archive: $argv[1]"
+                echo "Unknown archive: $file"
                 return 1
         end
     end
@@ -167,10 +170,15 @@ if status is-interactive
 
     abbr --add dotdot --regex '^\.\.+$' --function multicd
 
-    ##### sd: cd to selected file's directory
+    ##### sd: fuzzy cd to selected file's directory
     if type -q fzf
-        function sd
-            set -l target (find . -type f 2>/dev/null | fzf)
+        function sd --description 'cd to directory of selected file'
+            if type -q fd
+                set -l target (fd --type f --hidden --exclude .git | fzf)
+            else
+                set -l target (find . -type f 2>/dev/null | fzf)
+            end
+
             test -n "$target"; and cd (dirname "$target")
         end
     end
@@ -180,7 +188,7 @@ if status is-interactive
         zoxide init fish | source
     end
 
-    ##### grep -> rg
+    ##### grep -> ripgrep
     if type -q rg
         alias grep 'rg'
     end
@@ -190,12 +198,12 @@ if status is-interactive
         alias ls 'eza --icons'
         alias ll 'eza -l --icons'
         alias la 'eza -la --icons'
-        alias tree 'eza --tree --level=2'
+        alias tree 'eza --tree --level=2 --icons'
     else if type -q exa
         alias ls 'exa --icons'
         alias ll 'exa -l --icons'
         alias la 'exa -la --icons'
-        alias tree 'exa --tree --level=2'
+        alias tree 'exa --tree --level=2 --icons'
     else
         switch (uname)
             case Darwin
@@ -203,15 +211,16 @@ if status is-interactive
             case '*'
                 alias ls 'ls --color=auto'
         end
+
         alias ll 'ls -lh'
         alias la 'ls -lah'
         alias tree 'ls -R'
     end
 
-    ##### Clipboard
+    ##### Cross-platform clipboard
     switch (uname)
         case Darwin
-            # macOS already has pbcopy/pbpaste
+            # macOS already provides pbcopy/pbpaste.
 
         case Linux
             if type -q wl-copy
@@ -264,6 +273,7 @@ if status is-interactive
     set __fish_git_prompt_showcolorhints true
     set __fish_git_prompt_showuntrackedfiles true
     set __fish_git_prompt_showstashstate true
+
     set __fish_git_prompt_color_flags normal
     set __fish_git_prompt_color_branch cyan
     set __fish_git_prompt_color_stagedstate red
@@ -271,11 +281,11 @@ if status is-interactive
     set __fish_git_prompt_color_untrackedfiles yellow
     set __fish_git_prompt_color_stashstate white
 
-    ##### Disable default fish vi-mode prompt, because we show mode ourselves
+    ##### Disable default vi mode prompt
     function fish_mode_prompt
     end
 
-    ##### Prompt: use # instead of >
+    ##### Prompt
     function fish_prompt
         set -l last_status $status
         set -l mode_label
