@@ -1,15 +1,4 @@
 # ~/.zshrc
-##### Global Color Variables
-autoload -U colors && colors
-RESET="%f"            RESET_BOLD="%f%b"
-RED="%F{red}"         BOLD_RED="%B%F{red}"
-GREEN="%F{green}"     BOLD_GREEN="%B%F{green}"
-YELLOW="%F{yellow}"   BOLD_YELLOW="%B%F{yellow}"
-CYAN="%F{cyan}"       BOLD_CYAN="%B%F{cyan}"
-WHITE="%F{white}"     BOLD_WHITE="%B%F{white}"
-MAGENTA="%F{magenta}" BOLD_MAGENTA="%B%F{magenta}"
-BLUE="%F{blue}"       BOLD_BLUE="%B%F{blue}"
-
 ##### Modules
 zmodload zsh/zle
 zmodload -F zsh/stat b:zstat
@@ -203,13 +192,10 @@ typeset -gi LAST_STATUS=0
 
 ##### Prompt
 zle-keymap-select() {
-  local normal="%K{yellow}${BOLD_WHITE} NOR %k${RESET_BOLD}"
-  local insert="%K{green}${BOLD_WHITE} INS %k${RESET_BOLD}"
-
   if [[ $KEYMAP == vicmd ]]; then
-    VIM_MODE="$normal"
+    VIM_MODE="%K{yellow}%B%F{white} NOR %f%b%k"
   else
-    VIM_MODE="$insert"
+    VIM_MODE="%K{green}%B%F{white} INS %f%b%k"
   fi
 
   _update_prompt "$LAST_STATUS"
@@ -243,13 +229,13 @@ _update_prompt() {
   local st
 
   if (( s == 0 )); then
-    st="%K{cyan} ${BOLD_GREEN}0${RESET_BOLD} %k"
+    st="%K{cyan} %B%F{green}0%f%b %k"
   else
-    st="%K{cyan} ${BOLD_RED}${s}${RESET_BOLD} %k"
+    st="%K{cyan} %B%F{red}${s}%f%b %k"
   fi
+  PROMPT="${vm} :: %K{blue} %B%F{white}%D{%H:%M:%S}%f%b %k :: %B%F{magenta}$(_shorten_path)%f%b :: ${st}
+%B%F{white}#%f%b "
 
-  PROMPT="${vm} :: %K{blue} ${BOLD_WHITE}%D{%H:%M:%S}${RESET_BOLD} %k :: ${BOLD_MAGENTA}$(_shorten_path)${RESET_BOLD} :: ${st}
-${BOLD_WHITE}#${RESET_BOLD} "
   PS2="  "
 }
 
