@@ -1,87 +1,156 @@
 # ~/.bashrc
-# only for interactive shells
 case $- in *i*) ;; *) return ;; esac
 
-#### env
-export EDITOR=nvim
-export VISUAL=nvim
+export EDITOR="nvim"
+export VISUAL="nvim"
+export LESS='-iMQRFX'
 
-#### history
-HISTSIZE=10000
-HISTFILESIZE=10000
-HISTFILE=${HISTFILE:-$HOME/.bash_history}
-shopt -s histappend
-HISTCONTROL=ignoredups:erasedups:ignorespace
+path_prepend() {
+  [[ -d "$1" ]] || return
+  case ":$PATH:" in *":$1:"*) ;; *) PATH="$1:$PATH" ;; esac
+}
 
-#### vi mode
-set -o vi
-bind -m vi-insert '"jk": vi-movement-mode'
-bind -m vi-insert '"kj": vi-movement-mode'
+manpath_prepend() {
+  [[ -d "$1" ]] || return
+  case ":${MANPATH:-}:" in *":$1:"*) ;; *) MANPATH="$1${MANPATH:+:$MANPATH}" ;; esac
+}
 
-#### tool aliases
-command -v rg >/dev/null && alias grep='rg --hidden --smart-case'
-command -v fd >/dev/null && alias find='fd'
+path_prepend "/opt/homebrew/bin"
+for d in /opt/homebrew/opt/*/libexec/gnubin; do path_prepend "$d"; done
+for d in /opt/homebrew/opt/*/libexec/gnuman; do manpath_prepend "$d"; done
+path_prepend "$HOME/miniforge/bin"
+export PATH MANPATH
 
-if command -v eza >/dev/null; then
+if command -v eza >/dev/null 2>&1; then
   alias ls='eza'
   alias ll='eza -l'
   alias la='eza -la'
   alias tree='eza --tree --level=3'
 else
-  alias ll='ls -alF'
-  alias la='ls -A'
-  alias l='ls -CF'
+  if [[ "$OSTYPE" == darwin* ]]; then
+    alias ls='ls -G'
+  else
+    alias ls='ls --color=auto'
+  fi
 fi
 
-command -v zoxide >/dev/null && eval "$(zoxide init bash)"
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"
 
-#### general aliases
 alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
-alias g='git'
+alias l='ls'
 alias e='nvim'
+alias h='history'
 alias ta='tmux attach || tmux new'
-alias ..='cd ..'; alias ...='cd ../..'; alias ....='cd ../../..'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
 
-#### tiny helpers
-mkcd(){ mkdir -p -- "$1" && cd -- "$1"; }
-extract(){ case "$1" in
-  *.tar.gz)  tar xzf "$1" ;;
-  *.tar.bz2) tar xjf "$1" ;;
-  *.tar.xz)  tar xJf "$1" ;;
-  *.zip)     unzip "$1" ;;
-  *) echo "unknown archive" ;;
-esac }
+config() {
+  command git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME" "$@"
+}
 
-#### clipboard
-if command -v pbcopy >/dev/null && command -v pbpaste >/dev/null; then
-  : # mac has it
-elif command -v xclip >/dev/null; then
-  pbcopy(){ xclip -selection clipboard; }
-  pbpaste(){ xclip -selection clipboard -o; }
-elif command -v xsel >/dev/null; then
-  pbcopy(){ xsel --clipboard --input; }
-  pbpaste(){ xsel --clipboard --output; }
+alias g='git'
+alias gs='git status -sb'
+alias gl='git log --oneline --decorate --graph --max-count=15'
+alias gf='git fetch --prune'
+alias ga='git add -p'
+alias gr='git restore'
+alias gp='git push'
+
+if [[ "$OSTYPE" == darwin* ]]; then
+  pbcopy() { if (( $# )); then command cat -- "$@" | command pbcopy; else command pbcopy; fi; }
+  pbpaste() { command pbpaste; }
+elif command -v wl-copy >/dev/null 2>&1; then
+  pbcopy() { if (( $# )); then command cat -- "$@" | command wl-copy; else command wl-copy; fi; }
+  pbpaste() { command wl-paste; }
+elif command -v xclip >/dev/null 2>&1; then
+  pbcopy() { if (( $# )); then command cat -- "$@" | command xclip -selection clipboard; else command xclip -selection clipboard; fi; }
+  pbpaste() { command xclip -selection clipboard -o; }
+elif command -v xsel >/dev/null 2>&1; then
+  pbcopy() { if (( $# )); then command cat -- "$@" | command xsel --clipboard --input; else command xsel --clipboard --input; fi; }
+  pbpaste() { command xsel --clipboard --output; }
 else
-  pbcopy(){ :; }; pbpaste(){ :; }
+  pbcopy() { cat >/dev/null; }
+  pbpaste() { return 1; }
 fi
 
-#### prompt (time :: cwd, newline, arrow)
-RED='\[\e[31m\]'; GREEN='\[\e[32m\]'; BLUE='\[\e[34m\]'
-MAGENTA='\[\e[35m\]'; CYAN='\[\e[36m\]'
-BOLD='\[\e[1m\]'; RESET='\[\e[0m\]'
-
-__last_status=0
-__ps1(){
-  __last_status=$?
-  local arrow
-  if [[ $__last_status -eq 0 ]]; then
-    arrow="${GREEN}>${RESET}"
-  else
-    arrow="${RED}<${RESET}"
-  fi
-  PS1="${BLUE}\t${RESET} :: ${MAGENTA}\w${RESET}\n ${arrow} "
-  PS2="${CYAN}>>${RESET} "
+mkcd() {
+  [[ -n "$1" ]] || return 1
+  mkdir -p -- "$1" && cd -- "$1"
 }
-PROMPT_COMMAND=__ps1
+
+extract() {
+  [[ -f "$1" ]] || { echo "Not a file: $1"; return 1; }
+  case "$1" in
+    *.tar.bz2) tar xjf "$1" ;;
+    *.tar.gz)  tar xzf "$1" ;;
+    *.zip)     unzip -q "$1" ;;
+    *.tar.xz)  tar xJf "$1" ;;
+    *.rar)     unrar x -idq "$1" ;;
+    *) echo "Unknown archive"; return 1 ;;
+  esac
+}
+
+HISTFILE="${HISTFILE:-$HOME/.bash_history}"
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoredups:erasedups
+shopt -s histappend checkwinsize
+
+set -o vi
+set -o noclobber
+set -o pipefail
+
+bind '"jk": vi-movement-mode'
+bind '"kj": vi-movement-mode'
+bind '"\C-p": history-search-backward'
+bind '"\C-n": history-search-forward'
+
+_shorten_path() {
+  local full="${1:-$PWD}" prefix=""
+  [[ "$full" == "$HOME"* ]] && prefix="~" full="${full/#$HOME/}"
+
+  IFS='/' read -ra parts <<< "${full#/}"
+
+  if (( ${#parts[@]} == 0 )); then
+    printf '%s/\n' "$prefix"
+  elif (( ${#parts[@]} > 4 )); then
+    printf '%s/%s/%s/.../%s/%s\n' \
+      "$prefix" "${parts[0]}" "${parts[1]}" \
+      "${parts[${#parts[@]}-2]}" "${parts[${#parts[@]}-1]}"
+  else
+    local joined
+    joined="$(IFS=/; echo "${parts[*]}")"
+    printf '%s/%s\n' "$prefix" "$joined"
+  fi
+}
+
+__prompt() {
+  local s="$1"
+  local reset='\[\033[0m\]'
+  local bold='\[\033[1m\]'
+  local white='\[\033[1;37m\]'
+  local red='\[\033[1;31m\]'
+  local green='\[\033[1;32m\]'
+  local cyan_bg='\[\033[46m\]'
+  local blue_bg='\[\033[44m\]'
+  local magenta='\[\033[1;35m\]'
+
+  local st="${cyan_bg} ${green}0${reset} "
+  [[ "$s" -ne 0 ]] && st="${cyan_bg} ${red}${s}${reset} "
+
+  PS1="${blue_bg} ${white}\A${reset} :: ${magenta}$(_shorten_path)${reset} :: ${st}
+${white}#${reset} "
+  PS2="  "
+}
+
+__prompt_command() {
+  local s=$?
+  history -a
+  history -n
+  __prompt "$s"
+}
+
+PROMPT_COMMAND=__prompt_command
