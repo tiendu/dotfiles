@@ -62,7 +62,7 @@ if [[ $- == *i* ]]; then
   alias e='nvim'
   alias h='fc -ln 1'
   alias ta='tmux attach || tmux new'
-  alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+  alias config='command git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
   alias ..='cd ..'
   alias ...='cd ../..'
   alias ....='cd ../../..'
