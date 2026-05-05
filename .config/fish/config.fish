@@ -159,7 +159,7 @@ if status is-interactive
         set next (string sub -s (math "$cursor + 1") -l 1 -- "$buf")
 
         # Escaped quote: \" or \'
-        if test "$prev" = '\'
+        if test "$prev" = '\\'
             commandline -i "$open"
             return
         end
