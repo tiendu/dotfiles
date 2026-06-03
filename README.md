@@ -1,35 +1,185 @@
-## Minimalist Development Tools
+# Dotfiles and Workstation Notes
+
+A practical note for setting up a small, fast, and repairable development machine.
+
+The goal is not to build a fancy desktop. The goal is to have a terminal-first setup that is easy to reinstall, easy to debug, and easy to carry across machines.
+
+Use this as a personal reference. Copy only the parts you need.
+
+## Table of Contents
+
+- [Principles](#principles)
+- [Base Packages](#base-packages)
+- [Shell Setup](#shell-setup)
+- [Neovim Setup](#neovim-setup)
+- [tmux Setup](#tmux-setup)
+- [WezTerm Setup](#wezterm-setup)
+- [Version-Controlled Dotfiles](#version-controlled-dotfiles)
+- [Environment Managers](#environment-managers)
+- [Containers](#containers)
+- [Linux Laptop and Desktop Fixes](#linux-laptop-and-desktop-fixes)
+- [Storage and Filesystem](#storage-and-filesystem)
+- [User and Permission Management](#user-and-permission-management)
+- [SLURM Notes](#slurm-notes)
+- [Nextflow Notes](#nextflow-notes)
+- [Termux Setup](#termux-setup)
+- [Useful CLI Tricks](#useful-cli-tricks)
+- [Security Notes](#security-notes)
+- [Recovery Checklist](#recovery-checklist)
+
+---
+
+## Principles
+
+Keep the setup small.
+
+A good dotfiles setup should:
+
+- install quickly on a new machine
+- avoid fragile plugin chains
+- prefer plain shell commands
+- keep secrets out of Git
+- work on both local machines and remote servers
+- fail in obvious ways
+- be easy to remove
+
+Do not turn dotfiles into an operating system.
+
+Use dotfiles for configuration. Use scripts for setup. Use a package manager for packages. Use a secrets manager for secrets.
+
+---
+
+## Base Packages
+
+### Ubuntu / Debian
 
 ```bash
-sudo apt update && sudo apt upgrade -y && \
-sudo apt install -y neovim tmux coreutils git podman wget curl unzip zip htop ripgrep fd-find
+sudo apt update && sudo apt upgrade -y
+
+sudo apt install -y \
+  neovim \
+  tmux \
+  git \
+  curl \
+  wget \
+  unzip \
+  zip \
+  htop \
+  ripgrep \
+  fd-find \
+  fzf \
+  jq \
+  bat \
+  coreutils \
+  ca-certificates \
+  build-essential
 ```
 
-Minimal footprint configs:
+On Debian/Ubuntu, `fd` may be installed as `fdfind`, and `bat` may be installed as `batcat`.
 
+```bash
+command -v fd >/dev/null 2>&1 || sudo ln -sf "$(command -v fdfind)" /usr/local/bin/fd
+command -v bat >/dev/null 2>&1 || sudo ln -sf "$(command -v batcat)" /usr/local/bin/bat
 ```
-# ~/.bashrc
-case $- in *i*) ;; *) return ;; esac
+
+Optional tools:
+
+```bash
+sudo apt install -y \
+  eza \
+  zoxide \
+  podman \
+  aria2 \
+  tree \
+  ncdu \
+  nmap \
+  net-tools \
+  dnsutils \
+  shellcheck
+```
+
+### macOS with Homebrew
+
+```bash
+brew install \
+  neovim \
+  tmux \
+  git \
+  curl \
+  wget \
+  unzip \
+  zip \
+  ripgrep \
+  fd \
+  fzf \
+  jq \
+  bat \
+  eza \
+  zoxide \
+  podman \
+  aria2 \
+  tree \
+  ncdu \
+  shellcheck
+```
+
+### Homebrew without sudo
+
+This is useful on shared machines where you do not have administrator access.
+
+```bash
+mkdir -p "$HOME/brew"
+curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C "$HOME/brew"
+eval "$(~/brew/bin/brew shellenv)"
+brew update --force --quiet
+```
+
+Add this to your shell config:
+
+```bash
+eval "$(~/brew/bin/brew shellenv)"
+```
+
+---
+
+## Shell Setup
+
+This is a minimal Bash setup. It is intentionally plain.
+
+Put this in `~/.bashrc`:
+
+```bash
+# Return early for non-interactive shells.
+case $- in
+  *i*) ;;
+  *) return ;;
+esac
 
 export EDITOR="nvim"
 export VISUAL="nvim"
-export LESS="-I"
+export PAGER="less"
+export LESS="-I -R"
 
+# History.
 HISTFILE="$HOME/.bash_history"
 HISTSIZE=10000
 HISTFILESIZE=20000
 HISTCONTROL=ignoredups:erasedups
 shopt -s histappend checkwinsize
 
+# Vi mode.
 set -o vi
 bind '"jk": vi-movement-mode'
 bind '"kj": vi-movement-mode'
 bind '"\C-p": history-search-backward'
 bind '"\C-n": history-search-forward'
 
+# Unique command history, without line numbers.
 h() {
   history | sed 's/^[[:space:]]*[0-9][0-9]*[[:space:]]*//' | awk '!seen[$0]++'
 }
+
+# Small aliases.
 alias e='nvim'
 alias g='git'
 alias gs='git status -sb'
@@ -40,88 +190,121 @@ alias ..='cd ..'
 alias ...='cd ../..'
 alias ta='tmux attach 2>/dev/null || tmux new -s main'
 
-mkcd() { mkdir -p -- "$1" && cd -- "$1"; }
-
-extract() { 
-  case "$1" in
-    *.tar.gz) tar xzf "$1" ;;
-    *.tar.bz2) tar xjf "$1" ;;
-    *.tar.xz) tar xJf "$1" ;;
-    *.zip) unzip "$1" ;;
-    *) echo "unknown archive" ;;
-  esac
+mkcd() {
+  mkdir -p -- "$1" && cd -- "$1"
 }
 
+extract() {
+  if [ $# -eq 0 ]; then
+    echo "usage: extract <archive>"
+    return 1
+  fi
+
+  case "$1" in
+    *.tar.gz|*.tgz) tar xzf "$1" ;;
+    *.tar.bz2|*.tbz2) tar xjf "$1" ;;
+    *.tar.xz|*.txz) tar xJf "$1" ;;
+    *.zip) unzip "$1" ;;
+    *.gz) gunzip "$1" ;;
+    *) echo "unknown archive: $1"; return 1 ;;
+  esac
+}
+
+# Use eza if available.
 if command -v eza >/dev/null 2>&1; then
-  alias ls='eza'
-  alias l='eza'
-  alias ll='eza -lh'
-  alias la='eza -la'
+  alias ls='eza'
+  alias l='eza'
+  alias ll='eza -lh'
+  alias la='eza -la'
 fi
 
+# Better cd if available.
 if command -v zoxide >/dev/null 2>&1; then
-  eval "$(zoxide init bash)"
+  eval "$(zoxide init bash)"
 fi
 
-if command -v pbcopy >/dev/null && command -v pbpaste >/dev/null; then
-  : # mac has it
-elif command -v xclip >/dev/null; then
-  pbcopy() { xclip -selection clipboard; }
-  pbpaste() { xclip -selection clipboard -o; }
-elif command -v xsel >/dev/null; then
-  pbcopy() { xsel --clipboard --input; }
-  pbpaste() { xsel --clipboard --output; }
+# Cross-platform clipboard helpers.
+if command -v pbcopy >/dev/null 2>&1 && command -v pbpaste >/dev/null 2>&1; then
+  : # macOS already has pbcopy and pbpaste.
+elif command -v xclip >/dev/null 2>&1; then
+  pbcopy() { xclip -selection clipboard; }
+  pbpaste() { xclip -selection clipboard -o; }
+elif command -v xsel >/dev/null 2>&1; then
+  pbcopy() { xsel --clipboard --input; }
+  pbpaste() { xsel --clipboard --output; }
 else
-  pbcopy() { :; }; pbpaste(){ :; }
+  pbcopy() { cat >/dev/null; }
+  pbpaste() { return 1; }
 fi
 
+# Prompt with time, directory, and last exit code.
 __prompt() {
-  local ec="$1"
-  local c='\[\033[1;36m\]' y='\[\033[1;33m\]' g='\[\033[1;32m\]' r='\[\033[1;31m\]' m='\[\033[1;35m\]' x='\[\033[0m\]'
-  local s="${g}${ec}${x}"
-  [ "$ec" -ne 0 ] && s="${r}${ec}${x}"
-  PS1="${c}\A${x} :: ${y}\w${x} :: ${s}\n${m}#${x} "
+  local ec="$1"
+  local c='\[\033[1;36m\]'
+  local y='\[\033[1;33m\]'
+  local g='\[\033[1;32m\]'
+  local r='\[\033[1;31m\]'
+  local m='\[\033[1;35m\]'
+  local x='\[\033[0m\]'
+  local s="${g}${ec}${x}"
+
+  [ "$ec" -ne 0 ] && s="${r}${ec}${x}"
+
+  PS1="${c}\A${x} :: ${y}\w${x} :: ${s}\n${m}#${x} "
 }
 
 PROMPT_COMMAND='__ec=$?; history -a; history -n; __prompt "$__ec"'
 
 path_prepend() {
-  case ":$PATH:" in
-    ":$1:") ;;
-    *) PATH="$1:$PATH" ;;
-  esac
+  case ":$PATH:" in
+    *":$1:"*) ;;
+    *) PATH="$1:$PATH" ;;
+  esac
 }
 
 manpath_prepend() {
-  case ":${MANPATH:-}:" in
-    ":$1:") ;;
-    *) MANPATH="$1${MANPATH:+:$MANPATH}" ;;
-  esac
+  case ":${MANPATH:-}:" in
+    *":$1:"*) ;;
+    *) MANPATH="$1${MANPATH:+:$MANPATH}" ;;
+  esac
 }
 
+# Homebrew paths.
 path_prepend "/opt/homebrew/bin"
+path_prepend "$HOME/brew/bin"
 
 for d in /opt/homebrew/opt/*/libexec/gnubin; do
-  [[ -d "$d" ]] && path_prepend "$d"
+  [ -d "$d" ] && path_prepend "$d"
 done
 
 for d in /opt/homebrew/opt/*/libexec/gnuman; do
-  [[ -d "$d" ]] && manpath_prepend "$d"
+  [ -d "$d" ] && manpath_prepend "$d"
 done
 
+# Conda / Miniforge path.
 path_prepend "$HOME/miniforge/bin"
 
 export PATH
 export MANPATH
 ```
 
-```
-# ~/.bash_profile
+Put this in `~/.bash_profile`:
+
+```bash
 [ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
 ```
 
-```
--- ~/.config/nvim/init.lua
+For Zsh, keep the same aliases and functions, but put them in `~/.zshrc`. The `bind` commands are Bash-specific and should be rewritten with `bindkey` if needed.
+
+---
+
+## Neovim Setup
+
+Minimal config. No plugin manager. Good enough for remote servers.
+
+Put this in `~/.config/nvim/init.lua`:
+
+```lua
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
@@ -138,6 +321,9 @@ vim.opt.undofile = true
 vim.opt.confirm = true
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
+vim.opt.splitright = true
+vim.opt.splitbelow = true
+vim.opt.signcolumn = "yes"
 
 local map = vim.keymap.set
 local opts = { silent = true }
@@ -176,8 +362,23 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 set_transparent_bg()
 ```
 
-```
-# ~/.tmux.conf
+Useful keys:
+
+| Key | Action |
+|---|---|
+| `<leader>w` | save |
+| `<leader>q` | quit |
+| `<leader>x` | save and quit |
+| `jk` in insert mode | escape |
+| `<esc>` in normal mode | clear search highlight |
+
+---
+
+## tmux Setup
+
+Put this in `~/.tmux.conf`:
+
+```tmux
 unbind C-b
 set -g prefix C-a
 bind C-a send-prefix
@@ -220,28 +421,329 @@ set -g window-status-current-format ' #[bold,fg=black,bg=white][#I:#W]#[] '
 set -g window-status-current-style 'bold,fg=black,bg=white'
 ```
 
-```
--- ~/.wezterm.lua
-local wezterm = require 'wezterm'
-local config = wezterm.config_builder()
-config.color_scheme = 'Sakura'
+Common commands:
 
-config.font = wezterm.font_with_fallback {
-  weight = 'Bold',
-}
+```bash
+tmux new -s main
+tmux attach -t main
+tmux ls
+tmux kill-session -t main
+```
+
+Useful keys:
+
+| Key | Action |
+|---|---|
+| `C-a c` | new window |
+| `C-a h/j/k/l` | move between panes |
+| `C-a H/J/K/L` | resize panes |
+| `C-a z` | zoom pane |
+| `C-a r` | reload config |
+
+---
+
+## WezTerm Setup
+
+Put this in `~/.wezterm.lua`:
+
+```lua
+local wezterm = require "wezterm"
+local config = wezterm.config_builder()
+
+config.color_scheme = "Sakura"
+config.font = wezterm.font_with_fallback({
+  { family = "IBM Plex Mono", weight = "Bold" },
+  { family = "JetBrains Mono", weight = "Bold" },
+})
 config.font_size = 16.0
 config.window_background_opacity = 0.75
-
 config.window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = true
 
 return config
 ```
 
-## Linux Battery Optimization
+Do not commit font files into your dotfiles repo. Keep only the config.
+
+---
+
+## Version-Controlled Dotfiles
+
+A bare Git repo is a clean way to version files directly under `$HOME` without symlinks.
+
+### 1. Define variables
+
+Put this in `~/.bashrc` or `~/.zshrc`:
 
 ```bash
-sudo apt update && sudo apt install tlp tlp-rdw acpi-call-dkms tp-smapi-dkms && sudo tlp start
+export DOTFILES_REPO="git@github.com:tiendu/dotfiles.git"
+export DOTFILES_DIR="$HOME/.dotfiles"
+alias config='/usr/bin/git --git-dir=$DOTFILES_DIR --work-tree=$HOME'
+```
+
+Reload the shell:
+
+```bash
+source ~/.bashrc
+```
+
+### 2. First-time setup on a new machine
+
+```bash
+git clone --bare "$DOTFILES_REPO" "$DOTFILES_DIR"
+config checkout
+config config --local status.showUntrackedFiles no
+```
+
+If `config checkout` fails because files already exist, back them up first:
+
+```bash
+mkdir -p "$HOME/.dotfiles-backup"
+
+config checkout 2>&1 | awk '/would be overwritten/ {flag=1; next} flag && NF {print $1}' | while read -r file; do
+  mkdir -p "$HOME/.dotfiles-backup/$(dirname "$file")"
+  mv "$HOME/$file" "$HOME/.dotfiles-backup/$file"
+done
+
+config checkout
+```
+
+### 3. Daily usage
+
+```bash
+config status
+config add ~/.bashrc ~/.tmux.conf ~/.config/nvim/init.lua
+config commit -m "Update dotfiles"
+config push
+```
+
+---
+
+## Environment Managers
+
+Use one tool per job.
+
+- SDKMAN for Java
+- Miniforge or Pixi for Python / Conda-style environments
+- Nix for isolated CLI tools
+- Homebrew for macOS CLI tools
+
+Avoid mixing too many environment managers in the same project unless there is a clear reason.
+
+### Java with SDKMAN
+
+Install SDKMAN:
+
+```bash
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+```
+
+List available Java versions:
+
+```bash
+sdk list java
+```
+
+Install a Java 17 build:
+
+```bash
+sdk install java 17-tem
+sdk use java 17-tem
+java -version
+```
+
+For reproducible projects, pin a specific version after checking `sdk list java`.
+
+### Pixi
+
+Pixi is useful for reproducible project environments.
+
+Global sync:
+
+```bash
+pixi global sync
+```
+
+Create a new environment:
+
+```bash
+pixi init dev-env
+cd dev-env
+pixi add python git curl zip unzip
+pixi shell
+```
+
+Example `pixi.toml`:
+
+```toml
+[project]
+name = "dev-env"
+version = "0.1.0"
+description = "Small reproducible development environment"
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64"]
+
+[tasks]
+hello = "python --version"
+
+[dependencies]
+python = ">=3.11,<3.13"
+git = ">=2.40"
+curl = ">=8"
+zip = ">=3"
+unzip = ">=6"
+```
+
+Avoid destructive Pixi tasks like this unless you really mean it:
+
+```bash
+rm -rf "$HOME/.config"
+```
+
+Safer pattern:
+
+```bash
+mv "$HOME/.config" "$HOME/.config.backup.$(date +%Y%m%d_%H%M%S)"
+```
+
+### Miniforge
+
+Auto-detect macOS or Linux and install Miniforge:
+
+```bash
+set -euo pipefail
+
+case "$(uname)" in
+  Darwin)
+    installer="Miniforge3-MacOSX-$(uname -m).sh"
+    ;;
+  Linux)
+    installer="Miniforge3-Linux-$(uname -m).sh"
+    ;;
+  *)
+    echo "Unsupported OS"
+    exit 1
+    ;;
+esac
+
+url="https://github.com/conda-forge/miniforge/releases/latest/download/$installer"
+wget "$url"
+sh "$installer" -b -u -p "$HOME/miniforge"
+rm "$installer"
+```
+
+Add to shell config:
+
+```bash
+export PATH="$HOME/miniforge/bin:$PATH"
+```
+
+### R First-Time Setup
+
+Ubuntu/Debian packages for building common R packages:
+
+```bash
+sudo apt update
+sudo apt install -y \
+  r-base-dev \
+  build-essential \
+  libnlopt-dev \
+  libfontconfig1-dev \
+  libxml2-dev \
+  libgsl-dev \
+  cmake \
+  libssl-dev \
+  libcurl4-openssl-dev
+```
+
+### Nix CLI Package Install Script
+
+```bash
+#!/usr/bin/env sh
+set -eu
+
+packages="curl aria2 git zip unzip gawk fish openssh tmux nmap jq eza ripgrep bat fzf yazi fd zoxide entr"
+
+for pkg in $packages; do
+  echo "Installing $pkg..."
+  nix profile install "nixpkgs#$pkg"
+done
+
+echo "All packages installed."
+```
+
+---
+
+## Containers
+
+### Podman Basics
+
+Install Podman:
+
+```bash
+sudo apt update
+sudo apt install -y podman uidmap fuse-overlayfs
+```
+
+Check setup:
+
+```bash
+podman info
+podman run --rm docker.io/library/alpine:latest echo hello
+```
+
+Build an image:
+
+```bash
+podman build -t my-image .
+podman run --rm my-image
+```
+
+### Podman in GitHub Codespaces
+
+```bash
+pixi global install podman
+sudo apt-get update
+sudo apt-get install -y uidmap fuse-overlayfs
+podman info
+```
+
+If Podman has registry policy issues in a disposable Codespace, you may use a permissive policy. Do not use this on a real workstation or shared server.
+
+```bash
+mkdir -p ~/.config/containers
+cat > ~/.config/containers/policy.json <<'JSON'
+{
+  "default": [
+    {
+      "type": "insecureAcceptAnything"
+    }
+  ]
+}
+JSON
+chmod 644 ~/.config/containers/policy.json
+```
+
+Build with host networking only if needed:
+
+```bash
+podman build --network host -t my-image .
+```
+
+---
+
+## Linux Laptop and Desktop Fixes
+
+### Battery Optimization with TLP
+
+Install TLP:
+
+```bash
+sudo apt update
+sudo apt install -y tlp tlp-rdw
+sudo systemctl enable tlp
+sudo systemctl start tlp
 ```
 
 Check status:
@@ -250,231 +752,505 @@ Check status:
 tlp-stat -s
 ```
 
-Add these to `/etc/tlp.conf`:
+Optional `/etc/tlp.conf` settings:
 
-```
+```conf
 CPU_SCALING_GOVERNOR_ON_BAT=powersave
 USB_AUTOSUSPEND=1
 ```
 
-## Java Installation with SDKMAN
+ThinkPad-only packages may help on older ThinkPads, but do not install them blindly on every machine:
 
 ```bash
-curl -s "https://get.sdkman.io" | bash
-source "$HOME/.sdkman/bin/sdkman-init.sh"
-
-sdk install java 17.0.9-tem
-sdk use java 17.0.9-tem
+sudo apt install -y acpi-call-dkms tp-smapi-dkms
 ```
-
-## Version-Controlled Dotfiles
-
-### Step 1: Define the environment variable (e.g. in `.zshrc` or `.bashrc`)
-
-```bash
-export DOTFILES_REPO="git@github.com:tiendu/dotfiles.git"
-export DOTFILES_DIR="$HOME/.dotfiles"
-```
-
-### Step 2: Use it in your setup
-
-```bash
-# Clone the dotfiles repo as a bare repo
-git clone --bare "$DOTFILES_REPO" "$DOTFILES_DIR"
-
-# Define the `config` alias
-alias config='/usr/bin/git --git-dir=$DOTFILES_DIR --work-tree=$HOME'
-
-# Checkout your dotfiles into $HOME
-config checkout
-config config --local status.showUntrackedFiles no
-```
-
-### Bonus: Add the alias permanently
-
-```bash
-echo 'alias config="/usr/bin/git --git-dir=$DOTFILES_DIR --work-tree=$HOME"' >> ~/.zshrc
-```
-
-You can also export the variables there if you want them available every time:
-
-```bash
-echo 'export DOTFILES_REPO="git@github.com:tiendu/dotfiles.git"' >> ~/.zshrc
-echo 'export DOTFILES_DIR="$HOME/.dotfiles"' >> ~/.zshrc
-```
-
-## `pixi.sh` Environment Setup
-
-Use pixi to manage reproducible environments:
-
-```bash
-pixi global sync  # for global
-```
-
-For custom env:
-
-```bash
-pixi init <env>
-```
-
-Edit `pixi.toml`:
-
-```toml
-[project]
-channels = ["conda-forge", "bioconda"]
-description = "dev env"
-name = "ubuntu"
-platforms = ["linux-64"]
-version = "0.1.0"
-
-[tasks]
-start = { cmd="rm -rf dotfiles && git clone https://github.com/tiendu/dotfiles && rm -rf $HOME/.config && mv dotfiles/.config $HOME/ && fish"}
-
-[dependencies]
-python = ">=3.7.0,<3.8"
-git = ">=2.47.1,<3"
-curl = ">=8.11.1,<9"
-zip = ">=3.0,<4"
-unzip = ">=6.0,<7"
-```
-
-Then `pixi install && pixi shell`.
-
-## `podman` in GitHub Codespaces
-
-```bash
-# Install podman globally using Pixi (if not already installed)
-pixi global install podman
-
-# Install necessary dependencies to support podman
-sudo apt-get update && sudo apt-get install uidmap fuse-overlayfs
-
-# Create a configuration directory for Podman
-mkdir -p ~/.config/containers
-
-# Create the policy.json file to configure insecure registries
-echo '{
-  "default": [
-      {
-          "type": "insecureAcceptAnything"
-      }
-  ]
-}' > ~/.config/containers/policy.json
-
-# Adjust permissions for the policy file
-chmod 644 ~/.config/containers/policy.json
-
-# Build your container image using Podman
-podman build --network host -t <image_name> .
-```
-
-## Miscellaneous Fixes
 
 ### Suspend on Lid Close
 
+Edit logind config:
+
 ```bash
-# Edit systemd logind configuration to suspend on lid close
-sudo vi /etc/systemd/logind.conf
-# Uncomment: HandleLidSwitch=suspend
+sudo nvim /etc/systemd/logind.conf
+```
+
+Set:
+
+```conf
+HandleLidSwitch=suspend
+```
+
+Restart:
+
+```bash
 sudo systemctl restart systemd-logind.service
 ```
 
-### Grub Timeout
+### GRUB Timeout
+
+Edit:
 
 ```bash
-# Edit GRUB configuration to disable timeout during boot
-sudo vi /etc/default/grub
-# Set GRUB_TIMEOUT=0 to skip boot menu
+sudo nvim /etc/default/grub
+```
+
+Set:
+
+```conf
+GRUB_TIMEOUT=0
+```
+
+Apply:
+
+```bash
 sudo update-grub
 ```
 
-### Yakuake Config
+### Disable Wayland for Remote Desktop Compatibility
 
-Edit `~/.config/yakuakerc` and adjust height/position.
+Some remote desktop tools work better on Xorg than Wayland.
 
-### Install Font
-
-Download [Intel One Mono](https://github.com/intel/intel-one-mono) then `unzip font.zip -d .fonts && fc-cache -fv`.
-
-### Turn Off Wayland (for `anydesk`, `vnc`)
+Edit:
 
 ```bash
-# Edit the GDM configuration to disable Wayland for better compatibility with applications like AnyDesk and VNC
-sudo vi /etc/gdm3/custom.conf
-# Uncomment: WaylandEnable=false
+sudo nvim /etc/gdm3/custom.conf
 ```
 
-Some remote desktop applications (like `anydesk` or `vnc`) are not fully compatible with Wayland. Disabling Wayland allows these tools to work better.
+Set:
 
-## SLURM Configuration
-
-### Single-node Setup
-
-1. Install SLURM and dependencies: `sudo apt install slurm slurmd slurmctld`
-
-2. Create `/lib/systemd/system/slurmctld.service`:
-
-```
-[Unit]
-Description=Slurm controller daemon
-After=network.target munge.service
-ConditionPathExists=/etc/slurm/slurm.conf
-Documentation=man:slurmctld(8)
-
-[Service]
-Type=forking
-EnvironmentFile=-/etc/default/slurmctld
-ExecStart=/usr/sbin/slurmctld $SLURMCTLD_OPTIONS
-ExecReload=/bin/kill -HUP $MAINPID
-PIDFile=/run/slurmctld.pid
-LimitNOFILE=65536
-TasksMax=infinity
-
-[Install]
-WantedBy=multi-user.target
+```conf
+WaylandEnable=false
 ```
 
-3. Create `/lib/systemd/system/slurmd.service`:
+Restart the display manager or reboot.
 
-```
-[Unit]
-Description=Slurm node daemon
-After=munge.service network.target remote-fs.target
-ConditionPathExists=/etc/slurm/slurm.conf
-Documentation=man:slurmd(8)
+### Yakuake Config
 
-[Service]
-Type=forking
-EnvironmentFile=-/etc/default/slurmd
-ExecStart=/usr/sbin/slurmd $SLURMD_OPTIONS
-ExecReload=/bin/kill -HUP $MAINPID
-PIDFile=/run/slurmd.pid
-KillMode=process
-LimitNOFILE=131072
-LimitMEMLOCK=infinity
-LimitSTACK=infinity
-Delegate=yes
-TasksMax=infinity
+Edit:
 
-[Install]
-WantedBy=multi-user.target
+```bash
+nvim ~/.config/yakuakerc
 ```
 
-4. Configure `/etc/slurm/slurm.conf`:
+Common settings to adjust:
 
+- height
+- width
+- screen position
+- animation speed
+
+### Install Fonts
+
+Download fonts manually, then install them into your user font directory:
+
+```bash
+mkdir -p "$HOME/.local/share/fonts"
+unzip font.zip -d "$HOME/.local/share/fonts"
+fc-cache -fv
 ```
+
+Do not commit font files into Git unless the license clearly allows it.
+
+### Prevent Sleep
+
+Use this only on machines that should stay awake, such as a workstation running long jobs.
+
+```bash
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
+```
+
+Undo:
+
+```bash
+sudo systemctl unmask sleep.target suspend.target hibernate.target hybrid-sleep.target
+```
+
+### Swap Ctrl and Caps Lock
+
+Edit:
+
+```bash
+sudo nvim /etc/default/keyboard
+```
+
+Set:
+
+```conf
+XKBOPTIONS="ctrl:nocaps"
+```
+
+Apply after reboot, or run:
+
+```bash
+sudo dpkg-reconfigure keyboard-configuration
+```
+
+---
+
+## Storage and Filesystem
+
+### Format and Mount a New Drive
+
+Be careful. This destroys data on the target disk.
+
+Check disks first:
+
+```bash
+lsblk -f
+```
+
+Partition:
+
+```bash
+sudo parted /dev/sdX
+```
+
+Inside `parted`:
+
+```text
+mklabel gpt
+mkpart primary ext4 0% 100%
+quit
+```
+
+Format and mount:
+
+```bash
+sudo mkfs.ext4 /dev/sdX1
+sudo mkdir -p /mnt/data
+sudo mount /dev/sdX1 /mnt/data
+```
+
+Find UUID:
+
+```bash
+blkid /dev/sdX1
+```
+
+Add to `/etc/fstab`:
+
+```fstab
+UUID=<uuid> /mnt/data ext4 defaults,nofail 0 2
+```
+
+### Increase Swap Space
+
+```bash
+sudo fallocate -l 16G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+sudo swapon --show
+```
+
+Persist in `/etc/fstab`:
+
+```fstab
+/swapfile none swap sw 0 0
+```
+
+### Software RAID 5
+
+Warning: RAID is not backup. It only protects against some disk failures.
+
+Install:
+
+```bash
+sudo apt update
+sudo apt install -y mdadm
+```
+
+Create RAID 5:
+
+```bash
+sudo mdadm --create --verbose /dev/md0 \
+  --level=5 \
+  --raid-devices=3 \
+  /dev/sda1 /dev/sdb1 /dev/sdc1
+```
+
+Format and mount:
+
+```bash
+sudo mkfs.ext4 /dev/md0
+sudo mkdir -p /mnt/raid
+sudo mount /dev/md0 /mnt/raid
+```
+
+Check status:
+
+```bash
+watch cat /proc/mdstat
+sudo mdadm --detail /dev/md0
+```
+
+Save array config:
+
+```bash
+sudo mdadm --detail --scan | sudo tee -a /etc/mdadm/mdadm.conf
+sudo update-initramfs -u
+```
+
+Example recovery flow:
+
+```bash
+sudo mdadm --stop /dev/md127
+sudo mdadm --assemble --force /dev/md127 /dev/sda1 /dev/sdb1
+sudo mdadm --add /dev/md127 /dev/sdc1
+```
+
+### Shared Filesystem with NFS
+
+On controller/server:
+
+```bash
+sudo apt install -y nfs-kernel-server
+sudo mkdir -p /shared_directory
+sudo chown nobody:nogroup /shared_directory
+sudo chmod 775 /shared_directory
+```
+
+Add to `/etc/exports`:
+
+```exports
+/shared_directory hpc02(rw,sync,no_subtree_check)
+```
+
+Apply:
+
+```bash
+sudo exportfs -ra
+sudo systemctl restart nfs-kernel-server
+```
+
+On worker/client:
+
+```bash
+sudo apt install -y nfs-common
+sudo mkdir -p /shared_directory
+sudo mount hpc01:/shared_directory /shared_directory
+```
+
+Persist in `/etc/fstab` on the client:
+
+```fstab
+hpc01:/shared_directory /shared_directory nfs defaults,_netdev 0 0
+```
+
+Avoid `no_root_squash` unless you fully trust the client machines.
+
+### Encrypted Directory with gocryptfs
+
+Install:
+
+```bash
+sudo apt install -y gocryptfs
+```
+
+Create encrypted and mounted directories:
+
+```bash
+mkdir -p "$HOME/encrypted_directory" "$HOME/mounted_directory"
+gocryptfs -init "$HOME/encrypted_directory"
+```
+
+Mount:
+
+```bash
+gocryptfs "$HOME/encrypted_directory" "$HOME/mounted_directory"
+```
+
+Unmount:
+
+```bash
+fusermount -u "$HOME/mounted_directory"
+```
+
+### Create a Fake Large File
+
+Sparse file:
+
+```bash
+fallocate -l 5T testfile.txt
+```
+
+Alternative:
+
+```bash
+truncate -s 5T testfile.txt
+dd if=/dev/urandom of=testfile.txt bs=1M count=10 conv=notrunc
+```
+
+A sparse file may appear huge but use little real disk space.
+
+---
+
+## User and Permission Management
+
+### Create a User
+
+```bash
+sudo useradd -m guest
+sudo passwd guest
+sudo chage -d 0 guest
+```
+
+Add to group:
+
+```bash
+sudo usermod -aG guests guest
+```
+
+### List Normal Users
+
+```bash
+awk -F: '$3 >= 1000 && $1 != "nobody" {print $1}' /etc/passwd
+```
+
+### Disk Usage by User
+
+From the target directory:
+
+```bash
+sudo find . -type f -printf "%u %s\n" \
+  | awk '{user[$1]+=$2} END {for (i in user) print i, int(user[i]/(1024^3)) " GB"}' \
+  | sort -k2 -nr
+```
+
+### Directory Group Permissions
+
+```bash
+sudo chgrp -R group /path/to/dir
+sudo chmod -R g+rwX /path/to/dir
+sudo find /path/to/dir -type d -exec chmod g+s {} \;
+setfacl -R -m g:group:rwx /path/to/dir
+setfacl -R -d -m g:group:rwx /path/to/dir
+```
+
+The `g+s` bit makes new files inherit the directory group.
+
+### Primary and Secondary Groups
+
+Set primary group:
+
+```bash
+sudo usermod -g group user
+```
+
+Add secondary group:
+
+```bash
+sudo usermod -aG group user
+```
+
+Remove from group:
+
+```bash
+sudo deluser user group
+```
+
+### Resource Limits
+
+Edit:
+
+```bash
+sudo nvim /etc/security/limits.conf
+```
+
+Example:
+
+```conf
+username soft as 8192
+username hard as 8192
+* soft nproc 100
+* hard nproc 200
+```
+
+Temporary memory limit for current shell:
+
+```bash
+ulimit -S -v 16384
+```
+
+### Fix Too Many Open Files
+
+Temporary:
+
+```bash
+ulimit -n 4096
+```
+
+Permanent:
+
+Edit `/etc/security/limits.conf`:
+
+```conf
+* soft nofile 4096
+* hard nofile 4096
+```
+
+Ensure PAM applies limits:
+
+```bash
+sudo nvim /etc/pam.d/common-session
+sudo nvim /etc/pam.d/common-session-noninteractive
+```
+
+Add:
+
+```conf
+session required pam_limits.so
+```
+
+---
+
+## SLURM Notes
+
+These notes are for a small local or lab cluster, not a production HPC center.
+
+### Single-Node Setup
+
+Install packages:
+
+```bash
+sudo apt update
+sudo apt install -y munge slurm-wlm
+```
+
+Start Munge:
+
+```bash
+sudo systemctl enable munge
+sudo systemctl start munge
+```
+
+Check node hardware as SLURM sees it:
+
+```bash
+slurmd -C
+```
+
+Use the output to build the `NodeName` line in `/etc/slurm/slurm.conf`.
+
+Example minimal `/etc/slurm/slurm.conf`:
+
+```conf
 ClusterName=localcluster
 SlurmctldHost=localhost
 MpiDefault=none
 ProctrackType=proctrack/linuxproc
 ReturnToService=2
-SlurmctldPidFile=/var/run/slurmctld.pid
+
+SlurmctldPidFile=/run/slurmctld.pid
 SlurmctldPort=6817
-SlurmdPidFile=/var/run/slurmd.pid
+SlurmdPidFile=/run/slurmd.pid
 SlurmdPort=6818
-SlurmdSpoolDir=/var/lib/slurm-llnl/slurmd
+SlurmdSpoolDir=/var/spool/slurmd
 SlurmUser=slurm
-StateSaveLocation=/var/lib/slurm-llnl/slurmctld
+StateSaveLocation=/var/spool/slurmctld
+
 SwitchType=switch/none
 TaskPlugin=task/none
 
@@ -488,547 +1264,353 @@ Waittime=0
 SchedulerType=sched/backfill
 SelectType=select/cons_tres
 SelectTypeParameters=CR_Core
-SrunProlog=/usr/bin/podman
 
 AccountingStorageType=accounting_storage/none
 JobCompType=jobcomp/none
-JobAcctGatherFrequency=30
 JobAcctGatherType=jobacct_gather/none
+
 SlurmctldDebug=info
-SlurmctldLogFile=/var/log/slurm-llnl/slurmctld.log
+SlurmctldLogFile=/var/log/slurm/slurmctld.log
 SlurmdDebug=info
-SlurmdLogFile=/var/log/slurm-llnl/slurmd.log
+SlurmdLogFile=/var/log/slurm/slurmd.log
 
-NodeName=localhost CPUs=88 Boards=1 SocketsPerBoard=2 CoresPerSocket=22 ThreadsPerCore=2 RealMemory=515860 State=UNKNOWN
-PartitionName=LocalQ Nodes=ALL Default=YES MaxTime=INFINITE State=UP
+# Replace this with output from: slurmd -C
+NodeName=localhost CPUs=8 RealMemory=32000 State=UNKNOWN
+PartitionName=local Nodes=localhost Default=YES MaxTime=INFINITE State=UP
 ```
 
-5. Prepare directories and permissions:
+Prepare directories:
 
 ```bash
-sudo mkdir -p /var/log/slurm-llnl /var/lib/slurm-llnl
-sudo chmod -R 777 /var/log/ /var/lib/
+sudo install -o slurm -g slurm -m 755 -d /var/spool/slurmctld
+sudo install -o slurm -g slurm -m 755 -d /var/spool/slurmd
+sudo install -o slurm -g slurm -m 755 -d /var/log/slurm
+sudo touch /var/log/slurm/slurmctld.log /var/log/slurm/slurmd.log
+sudo chown slurm:slurm /var/log/slurm/*.log
 ```
 
-6. Reload and start services:
+Start services:
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl start slurmd
-sudo systemctl start slurmctld
+sudo systemctl enable slurmctld slurmd
+sudo systemctl start slurmctld slurmd
 ```
 
-### Multi-node Setup
+Check status:
 
-1. Update `/etc/hosts` on all nodes:
-
+```bash
+sinfo
+scontrol show node
+srun hostname
 ```
+
+Do not use this pattern:
+
+```bash
+sudo chmod -R 777 /var/log /var/lib
+```
+
+It is too broad and unsafe.
+
+### Multi-Node Setup
+
+On all nodes, update `/etc/hosts`:
+
+```hosts
 127.0.0.1   localhost
-127.0.1.1   hpc02
 172.16.1.15 hpc01
+172.16.1.16 hpc02
 ```
 
-2. Set up passwordless SSH:
+Set up passwordless SSH from controller to workers:
 
 ```bash
-ssh-keygen -t rsa
-ssh-copy-id username@hostname
+ssh-keygen -t ed25519
+ssh-copy-id username@hpc02
 ```
 
-Ensure `/etc/ssh/sshd_config` has:
+In `/etc/ssh/sshd_config`, ensure:
 
-```
+```conf
 PubkeyAuthentication yes
 PasswordAuthentication no
 ```
 
-3. Copy Munge key from controller to workers:
+Copy Munge key from controller to workers:
 
 ```bash
-sudo scp /etc/munge/munge.key user@worker:/etc/munge/munge.key
-sudo chown munge:munge /etc/munge/munge.key
-sudo chmod 400 /etc/munge/munge.key
+sudo scp /etc/munge/munge.key user@hpc02:/tmp/munge.key
+ssh user@hpc02 'sudo mv /tmp/munge.key /etc/munge/munge.key && sudo chown munge:munge /etc/munge/munge.key && sudo chmod 400 /etc/munge/munge.key && sudo systemctl restart munge'
 ```
 
-4. Ensure identical `slurm.conf` across all nodes.
+Ensure the same `/etc/slurm/slurm.conf` exists on all nodes.
 
-5. Firewall setup:
+Firewall:
 
 ```bash
-sudo ufw enable
 sudo ufw allow ssh
 sudo ufw allow 6817:6819/tcp
 sudo ufw reload
 ```
 
-6. Check connectivity:
-
-```
-telnet hpc01 6817
-```
-
-## Shared Filesystem with NFS
-
-1. On controller:
+Check connectivity:
 
 ```bash
-sudo mkdir /shared_directory
-echo "/shared_directory hpc02(rw,sync,no_root_squash)" | sudo tee -a /etc/exports
-sudo service nfs-kernel-server restart
+nc -vz hpc01 6817
+nc -vz hpc02 6818
 ```
 
-2. On worker:
+Check cluster:
 
 ```bash
-sudo mkdir /shared_directory
-sudo mount hpc01:/shared_directory /shared_directory
+sinfo
+scontrol show nodes
 ```
 
-3. Mount on boot (on worker):
+---
 
-Add to `/etc/fstab`:
+## Nextflow Notes
 
-```
-hpc01:/shared_directory /shared_directory nfs defaults 0 0
-```
+### System-Wide Installation
 
-## User Management
-
-### Create and manage users
+Install Java:
 
 ```bash
-sudo useradd guest
-sudo usermod -aG guests guest
-sudo passwd guest
-sudo chage -d 0 guest
+sudo apt update
+sudo apt install -y openjdk-17-jre-headless
+java -version
 ```
 
-### Check disk usage by user (GB)
+Install Nextflow:
 
 ```bash
-sudo find . -type f -printf "%u  %s\n" | awk '{user[$1]+=$2} END {for (i in user) print i, int(user[i]/(1024^3))}'
+curl -fsSL https://get.nextflow.io | bash
+sudo install -m 755 nextflow /usr/local/bin/nextflow
+nextflow -version
 ```
 
-### List all users
+Avoid this:
 
 ```bash
-awk -F: '$3 >= 1000 {print $1}' /etc/passwd
-```
-
-### Directory group permissions
-
-```bash
-sudo chgrp -R group /path/to/dir
-sudo chmod -R g+s /path/to/dir
-setfacl -d -m g::rwx /path/to/dir
-setfacl -d -m o::rx /path/to/dir
-```
-
-### Set primary/secondary group
-
-```bash
-sudo usermod -g group user
-sudo usermod -aG group user
-sudo adduser user group
-sudo deluser user group
-```
-
-### Set system-wide resource limits
-
-Edit `/etc/security/limits.conf`:
-
-```
-username soft as 8192
-username hard as 8192
-* soft nproc 100
-* hard nproc 200
-```
-
-Apply with:
-
-```bash
-ulimit -S -v 16384
-```
-
-## Software RAID Setup (RAID 5)
-
-1. Install and create RAID:
-
-```bash
-sudo apt install mdadm
-sudo mdadm --create --verbose /dev/md0 --level=5 --raid-devices=3 /dev/sda1 /dev/sdb1 /dev/sdc1
-```
-
-2. Format and mount RAID volume:
-
-```bash
-sudo mkfs.ext4 /dev/md0
-sudo mkdir /mnt/rdisk
-sudo mount /dev/md0 /mnt/rdisk
-```
-
-3. Recovery from disk failure:
-
-```bash
-sudo mdadm --stop /dev/md127
-sudo mdadm --assemble --force /dev/md127 /dev/sda1 /dev/sdb1
-sudo mdadm --add /dev/md127 /dev/sdc1
-```
-
-4. Check status:
-
-```bash
-watch cat /proc/mdstat
-```
-
-## Installing R (First-Time Setup)
-
-To prepare your system for R development, install the following essential packages:
-
-```bash
-sudo apt install r-base-dev build-essential libnlopt-dev libfontconfig1 \
-libxml2-dev libgsl-dev cmake libssl-dev libcurl4-openssl-dev
-```
-
-## Miniforge Installation
-
-```bash
-# Auto-detect the system platform
-if [[ "$(uname)" == "Darwin" ]]; then
-    # macOS detected
-    echo "Installing Miniforge for macOS..."
-    wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-x86_64.sh
-    sh Miniforge3-MacOSX-x86_64.sh -b -u -p $HOME/miniforge
-elif [[ "$(uname)" == "Linux" ]]; then
-    # Linux detected
-    echo "Installing Miniforge for Linux..."
-    wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
-    sh Miniforge3-Linux-x86_64.sh -b -u -p $HOME/miniforge
-else
-    echo "Unsupported OS. Only macOS and Linux are supported."
-    exit 1
-fi
-
-# Add Miniforge to your PATH in the shell config file (for Zsh or Bash)
-echo 'export PATH="$HOME/miniforge/bin:$PATH"' >> ~/."$(basename $SHELL)"rc
-
-# Reload the shell configuration to apply changes
-source ~/."$(basename $SHELL)"rc
-
-# Clean up the installer script
-rm Miniforge3-*.sh*
-```
-
-## Nextflow Setup
-
-### System-wide Installation for Multi-user Access
-
-1. Install Java:
-
-```bash
-sudo apt install openjdk-17-source
-```
-
-2. Install Nextflow:
-
-```bash
-curl -fsSL get.nextflow.io | bash
-sudo mv nextflow /usr/local/bin
-sudo chown admin:users /usr/local/bin/nextflow
 sudo chmod 777 /usr/local/bin/nextflow
 ```
 
-3. Ensure `/usr/local/bin` is in the global path:
+Use `install -m 755` instead.
 
-Add this line to `/etc/bash.bashrc`:
+### Local Pipeline Run Checklist
 
-```
-export PATH="/usr/local/bin/:$PATH"
-```
+Prepare:
 
-### Running a Nextflow Pipeline Locally
+- input files
+- reference files
+- sample sheet such as `design.csv`
+- `nextflow.config`
+- container image access
+- enough disk space for `work/`
 
-#### Step 1: Prepare Required Files
-
-Download datasets, reference genomes, and the private AWS key (formatted as `_accessKeys.csv`):
-
-
-| Access key ID       | Secret access key                |
-|---------------------|----------------------------------|
-| AKIARXXXXXXXXXXXXX  | SVF+XXXXXXXXXXXXXXXXXXXXXXXXXXXX |
-
-#### Step 2: Configuration Adjustments
-
-Edit `design.csv` and `conf/igenomes.config` as needed.
-
-Tweak `conf/base.config` to match system resources (cores, memory).
-
-#### Step 3: Install Required Tools
+Install AWS ECR helper if the container is stored in AWS ECR:
 
 ```bash
-sudo apt install amazon-ecr-credential-helper
-aws configure  # Enter AWS keys from _accessKeys.csv
-```
-
-#### Step 4: Docker ECR Setup
-
-```bash
+sudo apt install -y amazon-ecr-credential-helper
 mkdir -p ~/.docker
-echo '{"credsStore": "ecr-login"}' > ~/.docker/config.json
+printf '{"credsStore":"ecr-login"}\n' > ~/.docker/config.json
 ```
 
-#### Step 5: Handle Docker Image
-
-Pull from AWS ECR:
+Configure AWS credentials without committing them:
 
 ```bash
-docker pull <account>.dkr.ecr.us-east-1.amazonaws.com/<image>:2.2.1
+aws configure
 ```
 
-Or build your own:
+Or use environment variables for a temporary shell:
 
 ```bash
-docker build .
+export AWS_ACCESS_KEY_ID="<access-key-id>"
+export AWS_SECRET_ACCESS_KEY="<secret-access-key>"
+export AWS_DEFAULT_REGION="us-east-1"
 ```
 
-Verify:
+Never store real AWS keys in dotfiles or public notes.
+
+Pull image:
 
 ```bash
-docker images
+docker pull <account>.dkr.ecr.us-east-1.amazonaws.com/<image>:<tag>
 ```
 
-#### Step 6: Configure Nextflow to Use Docker Image
-
-Set the `process.container` in `nextflow.config` to the pulled image ID.
-
-Run Nextflow with the `-with-docker` flag.
-
-#### Step 7: Run the Workflow
+Run:
 
 ```bash
 nextflow run main.nf \
-    -profile docker \
-    -work-dir workdir \
-    --awsregion us-west-2 \
-    --genome <genome_name> \
-    --design design.csv \
-    --outdir results \
-    --protocol <protocol_name> \
-    --name <run_name> \
-    --maxMemory 120.GB
+  -profile docker \
+  -work-dir workdir \
+  --awsregion us-west-2 \
+  --genome <genome_name> \
+  --design design.csv \
+  --outdir results \
+  --protocol <protocol_name> \
+  --name <run_name> \
+  --maxMemory 120.GB
 ```
+
+Useful resume command:
+
+```bash
+nextflow run main.nf -resume -profile docker
+```
+
+Common checks:
+
+```bash
+nextflow log
+nextflow log <run-name-or-id>
+du -sh work results
+```
+
+---
 
 ## Termux Setup
 
-### Install Essential Packages
+Install packages:
 
 ```bash
-pkg update -y && pkg upgrade -y && pkg autoclean && pkg clean && \
-pkg install neovim ripgrep fd fzf bat tmux zsh coreutils git jq eza zoxide podman wget curl tldr nodejs zip unzip
+pkg update -y && pkg upgrade -y && pkg autoclean && pkg clean
+
+pkg install -y \
+  neovim \
+  ripgrep \
+  fd \
+  fzf \
+  bat \
+  tmux \
+  zsh \
+  coreutils \
+  git \
+  jq \
+  eza \
+  zoxide \
+  podman \
+  wget \
+  curl \
+  tldr \
+  nodejs \
+  zip \
+  unzip
 ```
 
-### Customize Extra Keys
+Enable storage access:
 
 ```bash
-mkdir -p $HOME/.termux
-echo "extra-keys = [['ESC', 'TAB', 'CTRL', 'ALT', 'SHIFT', 'DEL', 'BACKSLASH', 'KEYBOARD'], ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'HOME', 'PGUP'], ['F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'END', 'PGDN'], ['LEFT', 'UP', 'DOWN', 'RIGHT', '/', '|', 'QUOTE', 'APOSTROPHE']]" >> $HOME/.termux/termux.properties
-termux-reload-settings
-sleep 1 && logout
-```
-
-### Enable Storage Access
-
-```
 termux-setup-storage
 ```
 
-## Miscellaneous Tips and Utilities
-
-### Homebrew Without `sudo`
+Customize extra keys:
 
 ```bash
-mkdir brew
-curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C ~/brew
-eval "$(~/brew/bin/brew shellenv)"
-brew update --force --quiet
+mkdir -p "$HOME/.termux"
+cat >> "$HOME/.termux/termux.properties" <<'CONF'
+extra-keys = [['ESC', 'TAB', 'CTRL', 'ALT', 'SHIFT', 'DEL', 'BACKSLASH', 'KEYBOARD'], ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'HOME', 'PGUP'], ['F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'END', 'PGDN'], ['LEFT', 'UP', 'DOWN', 'RIGHT', '/', '|', 'QUOTE', 'APOSTROPHE']]
+CONF
+termux-reload-settings
 ```
 
-### Create a Fake 5TB File
+Restart Termux after reloading settings.
 
-```bash
-fallocate -l 5T testfile.txt
-```
+---
 
-```bash
-truncate -s 5T testfile.txt
-dd if=/dev/urandom of=testfile.txt bs=1M count=10 conv=notrunc
-```
-
-### Git: Reset to First Commit and Squash History
-
-1. Clone your repository
-2. Reset to the first commit:
-
-```bash
-git reset $(git rev-list --max-parents=0 HEAD)
-```
-
-3. Add and commit all changes:
-
-```bash
-git add -A
-git commit -m "Initial squashed commit"
-```
-
-4. Force push:
-
-```bash
-git push origin <branch-name> --force
-```
+## Useful CLI Tricks
 
 ### Fast Download with aria2
 
 ```bash
-aria2c https://ftp.ensembl.org/pub/release-110/variation/indexed_vep_cache/homo_sapiens_merged_vep_110_GRCh38.tar.gz -x 8 -s 16 -j 3 &
+aria2c "https://ftp.ensembl.org/pub/release-110/variation/indexed_vep_cache/homo_sapiens_merged_vep_110_GRCh38.tar.gz" \
+  -x 8 \
+  -s 16 \
+  -j 3
 ```
 
-### System & File Utilities
-
-- Find binary location: `whereis <binary>`
-- Create hard link: `link <src> <dest>`
-- Check if file is hard-linked: `stat -c %h <file>`
-
-### Format and Mount a New Drive
+### Find Binary Location
 
 ```bash
-sudo parted /dev/sda
-# (inside parted)
-mklabel gpt
-mkpart primary ext4 0% 100%
-quit
-
-sudo mkfs.ext4 /dev/sda1
-sudo mkdir /mnt/d4t
-sudo mount /dev/sda1 /mnt/d4t
+whereis <binary>
+command -v <binary>
 ```
 
-### Essential CLI Tools via Homebrew
+### Hard Links
+
+Create hard link:
 
 ```bash
-brew install neovim ripgrep fd fzf bat tmux zsh coreutils git jq eza zoxide podman wget curl tldr node zip unzip
+ln <src> <dest>
 ```
 
-### Fix Python3 Install via Homebrew
+Check link count:
 
 ```bash
-brew install util-linux
-ln -s "$(brew --prefix util-linux)/include/uuid/uuid.h" "$(brew --prefix)/include/uuid.h"
+stat -c %h <file>
 ```
 
-### Enable zoxide in `.bashrc`
+### Wait for a Process Before Running Another Command
 
 ```bash
-eval "$(zoxide init bash)"
-```
-
-### Install Packages with Nix
-
-```bash
-#!/bin/sh
-packages="curl aria2 git zip unzip gawk fish openssh tmux nmap jq eza ripgrep bat fzf yazi fd zoxide entr"
-for pkg in $packages; do
-  echo "Installing $pkg..."
-  nix profile install nixpkgs#$pkg
+while kill -0 <pid> 2>/dev/null; do
+  sleep 1
 done
-echo "All packages installed!"
+
+<next_command>
 ```
 
-### Increase Swap Space
+Find process:
 
 ```bash
-sudo fallocate -l 16G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-sudo swapon --show
+pgrep -af <command>
 ```
+
+### Git: Reset to First Commit and Squash History
+
+Warning: this rewrites Git history.
+
+```bash
+git reset "$(git rev-list --max-parents=0 HEAD)"
+git add -A
+git commit -m "Initial squashed commit"
+git push origin <branch-name> --force-with-lease
+```
+
+Prefer `--force-with-lease` over `--force`.
 
 ### Clone All Repos from a GitHub Organization
 
 ```bash
-gh repo list <your_org> --limit 1000 | while read -r repo _; do
-  gh repo clone $repo $repo -- -q 2>/dev/null || (
-    cd $repo
-    git checkout -q main 2>/dev/null || true
-    git checkout -q master 2>/dev/null || true
-    git pull -q
-  )
-done
+gh repo list <your_org> --limit 1000 --json nameWithOwner --jq '.[].nameWithOwner' \
+  | while read -r repo; do
+      gh repo clone "$repo" "$repo" -- -q 2>/dev/null || (
+        cd "$repo"
+        git checkout -q main 2>/dev/null || true
+        git checkout -q master 2>/dev/null || true
+        git pull -q
+      )
+    done
 ```
 
-Faster Alternative Using `xargs`
+Faster version:
 
 ```bash
-gh repo list <your_org> --limit <limit> --json nameWithOwner --jq '.[].nameWithOwner' | \
-xargs -I {} -P <threads> bash -c 'gh repo {}'
+gh repo list <your_org> --limit <limit> --json nameWithOwner --jq '.[].nameWithOwner' \
+  | xargs -I {} -P <threads> gh repo clone {}
 ```
 
-### Wait for a Process to Finish Before Running a Command
+### Start a Script at Boot with systemd
+
+Create service:
 
 ```bash
-ps aux | grep <command>
-while ps -p <pid> > /dev/null; do sleep 1; done && <next_command>
+sudo nvim /etc/systemd/system/my-script.service
 ```
 
-### Remap Keys: Swap Ctrl and Caps Lock (Linux)
+Example:
 
-```bash
-sudo nano /etc/default/keyboard
-# Add or edit this line:
-XKBOPTIONS="ctrl:nocaps"
-```
-
-### Fix "Too Many Open Files" Error
-
-#### Temporarily
-
-```bash
-ulimit -n 4096
-```
-
-#### Permanently
-
-1. Edit `/etc/security/limits.conf`:
-
-```
-* soft nofile 4096
-* hard nofile 4096
-```
-
-2. Edit PAM session configs:
-
-```
-sudo nano /etc/pam.d/common-session
-sudo nano /etc/pam.d/common-session-noninteractive
-```
-
-Add:
-
-```
-session required pam_limits.so
-```
-
-### Start a Script at System Boot
-
-1. Create a systemd service unit file:
-
-```
-sudo nano /etc/systemd/system/my-script.service
-```
-
-2. Add the following content:
-
-```
+```ini
 [Unit]
 Description=My Script Service
 After=network.target
@@ -1037,73 +1619,32 @@ After=network.target
 ExecStart=/path/to/your/script.sh
 Restart=always
 User=your_username
+WorkingDirectory=/home/your_username
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-3. Reload systemd and enable/start the service:
+Enable and start:
 
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable my-script.service
 sudo systemctl start my-script.service
+sudo systemctl status my-script.service
 ```
 
-### Create an Encrypted Directory with `gocryptfs`
+### CLI Email Sending with msmtp
 
-1. Install gocryptfs:
+Install:
 
 ```bash
-sudo apt install gocryptfs
+sudo apt install -y mailutils msmtp
 ```
 
-2. Create and initialize the encrypted directory:
+Create `~/.msmtprc`:
 
-```bash
-mkdir ~/encrypted_directory
-gocryptfs -init ~/encrypted_directory
-```
-
-3. Mount it:
-
-```bash
-gocryptfs ~/encrypted_directory ~/mounted_directory
-```
-
-4. When done, unmount:
-
-```bash
-fusermount -u ~/mounted_directory
-```
-
-### Prevent the Computer from Sleeping (Linux)
-
-```bash
-sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
-gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'
-gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
-```
-
-### CLI Email Sending with `msmtp`
-
-1. Install dependencies:
-
-```bash
-sudo apt install mailutils msmtp
-```
-
-2. Create an app-specific password in your [Google Account](https://myaccount.google.com/) (enable 2FA first).
-
-3. Edit your `.msmtprc` file:
-
-```bash
-nano ~/.msmtprc
-```
-
-Example config:
-
-```
+```conf
 defaults
 tls on
 tls_starttls on
@@ -1114,19 +1655,155 @@ host smtp.gmail.com
 port 587
 auth on
 user your@gmail.com
-password <your-app-password>
+password <app-password>
 from your@gmail.com
 ```
 
-4. Send a test email:
+Lock down permissions:
+
+```bash
+chmod 600 ~/.msmtprc
+```
+
+Send test:
 
 ```bash
 echo "This is a test email" | msmtp -a gmail your@gmail.com
 ```
 
-### GitHub: Managing Private Repo Access Across Organizations
+Do not commit `.msmtprc` if it contains a password.
 
-1. Ownership Requirement: The owner of Org A must also be the owner of Org B.
-2. Enable Forking: In Org A, allow forking of private repositories.
-3. Forking Private Repositories: The owner forks the private repositories from Org A to Org B.
-4. User Access Management: Add users only to Org B. They’ll have access to the forked repos but not to Org A.
+### GitHub Private Repo Access Across Organizations
+
+Simple model:
+
+1. The same owner must control both organizations.
+2. Private repo forking must be allowed in the source organization.
+3. Fork private repos from Org A to Org B.
+4. Add users to Org B only.
+5. Users can access the forked repos but not the original Org A repos.
+
+This is useful when you need to share code with a smaller group without exposing the original organization.
+
+---
+
+## Security Notes
+
+Keep these rules boring and strict.
+
+### Do Not Commit Secrets
+
+Never commit:
+
+- AWS access keys
+- API tokens
+- SSH private keys
+- app passwords
+- `.env` files with real credentials
+- private certificates
+- customer data
+
+Use placeholders in notes:
+
+```bash
+export AWS_ACCESS_KEY_ID="<access-key-id>"
+export AWS_SECRET_ACCESS_KEY="<secret-access-key>"
+```
+
+### Avoid `chmod 777`
+
+Usually, `chmod 777` means the permission model was not designed.
+
+Prefer:
+
+```bash
+sudo chown -R user:group /path/to/dir
+sudo chmod -R u+rwX,g+rwX,o-rwx /path/to/dir
+```
+
+For shared directories:
+
+```bash
+sudo chmod -R g+rwX /path/to/dir
+sudo find /path/to/dir -type d -exec chmod g+s {} \;
+```
+
+### Be Careful with Insecure Container Policies
+
+This is unsafe on real machines:
+
+```json
+{
+  "default": [
+    {
+      "type": "insecureAcceptAnything"
+    }
+  ]
+}
+```
+
+Only use it inside disposable environments when you understand the trade-off.
+
+### Keep Dotfiles Public-Safe
+
+Before pushing:
+
+```bash
+git status
+git diff --cached
+```
+
+Search for secrets:
+
+```bash
+rg -i "aws_secret|secret_access|password|token|private key|BEGIN OPENSSH" .
+```
+
+---
+
+## Recovery Checklist
+
+When setting up a fresh machine:
+
+```bash
+# 1. Install base packages.
+sudo apt update && sudo apt install -y git curl neovim tmux ripgrep fd-find fzf jq
+
+# 2. Clone dotfiles.
+export DOTFILES_REPO="git@github.com:tiendu/dotfiles.git"
+export DOTFILES_DIR="$HOME/.dotfiles"
+git clone --bare "$DOTFILES_REPO" "$DOTFILES_DIR"
+
+# 3. Define alias.
+alias config='/usr/bin/git --git-dir=$DOTFILES_DIR --work-tree=$HOME'
+
+# 4. Checkout.
+config checkout
+config config --local status.showUntrackedFiles no
+
+# 5. Reload shell.
+source ~/.bashrc
+
+# 6. Start tmux.
+tmux new -s main
+```
+
+If checkout conflicts with existing files:
+
+```bash
+mkdir -p ~/.dotfiles-backup
+mv ~/.bashrc ~/.dotfiles-backup/ 2>/dev/null || true
+mv ~/.tmux.conf ~/.dotfiles-backup/ 2>/dev/null || true
+mv ~/.config/nvim ~/.dotfiles-backup/nvim 2>/dev/null || true
+config checkout
+```
+
+Final sanity checks:
+
+```bash
+nvim --version
+tmux -V
+git --version
+rg --version
+fd --version 2>/dev/null || fdfind --version
+```
