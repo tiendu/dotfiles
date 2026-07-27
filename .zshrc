@@ -67,8 +67,8 @@ alias gr='git restore'
 alias gp='git push'
 
 ##### Cross-platform clipboard
-typeset -ga _clip_copy_cmd
-typeset -ga _clip_paste_cmd
+typeset -ga _clip_copy_cmd=()
+typeset -ga _clip_paste_cmd=()
 typeset -g _clip_backend=""
 
 if [[ $OSTYPE == darwin* ]] \
@@ -262,6 +262,7 @@ zle -N _first_tab
 bindkey -M viins '^I' _first_tab
 
 typeset -gi LAST_STATUS=0
+typeset -g VIM_MODE=""
 
 ##### Prompt
 zle-keymap-select() {
@@ -605,7 +606,7 @@ if [[ $- == *i* ]]; then
   typeset -g _compcache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compcache"
   mkdir -p -- "$_compcache" "${_compdump:h}"
 
-  compinit -C -d "$_compdump"
+  compinit -i -d "$_compdump"
 
   zstyle ':completion:*' use-cache on
   zstyle ':completion:*' cache-path "$_compcache"
