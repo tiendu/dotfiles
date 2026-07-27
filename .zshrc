@@ -16,11 +16,11 @@ typeset -gi ZSH_AP_MAX_LEN=${ZSH_AP_MAX_LEN:-4000}
 ##### Path
 typeset -Ug path fpath manpath
 [[ -d "/opt/homebrew/bin" ]] && path=(/opt/homebrew/bin $path)
-for d in /opt/homebrew/opt/*/libexec/gnubin; do
-  [[ -d "$d" ]] && path=($d $path)
+for d in /opt/homebrew/opt/*/libexec/gnubin(N/); do
+  path=("$d" $path)
 done
-for d in /opt/homebrew/opt/*/libexec/gnuman; do
-  [[ -d "$d" ]] && manpath=($d $manpath)
+for d in /opt/homebrew/opt/*/libexec/gnuman(N/); do
+  manpath=("$d" $manpath)
 done
 [[ -d "$HOME/miniforge/bin" ]] && path=($HOME/miniforge/bin $path)
 
@@ -145,11 +145,10 @@ HISTSIZE=10000
 SAVEHIST=10000
 HISTFILE=${HISTFILE:-$HOME/.zsh_history}
 
-setopt APPEND_HISTORY SHARE_HISTORY INC_APPEND_HISTORY
+setopt SHARE_HISTORY HIST_FCNTL_LOCK
 setopt HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS
 setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_VERIFY
 setopt EXTENDED_HISTORY HIST_FIND_NO_DUPS HIST_SAVE_NO_DUPS
-setopt INC_APPEND_HISTORY_TIME HIST_FCNTL_LOCK
 
 setopt MENUCOMPLETE AUTO_MENU LIST_PACKED
 setopt AUTOCD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
@@ -266,7 +265,7 @@ _custom_highlight() {
 
   for word in "${words[@]}"; do
     [[ -z "${word// }" ]] && continue
-    rel_idx="${remaining%%${word}*}"
+    rel_idx="${remaining%%${(b)word}*}"
     idx_start=$((offset + ${#rel_idx}))
     idx_end=$((idx_start + ${#word}))
     offset=$((idx_end))
@@ -442,9 +441,8 @@ if [[ $- == *i* ]]; then
       return
     fi
 
-    if [[ $prev == "$key" ]]; then
-      LBUFFER+="$key$close"
-      zle backward-char
+    if [[ $next == "$key" ]]; then
+      zle forward-char
       return
     fi
 
@@ -498,7 +496,7 @@ if [[ $- == *i* ]]; then
     if [[ -n $LBUFFER && -n $RBUFFER ]]; then
       local l="${LBUFFER[-1]}" r="${RBUFFER[1]}"
       case "$l$r" in
-        "''"|'""'|"()"|"[]"|"{}")
+        "''"|'""')
           LBUFFER=${LBUFFER[1,-2]}
           RBUFFER=${RBUFFER[2,-1]}
           return
