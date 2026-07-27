@@ -122,11 +122,14 @@ if [[ $- == *i* ]]; then
   alias copy='clipcopy'
 fi
 
+# Shared result from _clip_read.
+typeset -g _clip_text=""
+
 # Internal clipboard reader used by ZLE widgets.
 # The marker preserves trailing newlines through command substitution.
 _clip_read() {
   local marker=$'\x1f'
-  local output
+  local output rc
 
   if ! _clip_available; then
     return 127
@@ -139,7 +142,7 @@ _clip_read() {
     exit "$rc"
   )" || return 1
 
-  REPLY="${output%$marker}"
+  _clip_text="${output%$marker}"
 }
 
 ##### Clipboard ZLE widgets
@@ -150,7 +153,7 @@ if [[ $- == *i* ]] && _clip_available; then
       return 1
     fi
 
-    LBUFFER+="$REPLY"
+    LBUFFER+="$_clip_text"
   }
 
   # Vi p: paste after the character under the cursor.
@@ -160,14 +163,14 @@ if [[ $- == *i* ]] && _clip_available; then
       return 1
     fi
 
-    [[ -n $REPLY ]] || return 0
+    [[ -n $_clip_text ]] || return 0
 
     if [[ -n $RBUFFER ]]; then
       LBUFFER+="${RBUFFER[1]}"
       RBUFFER="${RBUFFER[2,-1]}"
     fi
 
-    LBUFFER+="$REPLY"
+    LBUFFER+="$_clip_text"
     zle backward-char
   }
 
@@ -178,9 +181,9 @@ if [[ $- == *i* ]] && _clip_available; then
       return 1
     fi
 
-    [[ -n $REPLY ]] || return 0
+    [[ -n $_clip_text ]] || return 0
 
-    LBUFFER+="$REPLY"
+    LBUFFER+="$_clip_text"
     zle backward-char
   }
 
