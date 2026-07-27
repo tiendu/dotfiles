@@ -67,59 +67,130 @@ alias gr='git restore'
 alias gp='git push'
 
 ##### Cross-platform clipboard
-if [[ $OSTYPE == darwin* ]]; then
-  pbcopy() {
-    if (( $# )); then
-      command cat -- "$@" | command pbcopy
-    else
-      command pbcopy
-    fi
-  }
-  pbpaste() { command pbpaste; }
-else
-  if command -v wl-copy &>/dev/null; then
-    pbcopy() {
-      if (( $# )); then
-        command cat -- "$@" | command wl-copy
-      else
-        command wl-copy
-      fi
-    }
-    pbpaste() { command wl-paste; }
-  elif command -v xclip &>/dev/null; then
-    pbcopy() {
-      if (( $# )); then
-        command cat -- "$@" | command xclip -selection clipboard
-      else
-        command xclip -selection clipboard
-      fi
-    }
-    pbpaste() { command xclip -selection clipboard -o; }
-  elif command -v xsel &>/dev/null; then
-    pbcopy() {
-      if (( $# )); then
-        command cat -- "$@" | command xsel --clipboard --input
-      else
-        command xsel --clipboard --input
-      fi
-    }
-    pbpaste() { command xsel --clipboard --output; }
-  else
-    pbcopy() { cat >/dev/null; }
-    pbpaste() { return 1; }
-  fi
+typeset -ga _clip_copy_cmd
+typeset -ga _clip_paste_cmd
+typeset -g _clip_backend=""
+
+if [[ $OSTYPE == darwin* ]] \
+  && (( $+commands[pbcopy] && $+commands[pbpaste] ))
+then
+  _clip_copy_cmd=(pbcopy)
+  _clip_paste_cmd=(pbpaste)
+  _clip_backend="macOS"
+
+elif [[ -n ${WAYLAND_DISPLAY:-} ]] \
+  && (( $+commands[wl-copy] && $+commands[wl-paste] ))
+then
+  _clip_copy_cmd=(wl-copy)
+  _clip_paste_cmd=(wl-paste)
+  _clip_backend="Wayland"
+
+elif [[ -n ${DISPLAY:-} ]] && (( $+commands[xclip] )); then
+  _clip_copy_cmd=(xclip -selection clipboard)
+  _clip_paste_cmd=(xclip -selection clipboard -o)
+  _clip_backend="X11/xclip"
+
+elif [[ -n ${DISPLAY:-} ]] && (( $+commands[xsel] )); then
+  _clip_copy_cmd=(xsel --clipboard --input)
+  _clip_paste_cmd=(xsel --clipboard --output)
+  _clip_backend="X11/xsel"
 fi
 
-if [[ $- == *i* ]]; then
-  _paste_clip_after()  { LBUFFER+=$(pbpaste 2>/dev/null); }
-  _paste_clip_before() { RBUFFER="$(pbpaste 2>/dev/null)$RBUFFER"; }
+_clip_available() {
+  (( ${#_clip_copy_cmd} && ${#_clip_paste_cmd} ))
+}
 
+# Public clipboard command:
+#
+#   print -n "hello" | copy
+#   copy README.md
+#
+clipcopy() {
+  if ! _clip_available; then
+    print -u2 -- "copy: no supported clipboard backend available"
+    return 127
+  fi
+
+  if (( $# )); then
+    command cat -- "$@" | command "${_clip_copy_cmd[@]}"
+  else
+    command "${_clip_copy_cmd[@]}"
+  fi
+}
+
+if [[ $- == *i* ]]; then
+  alias copy='clipcopy'
+fi
+
+# Internal clipboard reader used by ZLE widgets.
+# The marker preserves trailing newlines through command substitution.
+_clip_read() {
+  local marker=$'\x1f'
+  local output
+
+  if ! _clip_available; then
+    return 127
+  fi
+
+  output="$(
+    command "${_clip_paste_cmd[@]}" 2>/dev/null
+    rc=$?
+    print -rn -- "$marker"
+    exit "$rc"
+  )" || return 1
+
+  REPLY="${output%$marker}"
+}
+
+##### Clipboard ZLE widgets
+if [[ $- == *i* ]] && _clip_available; then
+  _paste_clip_here() {
+    if ! _clip_read; then
+      zle -M "Clipboard read failed"
+      return 1
+    fi
+
+    LBUFFER+="$REPLY"
+  }
+
+  # Vi p: paste after the character under the cursor.
+  _paste_clip_after() {
+    if ! _clip_read; then
+      zle -M "Clipboard read failed"
+      return 1
+    fi
+
+    [[ -n $REPLY ]] || return 0
+
+    if [[ -n $RBUFFER ]]; then
+      LBUFFER+="${RBUFFER[1]}"
+      RBUFFER="${RBUFFER[2,-1]}"
+    fi
+
+    LBUFFER+="$REPLY"
+    zle backward-char
+  }
+
+  # Vi P: paste before the character under the cursor.
+  _paste_clip_before() {
+    if ! _clip_read; then
+      zle -M "Clipboard read failed"
+      return 1
+    fi
+
+    [[ -n $REPLY ]] || return 0
+
+    LBUFFER+="$REPLY"
+    zle backward-char
+  }
+
+  zle -N _paste_clip_here
   zle -N _paste_clip_after
   zle -N _paste_clip_before
 
   bindkey -M vicmd 'p' _paste_clip_after
   bindkey -M vicmd 'P' _paste_clip_before
-  bindkey -M viins '^V' _paste_clip_after
+  bindkey -M viins '^V' _paste_clip_here
 fi
 
 ##### Tiny helpers
