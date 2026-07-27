@@ -98,7 +98,6 @@ local function set_transparency()
 
   local c = api.nvim_get_hl(0, { name = "Comment", link = false }) or {}
   api.nvim_set_hl(0, "FloatBorder", { bg = "none", fg = c.fg or "#808080" })
-
   local pm = api.nvim_get_hl(0, { name = "PmenuSel", link = false }) or {}
   api.nvim_set_hl(0, "PmenuSel", { bg = pm.bg or "#333333", fg = pm.fg or "NONE" })
 end
@@ -108,7 +107,6 @@ api.nvim_create_autocmd("ColorScheme", {
   callback = set_transparency,
 })
 set_transparency()
-
 api.nvim_set_hl(0, "Whitespace",   { fg = "#808080" })
 api.nvim_set_hl(0, "TabLine",      { fg = "#808080" })
 api.nvim_set_hl(0, "LineNr",       { fg = "#FF0000" })
@@ -121,7 +119,7 @@ local kmopts = { noremap = true, silent = true }
 -- Save / Quit
 map("n", "<leader>w", "<Cmd>w<CR>", kmopts)
 map("n", "<leader>q", "<Cmd>q<CR>", kmopts)
-map("n", "<leader>x", "<Cmd>silent! wq<CR>", kmopts)
+map("n", "<leader>x", "<Cmd>wq<CR>", kmopts)
 map("n", "<Esc>", "<Cmd>nohlsearch<CR>", kmopts)
 
 -- Fast Escape
@@ -164,7 +162,17 @@ api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {
   command = "checktime",
 })
 
--- Autosave current buffer only on InsertLeave
+-- Keep comment behavior consistent after filetype plugins run.
+api.nvim_create_autocmd("FileType", {
+  group = api.nvim_create_augroup("format_options", { clear = true }),
+  callback = function()
+    vim.opt_local.formatoptions:remove({ "r", "o" })
+    vim.opt_local.formatoptions:append({ "j" })
+  end,
+})
+
+-- Autosave current buffer only on InsertLeave. Report write failures instead
+-- of silently hiding permission, disk, or read-only errors.
 api.nvim_create_autocmd("InsertLeave", {
   group = api.nvim_create_augroup("autosave_modified", { clear = true }),
   callback = function(args)
@@ -174,7 +182,19 @@ api.nvim_create_autocmd("InsertLeave", {
       and vim.bo[b].buflisted
       and vim.bo[b].modified
     then
-      pcall(vim.cmd, "silent keepalt write")
+      local ok, err = pcall(api.nvim_buf_call, b, function()
+        vim.cmd("silent keepalt write")
+      end)
+      if not ok then
+        local name = api.nvim_buf_get_name(b)
+        if name == "" then
+          name = "[No Name]"
+        end
+        vim.notify(
+          ("Autosave failed for %s: %s"):format(name, tostring(err)),
+          vim.log.levels.ERROR
+        )
+      end
     end
   end,
 })
@@ -197,128 +217,134 @@ api.nvim_create_autocmd("BufWritePre", {
 api.nvim_create_autocmd("TextYankPost", {
   group = api.nvim_create_augroup("yank_hi", { clear = true }),
   callback = function()
-    vim.highlight.on_yank({ higroup = "IncSearch", timeout = 200 })
+    vim.hl.on_yank({ higroup = "IncSearch", timeout = 200 })
   end,
 })
 
--- --- Autopair ---
-local expr_opts = { expr = true, noremap = true, silent = true, replace_keycodes = true }
+-- --- Quote autopair ---
+local expr_opts = {
+  expr = true,
+  noremap = true,
+  silent = true,
+  replace_keycodes = true,
+}
 
 local function get_chars()
   local col = fn.col(".")
   local line = fn.getline(".")
-  local prevc = (col > 1) and line:sub(col - 1, col - 1) or ""
+  local prevc = col > 1 and line:sub(col - 1, col - 1) or ""
   local nextc = line:sub(col, col)
   return prevc, nextc
 end
 
 local function is_word(c)
-  return c and c:match("[%w_]")
+  return c ~= "" and c:match("[%w_]") ~= nil
 end
 
 local function is_closer(c)
-  return c and c:match("[%)%]%}]")
-end
-
-local function is_hardstop(c)
-  return c ~= "" and c:match("[\\.%=]") ~= nil
+  return c ~= "" and c:match("[%)%]%}]") ~= nil
 end
 
 local function is_boundary_char(c)
   return c == "" or c:match("[%s%p]") ~= nil
 end
 
-local function is_pathstart(c)
-  return c == "/" or c == "~"
-end
-
-local function open_pair(open, close, mode)
-  return function()
-    local prevc, nextc = get_chars()
-    if fn.pumvisible() == 1 then
-      return open
-    end
-
-    if prevc == open then
-      return open .. close .. "<Left>"
-    end
-
-    if open == '"' or open == "'" then
-      if prevc == "=" then
-        if is_boundary_char(nextc) then
-          return open .. close .. "<Left>"
-        else
-          return open
-        end
-      end
-      if is_word(nextc) or is_word(prevc) or is_closer(prevc) then
-        return open
-      end
-    end
-
-    if is_hardstop(prevc) then
-      return open
-    end
-
-    if is_pathstart(nextc) then
-      return open
-    end
-
-    if mode == "always" then
-      return open .. close .. "<Left>"
-    end
-
-    if mode == "boundary" then
-      if not is_closer(prevc) and is_boundary_char(prevc) and is_boundary_char(nextc) then
-        return open .. close .. "<Left>"
-      end
-    end
-
-    return open
-  end
-end
-
-local function backspace_pair()
+local function should_pair_quote(quote)
   local prevc, nextc = get_chars()
-  local pairs = { ["'"] = "'", ['"'] = '"', ["("] = ")", ["["] = "]", ["{"] = "}" }
-  if pairs[prevc] and pairs[prevc] == nextc then
+
+  if fn.pumvisible() == 1 then
+    return quote
+  end
+
+  -- Move over an automatically inserted closing quote.
+  if nextc == quote then
+    return "<Right>"
+  end
+
+  -- Do not pair quotes inside words or immediately after closing brackets.
+  if is_word(prevc) or is_word(nextc) or is_closer(prevc) then
+    return quote
+  end
+
+  -- Avoid interfering with paths, escaped values, decimals, and similar text.
+  if prevc == "\\" or prevc == "." then
+    return quote
+  end
+
+  if nextc == "/" or nextc == "~" then
+    return quote
+  end
+
+  -- Pair assignment values such as: name = ""
+  if prevc == "=" and is_boundary_char(nextc) then
+    return quote .. quote .. "<Left>"
+  end
+
+  -- Pair only when surrounded by boundaries.
+  if is_boundary_char(prevc) and is_boundary_char(nextc) then
+    return quote .. quote .. "<Left>"
+  end
+
+  return quote
+end
+
+local function backspace_quote_pair()
+  local prevc, nextc = get_chars()
+
+  if (prevc == "'" and nextc == "'")
+    or (prevc == '"' and nextc == '"')
+  then
     return "<BS><Del>"
   end
+
   return "<BS>"
 end
 
-map("i", "'", open_pair("'", "'", "boundary"), expr_opts)
-map("i", '"', open_pair('"', '"', "boundary"), expr_opts)
-map("i", "<BS>", backspace_pair, expr_opts)
-map("i", "<C-h>", backspace_pair, expr_opts)
-
-map("i", "<CR>", function()
-  if fn.pumvisible() == 1 then
-    return "<CR>"
-  end
-  local prevc, nextc = get_chars()
-  local matchers = { ["("] = ")", ["["] = "]", ["{"] = "}" }
-  if matchers[prevc] and matchers[prevc] == nextc then
-    return "<CR><Esc>O"
-  end
-  return "<CR>"
+map("i", "'", function()
+  return should_pair_quote("'")
 end, expr_opts)
+
+map("i", '"', function()
+  return should_pair_quote('"')
+end, expr_opts)
+
+map("i", "<BS>", backspace_quote_pair, expr_opts)
+map("i", "<C-h>", backspace_quote_pair, expr_opts)
 
 -- --- Highlight TODOs & trailing whitespace ---
 api.nvim_set_hl(0, "ExtraWhitespace", { bg = "#ff5f5f" })
 api.nvim_set_hl(0, "TodoKeyword", { fg = "#FFA500", bold = true })
 
-api.nvim_create_autocmd({ "Syntax", "BufEnter" }, {
-  group = api.nvim_create_augroup("match_keywords_ws", { clear = true }),
-  callback = function(args)
-    if vim.b[args.buf].todo_match_id then
-      pcall(fn.matchdelete, vim.b[args.buf].todo_match_id)
-    end
-    vim.b[args.buf].todo_match_id = fn.matchadd("TodoKeyword", [[\v<(TODO|FIXME|NOTE)>]])
+local function delete_window_match(name)
+  local id = vim.w[name]
 
-    if vim.b[args.buf].trail_match_id then
-      pcall(fn.matchdelete, vim.b[args.buf].trail_match_id)
-    end
-    vim.b[args.buf].trail_match_id = fn.matchadd("ExtraWhitespace", [[\s\+$]])
-  end,
+  if id then
+    pcall(fn.matchdelete, id)
+    vim.w[name] = nil
+  end
+end
+
+local function refresh_window_matches()
+  local buf = api.nvim_get_current_buf()
+
+  delete_window_match("todo_match_id")
+  delete_window_match("trail_match_id")
+
+  -- Avoid custom matches in help, quickfix, terminal, netrw, and other
+  -- special buffers.
+  if vim.bo[buf].buftype ~= "" then
+    return
+  end
+
+  vim.w.todo_match_id =
+    fn.matchadd("TodoKeyword", [[\v<(TODO|FIXME|NOTE)>]])
+
+  vim.w.trail_match_id =
+    fn.matchadd("ExtraWhitespace", [[\s\+$]])
+end
+
+api.nvim_create_autocmd({ "BufWinEnter", "WinEnter", "Syntax" }, {
+  group = api.nvim_create_augroup("match_keywords_ws", { clear = true }),
+  callback = refresh_window_matches,
 })
+
