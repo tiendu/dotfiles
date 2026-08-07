@@ -60,6 +60,7 @@ fi
 ##### Minimal safe git aliases
 alias g='git'
 alias gs='git status -sb'
+alias gb='git branch --show-current'
 alias gl='git log --oneline --decorate --graph --max-count=15'
 alias gf='git fetch --prune'
 alias ga='git add -p'
