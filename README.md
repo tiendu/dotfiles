@@ -11,7 +11,7 @@ Use this as a personal reference. Copy only the parts you need.
 - [Principles](#principles)
 - [Base Packages](#base-packages)
 - [Shell Setup](#shell-setup)
-- [Neovim Setup](#neovim-setup)
+- [vim Setup](#vim-setup)
 - [tmux Setup](#tmux-setup)
 - [WezTerm Setup](#wezterm-setup)
 - [Version-Controlled Dotfiles](#version-controlled-dotfiles)
