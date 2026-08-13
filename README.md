@@ -149,143 +149,15 @@ This is a minimal Bash setup. It is intentionally plain.
 Put this in `~/.bashrc`:
 
 ```bash
-# Return early for non-interactive shells.
-case $- in
-  *i*) ;;
-  *) return ;;
-esac
+case $- in *i*) ;; *) return ;; esac
 
-export EDITOR="nvim"
-export VISUAL="nvim"
-export PAGER="less"
-export LESS="-I -R"
-
-# History.
-HISTFILE="$HOME/.bash_history"
-HISTSIZE=10000
-HISTFILESIZE=20000
-HISTCONTROL=ignoredups:erasedups
-shopt -s histappend checkwinsize
-
-# Vi mode.
 set -o vi
 bind '"jk": vi-movement-mode'
-bind '"kj": vi-movement-mode'
-bind '"\C-p": history-search-backward'
-bind '"\C-n": history-search-forward'
 
-# Unique command history, without line numbers.
-h() {
-  history | sed 's/^[[:space:]]*[0-9][0-9]*[[:space:]]*//' | awk '!seen[$0]++'
-}
-
-# Small aliases.
-alias e='nvim'
-alias g='git'
-alias gs='git status -sb'
 alias l='ls'
 alias ll='ls -lh'
 alias la='ls -la'
 alias ..='cd ..'
-alias ...='cd ../..'
-alias ta='tmux attach 2>/dev/null || tmux new -s main'
-
-mkcd() {
-  mkdir -p -- "$1" && cd -- "$1"
-}
-
-extract() {
-  if [ $# -eq 0 ]; then
-    echo "usage: extract <archive>"
-    return 1
-  fi
-
-  case "$1" in
-    *.tar.gz|*.tgz) tar xzf "$1" ;;
-    *.tar.bz2|*.tbz2) tar xjf "$1" ;;
-    *.tar.xz|*.txz) tar xJf "$1" ;;
-    *.zip) unzip "$1" ;;
-    *.gz) gunzip "$1" ;;
-    *) echo "unknown archive: $1"; return 1 ;;
-  esac
-}
-
-# Use eza if available.
-if command -v eza >/dev/null 2>&1; then
-  alias ls='eza'
-  alias l='eza'
-  alias ll='eza -lh'
-  alias la='eza -la'
-fi
-
-# Better cd if available.
-if command -v zoxide >/dev/null 2>&1; then
-  eval "$(zoxide init bash)"
-fi
-
-# Cross-platform clipboard helpers.
-if command -v pbcopy >/dev/null 2>&1 && command -v pbpaste >/dev/null 2>&1; then
-  : # macOS already has pbcopy and pbpaste.
-elif command -v xclip >/dev/null 2>&1; then
-  pbcopy() { xclip -selection clipboard; }
-  pbpaste() { xclip -selection clipboard -o; }
-elif command -v xsel >/dev/null 2>&1; then
-  pbcopy() { xsel --clipboard --input; }
-  pbpaste() { xsel --clipboard --output; }
-else
-  pbcopy() { cat >/dev/null; }
-  pbpaste() { return 1; }
-fi
-
-# Prompt with time, directory, and last exit code.
-__prompt() {
-  local ec="$1"
-  local c='\[\033[1;36m\]'
-  local y='\[\033[1;33m\]'
-  local g='\[\033[1;32m\]'
-  local r='\[\033[1;31m\]'
-  local m='\[\033[1;35m\]'
-  local x='\[\033[0m\]'
-  local s="${g}${ec}${x}"
-
-  [ "$ec" -ne 0 ] && s="${r}${ec}${x}"
-
-  PS1="${c}\A${x} :: ${y}\w${x} :: ${s}\n${m}#${x} "
-}
-
-PROMPT_COMMAND='__ec=$?; history -a; history -n; __prompt "$__ec"'
-
-path_prepend() {
-  case ":$PATH:" in
-    *":$1:"*) ;;
-    *) PATH="$1:$PATH" ;;
-  esac
-}
-
-manpath_prepend() {
-  case ":${MANPATH:-}:" in
-    *":$1:"*) ;;
-    *) MANPATH="$1${MANPATH:+:$MANPATH}" ;;
-  esac
-}
-
-# Homebrew paths.
-path_prepend "/opt/homebrew/bin"
-path_prepend "$HOME/brew/bin"
-
-for d in /opt/homebrew/opt/*/libexec/gnubin; do
-  [ -d "$d" ] && path_prepend "$d"
-done
-
-for d in /opt/homebrew/opt/*/libexec/gnuman; do
-  [ -d "$d" ] && manpath_prepend "$d"
-done
-
-# Conda / Miniforge path.
-path_prepend "$HOME/miniforge/bin"
-
-export PATH
-export MANPATH
 ```
 
 Put this in `~/.bash_profile`:
@@ -298,79 +170,24 @@ For Zsh, keep the same aliases and functions, but put them in `~/.zshrc`. The `b
 
 ---
 
-## Neovim Setup
+## vim Setup
 
 Minimal config. No plugin manager. Good enough for remote servers.
 
-Put this in `~/.config/nvim/init.lua`:
+Put this in `~/.vimrc`:
 
-```lua
-vim.g.mapleader = " "
-vim.g.maplocalleader = " "
+```vim
+set number
+set expandtab
+set tabstop=2
+set shiftwidth=2
 
-vim.opt.number = true
-vim.opt.relativenumber = true
-vim.opt.tabstop = 2
-vim.opt.shiftwidth = 2
-vim.opt.expandtab = true
-vim.opt.smartindent = true
-vim.opt.shiftround = true
-vim.opt.clipboard = "unnamedplus"
-vim.opt.wrap = false
-vim.opt.undofile = true
-vim.opt.confirm = true
-vim.opt.ignorecase = true
-vim.opt.smartcase = true
-vim.opt.splitright = true
-vim.opt.splitbelow = true
-vim.opt.signcolumn = "yes"
-
-local map = vim.keymap.set
-local opts = { silent = true }
-
-map("n", "<leader>w", "<cmd>w<cr>", opts)
-map("n", "<leader>q", "<cmd>q<cr>", opts)
-map("n", "<leader>x", "<cmd>wq<cr>", opts)
-map("n", "<esc>", "<cmd>nohlsearch<cr>", opts)
-map("i", "jk", "<esc>", opts)
-
-local function set_transparent_bg()
-  local groups = {
-    "Normal",
-    "NormalNC",
-    "SignColumn",
-    "EndOfBuffer",
-    "LineNr",
-    "CursorLineNr",
-    "FoldColumn",
-    "StatusLine",
-    "StatusLineNC",
-    "NormalFloat",
-    "FloatBorder",
-    "Pmenu",
-  }
-
-  for _, group in ipairs(groups) do
-    vim.api.nvim_set_hl(0, group, { bg = "none" })
-  end
-end
-
-vim.api.nvim_create_autocmd("ColorScheme", {
-  callback = set_transparent_bg,
-})
-
-set_transparent_bg()
+inoremap jk <Esc>
 ```
 
-Useful keys:
+Do not assume Neovim is available.
 
-| Key | Action |
-|---|---|
-| `<leader>w` | save |
-| `<leader>q` | quit |
-| `<leader>x` | save and quit |
-| `jk` in insert mode | escape |
-| `<esc>` in normal mode | clear search highlight |
+Plain Vim or vi is much more likely to exist on an old server or production instance. The important part is keeping basic editing behavior familiar.
 
 ---
 
@@ -383,43 +200,18 @@ unbind C-b
 set -g prefix C-a
 bind C-a send-prefix
 
-set -g default-terminal "tmux-256color"
-set -as terminal-overrides ",xterm-256color:RGB"
-set -g escape-time 0
-set -g history-limit 50000
-set -g renumber-windows on
-set -g base-index 1
-setw -g pane-base-index 1
-
-set -g mouse on
+set -g history-limit 10000
 setw -g mode-keys vi
-set -g set-clipboard on
 
 bind h select-pane -L
 bind j select-pane -D
 bind k select-pane -U
 bind l select-pane -R
 
-bind -r H resize-pane -L 5
-bind -r J resize-pane -D 5
-bind -r K resize-pane -U 5
-bind -r L resize-pane -R 5
-
-bind -T copy-mode-vi v send -X begin-selection
-bind -T copy-mode-vi y send -X copy-selection-and-cancel
-
 bind z resize-pane -Z
-bind r source-file ~/.tmux.conf \; display-message "tmux reloaded"
-
-set -g status-bg black
-set -g status-fg white
-set -g status-left ' #S '
-
-set -g window-status-format ' [#I:#W] '
-set -g window-status-style 'fg=white,bg=black'
-set -g window-status-current-format ' #[bold,fg=black,bg=white][#I:#W]#[] '
-set -g window-status-current-style 'bold,fg=black,bg=white'
 ```
+
+This keeps tmux close to vi-style navigation without depending on plugins, custom status bars, colors, clipboard helpers, or special terminal capabilities.
 
 Common commands:
 
@@ -436,9 +228,8 @@ Useful keys:
 |---|---|
 | `C-a c` | new window |
 | `C-a h/j/k/l` | move between panes |
-| `C-a H/J/K/L` | resize panes |
 | `C-a z` | zoom pane |
-| `C-a r` | reload config |
+| `C-a [` | enter copy mode |
 
 ---
 
