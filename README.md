@@ -144,8 +144,6 @@ eval "$(~/brew/bin/brew shellenv)"
 
 ## Shell Setup
 
-This is a minimal Bash setup. It is intentionally plain.
-
 Put this in `~/.bashrc`:
 
 ```bash
@@ -153,11 +151,8 @@ case $- in *i*) ;; *) return ;; esac
 
 set -o vi
 bind '"jk": vi-movement-mode'
-
-alias l='ls'
-alias ll='ls -lh'
-alias la='ls -la'
-alias ..='cd ..'
+export EDITOR=vim
+export VISUAL=vim
 ```
 
 Put this in `~/.bash_profile`:
@@ -166,28 +161,18 @@ Put this in `~/.bash_profile`:
 [ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
 ```
 
-For Zsh, keep the same aliases and functions, but put them in `~/.zshrc`. The `bind` commands are Bash-specific and should be rewritten with `bindkey` if needed.
-
 ---
 
 ## vim Setup
-
-Minimal config. No plugin manager. Good enough for remote servers.
 
 Put this in `~/.vimrc`:
 
 ```vim
 set number
-set expandtab
-set tabstop=2
-set shiftwidth=2
+set ruler
 
 inoremap jk <Esc>
 ```
-
-Do not assume Neovim is available.
-
-Plain Vim or vi is much more likely to exist on an old server or production instance. The important part is keeping basic editing behavior familiar.
 
 ---
 
@@ -196,22 +181,8 @@ Plain Vim or vi is much more likely to exist on an old server or production inst
 Put this in `~/.tmux.conf`:
 
 ```tmux
-unbind C-b
-set -g prefix C-a
-bind C-a send-prefix
-
-set -g history-limit 10000
 setw -g mode-keys vi
-
-bind h select-pane -L
-bind j select-pane -D
-bind k select-pane -U
-bind l select-pane -R
-
-bind z resize-pane -Z
 ```
-
-This keeps tmux close to vi-style navigation without depending on plugins, custom status bars, colors, clipboard helpers, or special terminal capabilities.
 
 Common commands:
 
@@ -221,15 +192,6 @@ tmux attach -t main
 tmux ls
 tmux kill-session -t main
 ```
-
-Useful keys:
-
-| Key | Action |
-|---|---|
-| `C-a c` | new window |
-| `C-a h/j/k/l` | move between panes |
-| `C-a z` | zoom pane |
-| `C-a [` | enter copy mode |
 
 ---
 
