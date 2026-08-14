@@ -147,7 +147,7 @@ eval "$(~/brew/bin/brew shellenv)"
 Put this in `~/.bashrc`:
 
 ```bash
-case $- in *i*) ;; *) return ;; esac
+[[ $- == *i* ]] || return
 
 set -o vi
 bind '"jk": vi-movement-mode'
