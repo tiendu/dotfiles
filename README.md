@@ -150,7 +150,7 @@ Put this in `~/.bashrc`:
 [[ $- == *i* ]] || return
 
 set -o vi
-bind '"jk": vi-movement-mode'
+bind -m vi-insert '"jk": vi-movement-mode'
 export EDITOR=vim
 export VISUAL=vim
 ```
