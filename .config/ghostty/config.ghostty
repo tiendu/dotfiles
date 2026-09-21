@@ -1,0 +1,74 @@
+# ~/.config/ghostty/config.ghostty
+
+# Appearance
+theme = Sakura
+
+font-family = Intel One Mono
+font-family = JetBrains Mono
+font-size = 16
+
+background-opacity = 0.75
+
+# Keep transparency in apps that paint their own background
+background-opacity-cells = true
+
+# macOS only; harmless elsewhere.
+macos-titlebar-style = tabs
+
+# Linux: automatically hide tab bar when only one tab exists.
+window-show-tab-bar = auto
+
+# Ghostty only supports system-controlled or disabled scrollbars.
+scrollbar = system
+
+
+# Padding
+window-padding-x = 10
+window-padding-y = 10
+
+
+# Cursor
+cursor-style = block
+cursor-style-blink = true
+cursor-color = cell-foreground
+cursor-text = cell-background
+
+# Ghostty shell integration otherwise changes the cursor to a bar
+# while you're sitting at the shell prompt.
+shell-integration-features = no-cursor
+
+
+# Scrollback
+# Ghostty measures this in bytes, not lines.
+scrollback-limit = 10485760
+
+
+# Bell
+# Disable audio/system bell and use a visual border indication.
+bell-features = no-system,no-audio,no-attention,no-title,border
+
+
+# Inactive pane visibility
+unfocused-split-opacity = 0.6
+
+
+# Close confirmation
+confirm-close-surface = always
+
+
+# Physical key names avoid problems with shifted characters.
+keybind = ctrl+shift+t=new_tab
+keybind = ctrl+shift+w=close_tab
+
+keybind = ctrl+shift+Quote=new_split:down
+keybind = ctrl+shift+Digit5=new_split:right
+
+# Vim-style pane navigation
+keybind = ctrl+shift+h=goto_split:left
+keybind = ctrl+shift+l=goto_split:right
+keybind = ctrl+shift+j=goto_split:down
+keybind = ctrl+shift+k=goto_split:up
+
+
+# Disable automatic updates
+auto-update = off
