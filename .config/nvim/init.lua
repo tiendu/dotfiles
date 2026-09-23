@@ -112,6 +112,19 @@ api.nvim_set_hl(0, "TabLine",      { fg = "#808080" })
 api.nvim_set_hl(0, "LineNr",       { fg = "#FF0000" })
 api.nvim_set_hl(0, "CursorLineNr", { fg = "#00FF00" })
 
+-- Built-in syntax highlighting
+vim.cmd("syntax enable")
+
+-- Basic syntax colors
+api.nvim_set_hl(0, "String",    { fg = "#98C379" })
+api.nvim_set_hl(0, "Character", { fg = "#98C379" })
+api.nvim_set_hl(0, "Number",    { fg = "#D19A66" })
+api.nvim_set_hl(0, "Boolean",   { fg = "#D19A66" })
+api.nvim_set_hl(0, "Function",  { fg = "#61AFEF" })
+api.nvim_set_hl(0, "Keyword",   { fg = "#C678DD" })
+api.nvim_set_hl(0, "Type",      { fg = "#E5C07B" })
+api.nvim_set_hl(0, "Comment",   { fg = "#808080", italic = true })
+
 -- --- Keymaps ---
 local map = vim.keymap.set
 local kmopts = { noremap = true, silent = true }
