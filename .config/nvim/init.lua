@@ -251,7 +251,8 @@ local function get_chars()
 end
 
 local function is_word(c)
-  return c ~= "" and c:match("[%w_]") ~= nil
+  -- match alphanumeric, underscore, $ and hyphen
+  return c ~= "" and c:match("[%w_%%$%-]") ~= nil
 end
 
 local function is_closer(c)
