@@ -332,13 +332,16 @@ add-zsh-hook precmd _prompt_precmd
 typeset -ga region_highlight
 
 _custom_highlight() {
+  emulate -L zsh
+  setopt localoptions noksharrays extendedglob
+
   region_highlight=()
 
   local buffer="$BUFFER"
   (( ${#buffer} > ZSH_HL_MAX_LEN )) && return
 
-  local offset=0 remaining="$buffer" found_command=0
-  local word rel_idx idx_start idx_end
+  local pos=0 idx_start idx_end word check_word tail
+  local found_command=0
   local -a words
   local -a delimiters=(";" "|" "||" "&&" "|&" "&" ";;" ";&" ";|")
   local -a redirects=("<" ">" ">>" "<<" "<<<" "<>" ">|" "2>" "2>>" "&>" "&>>" "1>" "1>>" "1>&2" "2>&1")
@@ -348,25 +351,30 @@ _custom_highlight() {
     readonly typeset '!' in
   )
   local -a starts_cmd_after=(then do elif else time '!' fi done esac)
-  local expect_for_var=0 in_for_list=0 expect_func_name=0
-  local in_test=0 in_arith=0
+
+  local expect_for_var=0
+  local in_for_list=0
+  local expect_func_name=0
+  local in_test=0
+  local in_arith=0
   local expect_redir_target=0
 
-  # ${(z)...} is useful here because it gives us shell-style tokens.
-  # While editing, incomplete shell input is normal, so fail quietly if
-  # tokenization cannot be completed on the current keystroke.
-  {
-    words=(${(z)buffer})
-  } 2>/dev/null || return
+  # Quote the ${(z)...} result so literal globs such as "*" stay literal
+  # instead of being eligible for another round of shell expansion.
+  words=("${(z)buffer}")
 
   for word in "${words[@]}"; do
-    [[ -z "${word// }" ]] && continue
+    [[ -z $word ]] && continue
 
-    rel_idx="${remaining%%${(b)word}*}"
-    idx_start=$((offset + ${#rel_idx}))
+    # ${(z)} preserves the shell token text. Walk forward through BUFFER
+    # and skip only the whitespace before the next token. This avoids the
+    # old pattern-search bug with *, ?, $(...), brackets, and friends.
+    tail="${buffer[$((pos + 1)),-1]}"
+    (( pos += ${#tail} - ${#${tail##[[:space:]]#}} ))
+
+    idx_start=$pos
     idx_end=$((idx_start + ${#word}))
-    offset=$idx_end
-    remaining="${remaining#"$rel_idx$word"}"
+    pos=$idx_end
 
     if [[ $word == '[[' ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
@@ -454,6 +462,7 @@ _custom_highlight() {
 
     if [[ " ${reserved[*]} " == *" $word "* ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
+
       case $word in
         for)      expect_for_var=1; found_command=0 ;;
         in)       in_for_list=1; found_command=0 ;;
@@ -480,7 +489,15 @@ _custom_highlight() {
     fi
 
     if (( in_for_list )); then
-      region_highlight+=("$idx_start $idx_end fg=white")
+      # Keep loop values readable. Highlight command substitution as a
+      # distinct shell expression rather than letting it confuse positions.
+      if [[ $word == '$('*')' ]]; then
+        region_highlight+=("$idx_start $idx_end fg=cyan")
+      elif [[ $word == *[\*\?\[]* ]]; then
+        region_highlight+=("$idx_start $idx_end fg=magenta")
+      else
+        region_highlight+=("$idx_start $idx_end fg=white")
+      fi
       continue
     fi
 
@@ -500,8 +517,11 @@ _custom_highlight() {
       continue
     fi
 
+    # Use the unquoted shell word for command lookup.
+    check_word="${(Q)word}"
+
     if (( found_command == 0 )); then
-      if whence -w -- "$word" &>/dev/null; then
+      if whence -w -- "$check_word" &>/dev/null; then
         region_highlight+=("$idx_start $idx_end fg=green,bold")
       else
         region_highlight+=("$idx_start $idx_end fg=red,bold")
@@ -659,4 +679,3 @@ if [[ $- == *i* ]]; then
     print -P "%F{yellow}warning:%f insecure completion dirs detected"
   fi
 fi
-
