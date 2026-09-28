@@ -329,13 +329,17 @@ autoload -Uz add-zsh-hook
 add-zsh-hook precmd _prompt_precmd
 
 ##### Syntax highlighting
+typeset -ga region_highlight
+
 _custom_highlight() {
   region_highlight=()
+
   local buffer="$BUFFER"
   (( ${#buffer} > ZSH_HL_MAX_LEN )) && return
 
-  local offset=0 remaining="$buffer" found_command=0 word rel_idx idx_start idx_end
-  local -a words=(${(z)buffer})
+  local offset=0 remaining="$buffer" found_command=0
+  local word rel_idx idx_start idx_end
+  local -a words
   local -a delimiters=(";" "|" "||" "&&" "|&" "&" ";;" ";&" ";|")
   local -a redirects=("<" ">" ">>" "<<" "<<<" "<>" ">|" "2>" "2>>" "&>" "&>>" "1>" "1>>" "1>&2" "2>&1")
   local -a reserved=(
@@ -348,12 +352,20 @@ _custom_highlight() {
   local in_test=0 in_arith=0
   local expect_redir_target=0
 
+  # ${(z)...} is useful here because it gives us shell-style tokens.
+  # While editing, incomplete shell input is normal, so fail quietly if
+  # tokenization cannot be completed on the current keystroke.
+  {
+    words=(${(z)buffer})
+  } 2>/dev/null || return
+
   for word in "${words[@]}"; do
     [[ -z "${word// }" ]] && continue
+
     rel_idx="${remaining%%${(b)word}*}"
     idx_start=$((offset + ${#rel_idx}))
     idx_end=$((idx_start + ${#word}))
-    offset=$((idx_end))
+    offset=$idx_end
     remaining="${remaining#"$rel_idx$word"}"
 
     if [[ $word == '[[' ]]; then
@@ -370,7 +382,7 @@ _custom_highlight() {
       continue
     fi
 
-    if [[ $word == '((('* && $word == *'))' && ${#word} -ge 4 ]]; then
+    if [[ $word == \(\(* && $word == *\)\) && ${#word} -ge 4 ]]; then
       region_highlight+=("$idx_start $((idx_start + 2)) fg=yellow,bold")
       region_highlight+=("$((idx_end - 2)) $idx_end fg=yellow,bold")
       if (( idx_end - idx_start > 4 )); then
@@ -443,11 +455,12 @@ _custom_highlight() {
     if [[ " ${reserved[*]} " == *" $word "* ]]; then
       region_highlight+=("$idx_start $idx_end fg=yellow,bold")
       case $word in
-        for) expect_for_var=1; found_command=0 ;;
-        in)  in_for_list=1; found_command=0 ;;
-        do)  in_for_list=0; found_command=0 ;;
+        for)      expect_for_var=1; found_command=0 ;;
+        in)       in_for_list=1; found_command=0 ;;
+        do)       in_for_list=0; found_command=0 ;;
         function) expect_func_name=1; found_command=0 ;;
       esac
+
       if [[ " ${starts_cmd_after[*]} " == *" $word "* ]]; then
         found_command=0
       fi
@@ -498,11 +511,19 @@ _custom_highlight() {
   done
 }
 
-_highlight_pre_redraw() { _custom_highlight; }
-_highlight_finish() { region_highlight=(); }
+_highlight_pre_redraw() {
+  _custom_highlight
+}
 
-zle -N zle-line-pre-redraw _highlight_pre_redraw
-zle -N zle-line-finish _highlight_finish
+_highlight_finish() {
+  region_highlight=()
+}
+
+if [[ $- == *i* ]]; then
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget line-pre-redraw _highlight_pre_redraw
+  add-zle-hook-widget line-finish     _highlight_finish
+fi
 
 ##### Autopair
 if [[ $- == *i* ]]; then
@@ -542,6 +563,7 @@ if [[ $- == *i* ]]; then
           return
         fi
       fi
+
       if _ap_is_word "$next" || _ap_is_word "$prev" || _ap_is_closer "$prev"; then
         LBUFFER+="$key"
         return
@@ -588,6 +610,7 @@ if [[ $- == *i* ]]; then
           ;;
       esac
     fi
+
     zle .backward-delete-char
   }
 
@@ -636,3 +659,4 @@ if [[ $- == *i* ]]; then
     print -P "%F{yellow}warning:%f insecure completion dirs detected"
   fi
 fi
+
