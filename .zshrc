@@ -1,8 +1,6 @@
 # ~/.zshrc
 ##### Modules
 zmodload zsh/zle
-zmodload -F zsh/stat b:zstat
-zmodload zsh/datetime
 
 ##### General environment
 export EDITOR="nvim"
@@ -281,13 +279,20 @@ zle -N zle-line-init zle-keymap-select
 
 _shorten_path() {
   local full="${1:-$PWD}" prefix=""
-  [[ "$full" == "$HOME"* ]] && prefix="~" full="${full/#$HOME/}"
+
+  if [[ $full == "$HOME" ]]; then
+    prefix="~"
+    full=""
+  elif [[ $full == "$HOME/"* ]]; then
+    prefix="~"
+    full="${full#$HOME}"
+  fi
 
   local -a parts
   IFS='/' read -rA parts <<< "${full#/}"
 
   if (( ${#parts} == 0 )); then
-    print -r -- "${prefix}/"
+    print -r -- "${prefix:-/}"
     return
   fi
 
@@ -331,9 +336,13 @@ _custom_highlight() {
 
   local offset=0 remaining="$buffer" found_command=0 word rel_idx idx_start idx_end
   local -a words=(${(z)buffer})
-  local -a delimiters=(";" "|" "||" "&&" "|&" "&" ";;&" ";|")
+  local -a delimiters=(";" "|" "||" "&&" "|&" "&" ";;" ";&" ";|")
   local -a redirects=("<" ">" ">>" "<<" "<<<" "<>" ">|" "2>" "2>>" "&>" "&>>" "1>" "1>>" "1>&2" "2>&1")
-  local -a reserved=(if then else elif fi do done case esac while until for repeat select time function coproc '!' in)
+  local -a reserved=(
+    if then else elif fi do done case esac while until for repeat select
+    time function coproc foreach nocorrect declare export integer local
+    readonly typeset '!' in
+  )
   local -a starts_cmd_after=(then do elif else time '!' fi done esac)
   local expect_for_var=0 in_for_list=0 expect_func_name=0
   local in_test=0 in_arith=0
@@ -613,8 +622,8 @@ if [[ $- == *i* ]]; then
   zstyle ':completion:*' cache-path "$_compcache"
   zstyle ':completion:*' menu select
   zstyle ':completion:*' matcher-list \
-    'm:{a-z}={A-Za-z}' \
-    'r:|[._-]=** r:|=*'
+    'm:{a-zA-Z}={A-Za-z}' \
+    'r:|[._-]=* r:|=*'
   zstyle ':completion:*' group-name ''
   zstyle ':completion:*' list-colors ''
   zstyle ':completion:*:history-words' menu yes select

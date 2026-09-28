@@ -1,11 +1,13 @@
 -- ~/.config/nvim/init.lua
 -- --- Startup / performance ---
-pcall(vim.loader.enable)
+if vim.loader then
+  vim.loader.enable()
+end
 
 local opt, g, api, fn = vim.opt, vim.g, vim.api, vim.fn
 
 -- --- Core timings & UI perf ---
-opt.updatetime = 200
+opt.updatetime = 500
 opt.redrawtime = 10000
 opt.inccommand = "nosplit"
 opt.fillchars = {
@@ -59,9 +61,13 @@ opt.autoread = true
 opt.confirm = true
 opt.mouse = "a"
 
--- If ripgrep is installed, use it for :grep
+-- Prefer ripgrep for :grep; fall back to normal grep when rg is unavailable.
 if fn.executable("rg") == 1 then
   opt.grepprg = "rg --vimgrep --smart-case"
+  opt.grepformat = "%f:%l:%c:%m"
+else
+  opt.grepprg = "grep -nH $* /dev/null"
+  opt.grepformat = "%f:%l:%m"
 end
 
 -- Search
@@ -90,7 +96,10 @@ opt.formatoptions:remove({ "r", "o" })
 opt.formatoptions:append({ "j" })
 
 -- --- Highlighting & Transparency ---
-local function set_transparency()
+-- Built-in syntax highlighting
+vim.cmd("syntax enable")
+
+local function apply_highlights()
   local groups = { "Normal", "NormalFloat", "Pmenu" }
   for _, gname in ipairs(groups) do
     api.nvim_set_hl(0, gname, { bg = "none" })
@@ -98,32 +107,35 @@ local function set_transparency()
 
   local c = api.nvim_get_hl(0, { name = "Comment", link = false }) or {}
   api.nvim_set_hl(0, "FloatBorder", { bg = "none", fg = c.fg or "#808080" })
+
   local pm = api.nvim_get_hl(0, { name = "PmenuSel", link = false }) or {}
   api.nvim_set_hl(0, "PmenuSel", { bg = pm.bg or "#333333", fg = pm.fg or "NONE" })
+
+  api.nvim_set_hl(0, "Whitespace",   { fg = "#808080" })
+  api.nvim_set_hl(0, "TabLine",      { fg = "#808080" })
+  api.nvim_set_hl(0, "LineNr",       { fg = "#FF0000" })
+  api.nvim_set_hl(0, "CursorLineNr", { fg = "#00FF00" })
+
+  -- Basic syntax colors
+  api.nvim_set_hl(0, "String",    { fg = "#98C379" })
+  api.nvim_set_hl(0, "Character", { fg = "#98C379" })
+  api.nvim_set_hl(0, "Number",    { fg = "#D19A66" })
+  api.nvim_set_hl(0, "Boolean",   { fg = "#D19A66" })
+  api.nvim_set_hl(0, "Function",  { fg = "#61AFEF" })
+  api.nvim_set_hl(0, "Keyword",   { fg = "#C678DD" })
+  api.nvim_set_hl(0, "Type",      { fg = "#E5C07B" })
+  api.nvim_set_hl(0, "Comment",   { fg = "#808080", italic = true })
+
+  api.nvim_set_hl(0, "ExtraWhitespace", { bg = "#ff5f5f" })
+  api.nvim_set_hl(0, "TodoKeyword", { fg = "#FFA500", bold = true })
 end
 
 api.nvim_create_autocmd("ColorScheme", {
-  group = api.nvim_create_augroup("transparency", { clear = true }),
-  callback = set_transparency,
+  group = api.nvim_create_augroup("custom_highlights", { clear = true }),
+  callback = apply_highlights,
 })
-set_transparency()
-api.nvim_set_hl(0, "Whitespace",   { fg = "#808080" })
-api.nvim_set_hl(0, "TabLine",      { fg = "#808080" })
-api.nvim_set_hl(0, "LineNr",       { fg = "#FF0000" })
-api.nvim_set_hl(0, "CursorLineNr", { fg = "#00FF00" })
 
--- Built-in syntax highlighting
-vim.cmd("syntax enable")
-
--- Basic syntax colors
-api.nvim_set_hl(0, "String",    { fg = "#98C379" })
-api.nvim_set_hl(0, "Character", { fg = "#98C379" })
-api.nvim_set_hl(0, "Number",    { fg = "#D19A66" })
-api.nvim_set_hl(0, "Boolean",   { fg = "#D19A66" })
-api.nvim_set_hl(0, "Function",  { fg = "#61AFEF" })
-api.nvim_set_hl(0, "Keyword",   { fg = "#C678DD" })
-api.nvim_set_hl(0, "Type",      { fg = "#E5C07B" })
-api.nvim_set_hl(0, "Comment",   { fg = "#808080", italic = true })
+apply_highlights()
 
 -- --- Keymaps ---
 local map = vim.keymap.set
@@ -184,12 +196,41 @@ api.nvim_create_autocmd("FileType", {
   end,
 })
 
+-- Filetype-specific indentation. Defaults remain 2 spaces.
+api.nvim_create_autocmd("FileType", {
+  group = api.nvim_create_augroup("indentation", { clear = true }),
+  pattern = { "python" },
+  callback = function()
+    vim.opt_local.expandtab = true
+    vim.opt_local.tabstop = 4
+    vim.opt_local.shiftwidth = 4
+    vim.opt_local.softtabstop = 4
+  end,
+})
+
+api.nvim_create_autocmd("FileType", {
+  group = api.nvim_create_augroup("hard_tabs", { clear = true }),
+  pattern = { "make", "go" },
+  callback = function()
+    vim.opt_local.expandtab = false
+    vim.opt_local.tabstop = 4
+    vim.opt_local.shiftwidth = 4
+    vim.opt_local.softtabstop = 0
+  end,
+})
+
 -- Autosave current buffer only on InsertLeave. Report write failures instead
 -- of silently hiding permission, disk, or read-only errors.
 api.nvim_create_autocmd("InsertLeave", {
   group = api.nvim_create_augroup("autosave_modified", { clear = true }),
   callback = function(args)
     local b = args.buf
+    local name = api.nvim_buf_get_name(b)
+
+    if name == "" then
+      return
+    end
+
     if vim.bo[b].buftype == ""
       and vim.bo[b].modifiable
       and vim.bo[b].buflisted
@@ -198,11 +239,8 @@ api.nvim_create_autocmd("InsertLeave", {
       local ok, err = pcall(api.nvim_buf_call, b, function()
         vim.cmd("silent keepalt write")
       end)
+
       if not ok then
-        local name = api.nvim_buf_get_name(b)
-        if name == "" then
-          name = "[No Name]"
-        end
         vim.notify(
           ("Autosave failed for %s: %s"):format(name, tostring(err)),
           vim.log.levels.ERROR
@@ -220,17 +258,26 @@ api.nvim_create_autocmd("BufWritePre", {
     if ft == "markdown" or ft == "asciidoc" then
       return
     end
+
     local view = fn.winsaveview()
     vim.cmd([[silent! keeppatterns %s/\s\+$//e]])
     fn.winrestview(view)
   end,
 })
 
--- Highlight on yank
+-- Highlight on yank, with compatibility across Neovim versions.
 api.nvim_create_autocmd("TextYankPost", {
   group = api.nvim_create_augroup("yank_hi", { clear = true }),
   callback = function()
-    vim.hl.on_yank({ higroup = "IncSearch", timeout = 200 })
+    local opts = { higroup = "IncSearch", timeout = 200 }
+
+    if vim.hl and vim.hl.hl_op then
+      vim.hl.hl_op(opts)
+    elseif vim.hl and vim.hl.on_yank then
+      vim.hl.on_yank(opts)
+    elseif vim.highlight and vim.highlight.on_yank then
+      vim.highlight.on_yank(opts)
+    end
   end,
 })
 
@@ -251,7 +298,7 @@ local function get_chars()
 end
 
 local function is_word(c)
-  -- match alphanumeric, underscore, $ and hyphen
+  -- match alphanumeric, underscore, %, $ and hyphen
   return c ~= "" and c:match("[%w_%%$%-]") ~= nil
 end
 
@@ -326,9 +373,6 @@ map("i", "<BS>", backspace_quote_pair, expr_opts)
 map("i", "<C-h>", backspace_quote_pair, expr_opts)
 
 -- --- Highlight TODOs & trailing whitespace ---
-api.nvim_set_hl(0, "ExtraWhitespace", { bg = "#ff5f5f" })
-api.nvim_set_hl(0, "TodoKeyword", { fg = "#FFA500", bold = true })
-
 local function delete_window_match(name)
   local id = vim.w[name]
 
@@ -353,8 +397,12 @@ local function refresh_window_matches()
   vim.w.todo_match_id =
     fn.matchadd("TodoKeyword", [[\v<(TODO|FIXME|NOTE)>]])
 
-  vim.w.trail_match_id =
-    fn.matchadd("ExtraWhitespace", [[\s\+$]])
+  -- Markdown and AsciiDoc may use trailing spaces intentionally.
+  local ft = vim.bo[buf].filetype
+  if ft ~= "markdown" and ft ~= "asciidoc" then
+    vim.w.trail_match_id =
+      fn.matchadd("ExtraWhitespace", [[\s\+$]])
+  end
 end
 
 api.nvim_create_autocmd({ "BufWinEnter", "WinEnter", "Syntax" }, {
