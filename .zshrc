@@ -248,14 +248,14 @@ watch() {
   done
 
   (( $# )) || {
-    print -u2 "usage: watch [-n seconds] [-t] command [args...]"
+    print -u2 "usage: watch [-n seconds] [-t] command"
     return 2
   }
 
+  local cmd="$*"
   local rc=0
 
   while true; do
-    # Home + clear screen.
     printf '\033[H\033[2J'
 
     if (( show_title )); then
@@ -264,15 +264,18 @@ watch() {
       print -P "%F{242}${(l:$COLUMNS::-:)}%f"
     fi
 
-    "$@"
+    (
+      eval -- "$cmd"
+    )
     rc=$?
 
     if (( show_title )); then
       print
+
       if (( rc == 0 )); then
-        print -P "%F{green}exit: $rc%f"
+        print -P "%F{green}exit: ${rc}%f"
       else
-        print -P "%F{red}exit: $rc%f"
+        print -P "%F{red}exit: ${rc}%f"
       fi
     fi
 
