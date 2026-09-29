@@ -213,6 +213,73 @@ extract() {
   esac
 }
 
+watch() {
+  emulate -L zsh
+
+  local interval=2
+  local show_title=1
+
+  while (( $# )); do
+    case "$1" in
+      -n|--interval)
+        [[ -n ${2:-} ]] || {
+          print -u2 "watch: missing interval"
+          return 2
+        }
+        interval="$2"
+        shift 2
+        ;;
+      -t|--no-title)
+        show_title=0
+        shift
+        ;;
+      --)
+        shift
+        break
+        ;;
+      -*)
+        print -u2 "watch: unknown option: $1"
+        return 2
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  (( $# )) || {
+    print -u2 "usage: watch [-n seconds] [-t] command [args...]"
+    return 2
+  }
+
+  local rc=0
+
+  while true; do
+    # Home + clear screen.
+    printf '\033[H\033[2J'
+
+    if (( show_title )); then
+      print -P \
+        "%Bwatch%b  %F{cyan}${interval}s%f  %F{yellow}%D{%Y-%m-%d %H:%M:%S}%f  %F{magenta}${HOST}%f"
+      print -P "%F{242}${(l:$COLUMNS::-:)}%f"
+    fi
+
+    "$@"
+    rc=$?
+
+    if (( show_title )); then
+      print
+      if (( rc == 0 )); then
+        print -P "%F{green}exit: $rc%f"
+      else
+        print -P "%F{red}exit: $rc%f"
+      fi
+    fi
+
+    sleep "$interval"
+  done
+}
+
 ##### History & Shell options
 HISTSIZE=10000
 SAVEHIST=10000
