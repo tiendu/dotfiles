@@ -421,7 +421,7 @@ _update_prompt() {
   fi
 
   # Cached values expand at display time; the path's percent signs are escaped.
-  PROMPT="${vm} :: %K{blue} %B%F{white}%D{%H:%M:%S}%f%b %k :: "'%B%F{magenta}${_prompt_path}%f%b :: %K{cyan} %B%F{black}${_prompt_dir_info}%f%b %k'" :: ${st}"$'\n''%B%F{white}#%f%b '
+  PROMPT="${vm} :: %K{blue} %B%F{white}%D{%H:%M:%S}%f%b %k :: "'%K{blue} %B%F{white}${_prompt_path}%f%b %k :: %K{cyan} %B%F{black}${_prompt_dir_info}%f%b %k'" :: ${st}"$'\n''%B%F{white}#%f%b '
   PS2="  "
 }
 
