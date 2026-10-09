@@ -252,7 +252,12 @@ watch() {
     return 2
   }
 
-  local cmd="$*"
+  local cmd
+  if (( $# == 1 )); then
+    cmd=$1
+  else
+    cmd="${(j: :)${(q)@}}"
+  fi
   local rc=0
 
   while true; do
@@ -611,7 +616,8 @@ _custom_highlight() {
       continue
     fi
 
-    if (( found_command == 0 )) && [[ $word == [A-Za-z_][A-Za-z0-9_]*=* ]]; then
+    if (( found_command == 0 )) &&
+       [[ $word == [A-Za-z_][A-Za-z0-9_]#=* ]]; then
       region_highlight+=("$idx_start $idx_end fg=blue")
       continue
     fi
@@ -670,7 +676,7 @@ if [[ $- == *i* ]]; then
     (( ${#BUFFER} > ZSH_AP_MAX_LEN )) && { LBUFFER+="$1"; return; }
 
     local key="$1" close="$2" mode="${3:-boundary}"
-    local prev="$(_ap_prevc)" next="$(_ap_nextc)"
+    local prev="${LBUFFER[-1]-}" next="${RBUFFER[1]-}"
 
     if [[ $prev == \\ || ( -n "$COMPSYS" && ( $WIDGET == menu-* || $PENDING -gt 0 ) ) ]]; then
       LBUFFER+="$key"
