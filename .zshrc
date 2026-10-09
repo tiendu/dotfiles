@@ -340,9 +340,9 @@ typeset -g _prompt_path=""
 ##### Prompt
 zle-keymap-select() {
   if [[ $KEYMAP == vicmd ]]; then
-    VIM_MODE="%K{yellow}%B%F{white} NOR %f%b%k"
+    VIM_MODE="%K{yellow}%B%F{black} NOR %f%b%k"
   else
-    VIM_MODE="%K{green}%B%F{white} INS %f%b%k"
+    VIM_MODE="%K{green}%B%F{black} INS %f%b%k"
   fi
 
   _update_prompt "$LAST_STATUS"
