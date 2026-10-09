@@ -330,8 +330,12 @@ _first_tab() {
 zle -N _first_tab
 bindkey -M viins '^I' _first_tab
 
+zmodload -F zsh/stat b:zstat
+
 typeset -gi LAST_STATUS=0
 typeset -g VIM_MODE=""
+typeset -g _prompt_dir_info="0 | 0 B"
+typeset -g _prompt_path=""
 
 ##### Prompt
 zle-keymap-select() {
@@ -348,29 +352,61 @@ zle -N zle-keymap-select
 zle -N zle-line-init zle-keymap-select
 
 _shorten_path() {
+  emulate -L zsh
   local full="${1:-$PWD}" prefix=""
 
   if [[ $full == "$HOME" ]]; then
-    prefix="~"
-    full=""
+    print -r -- '~'
+    return
   elif [[ $full == "$HOME/"* ]]; then
     prefix="~"
     full="${full#$HOME}"
   fi
 
   local -a parts
-  IFS='/' read -rA parts <<< "${full#/}"
-
-  if (( ${#parts} == 0 )); then
-    print -r -- "${prefix:-/}"
-    return
-  fi
+  parts=("${(@s:/:)${full#/}}")
 
   if (( ${#parts} > 4 )); then
     print -r -- "${prefix}/${(j:/:)parts[1,2]}/.../${(j:/:)parts[-2,-1]}"
   else
     print -r -- "${prefix}/${(j:/:)parts}"
   fi
+}
+
+_prompt_directory_info() {
+  emulate -L zsh
+  local entry formatted
+  local -A info
+  local -i count=0 bytes=0 incomplete=0
+
+  if [[ ! -r . || ! -x . ]]; then
+    _prompt_dir_info='? | ?'
+    return
+  fi
+
+  # Direct regular files only, including hidden files; exclude symlinks.
+  for entry in ./*(ND.); do
+    if zstat -L -H info -- "$entry" 2>/dev/null; then
+      (( (info[mode] & 8#170000) == 8#100000 )) || continue
+      (( ++count, bytes += info[size] ))
+    else
+      incomplete=1
+    fi
+  done
+
+  if (( bytes < 1024 )); then
+    formatted="$bytes B"
+  elif (( bytes < 1048576 )); then
+    printf -v formatted '%.1f KiB' $(( bytes / 1024.0 ))
+  elif (( bytes < 1073741824 )); then
+    printf -v formatted '%.1f MiB' $(( bytes / 1048576.0 ))
+  else
+    printf -v formatted '%.1f GiB' $(( bytes / 1073741824.0 ))
+  fi
+
+  _prompt_dir_info="$count | $formatted"
+  (( incomplete )) && _prompt_dir_info+=' : partial'
+  return 0
 }
 
 _update_prompt() {
@@ -383,19 +419,23 @@ _update_prompt() {
   else
     st="%K{cyan} %B%F{red}${s}%f%b %k"
   fi
-  PROMPT="${vm} :: %K{blue} %B%F{white}%D{%H:%M:%S}%f%b %k :: %B%F{magenta}$(_shorten_path)%f%b :: ${st}
-%B%F{white}#%f%b "
 
+  # Cached values expand at display time; the path's percent signs are escaped.
+  PROMPT="${vm} :: %K{blue} %B%F{white}%D{%H:%M:%S}%f%b %k :: "'%B%F{magenta}${_prompt_path}%f%b :: %K{cyan} %B%F{black}${_prompt_dir_info}%f%b %k'" :: ${st}"$'\n''%B%F{white}#%f%b '
   PS2="  "
 }
 
 _prompt_precmd() {
   LAST_STATUS=$?
+  _prompt_path="$(_shorten_path)"
+  _prompt_path="${_prompt_path//\%/%%}"
+  _prompt_directory_info
   _update_prompt "$LAST_STATUS"
 }
 
-setopt PROMPT_CR
+setopt PROMPT_SUBST PROMPT_PERCENT PROMPT_CR
 autoload -Uz add-zsh-hook
+add-zsh-hook -d preexec _prompt_preexec
 add-zsh-hook precmd _prompt_precmd
 
 ##### Syntax highlighting
