@@ -469,32 +469,33 @@ _prompt_directory_info() {
   fi
 }
 
-# Theme-adaptive UTF-8 prompt: Zsh's named ANSI colors only.
-# Actual shades come from Ghostty/tmux terminal palette; no hex/256 colors.
-# Default foreground is inherited from the terminal theme.
+# Sculpted rail / VHS-mode prompt. Theme-adaptive named ANSI colors only.
+# ● Insert (record), ■ Normal (stop), ▶ Visual (play).
+# PROMPT_SUBST is deliberately disabled; values expand while building PROMPT.
 _update_prompt() {
   emulate -L zsh
 
   local -i rc=${1:-0}
   local -i width=${COLUMNS:-80}
   local -i estimated path_limit
-  local mode_seg path_seg time_seg stats_seg status_seg anchor
+  local mode_seg mode_color path_seg time_seg stats_seg status_seg anchor
   local parent leaf count size partial_seg=''
   local path_val="${_prompt_path:-~}"
-  local rail='%F{blue}╭─%f'
-  local join='%F{blue}  ·  %f'
+  local rail='%F{blue}╭─┤%f'
+  local bar='%F{blue}├──%f'
+  local join='%F{blue} ── %f'
 
-  # No background blocks: let the terminal choose readable foreground shades.
+  # Native Zsh colors: actual shades come from the terminal theme.
   case ${VIM_MODE:-INS} in
-    NOR) mode_seg='%B%F{yellow}‹NOR›%f%b' ;;
-    VIS) mode_seg='%B%F{magenta}‹VIS›%f%b' ;;
-    *)   mode_seg='%B%F{green}‹INS›%f%b' ;;
+    NOR) mode_color=yellow;  mode_seg='%B%F{yellow}■ NOR%f%b' ;;
+    VIS) mode_color=magenta; mode_seg='%B%F{magenta}▶ VIS%f%b' ;;
+    *)   mode_color=green;   mode_seg='%B%F{green}● INS%f%b' ;;
   esac
-
+  anchor="%B%F{${mode_color}}╰─❯%f%b"
   time_seg='%D{%H:%M:%S}'
 
-  # Parent paths inherit the terminal foreground; the leaf stands out.
-  # _prompt_precmd has already escaped literal percent signs.
+  # Parent path uses default foreground; highlight only the leaf.
+  # Percent signs and control characters are handled by _prompt_precmd.
   if [[ $path_val == */* && $path_val != / ]]; then
     parent=${path_val%/*}
     leaf=${path_val##*/}
@@ -507,9 +508,9 @@ _update_prompt() {
     path_seg="%B%F{magenta}${path_val}%f%b"
   fi
 
-  # Native prompt truncation, without counting embedded color escapes.
+  # Keep long paths contained within the available tmux pane width.
   if (( width < 80 )); then
-    path_limit=$(( width - 28 ))
+    path_limit=$(( width - 30 ))
     (( path_limit > 34 )) && path_limit=34
   else
     path_limit=48
@@ -517,7 +518,7 @@ _update_prompt() {
   (( path_limit < 12 )) && path_limit=12
   path_seg="%${path_limit}<…<${path_seg}%<<"
 
-  # The directory cache stores plain 'count | size'.
+  # Read cached plain data, leaving the expensive directory scan untouched.
   if [[ $_prompt_dir_info == *' | '* ]]; then
     count=${_prompt_dir_info%%' | '*}
     size=${_prompt_dir_info#*' | '}
@@ -525,26 +526,22 @@ _update_prompt() {
       size=${size%' : partial'}
       partial_seg=' %F{yellow}~%f'
     fi
-    stats_seg="%B%F{cyan}≡ ${count}%f%b%F{blue} │ %f${size}${partial_seg}"
+    stats_seg="%B%F{cyan}≡ ${count}%f%b · ${size}${partial_seg}"
   else
     stats_seg="${_prompt_dir_info}"
   fi
 
-  if (( rc == 0 )); then
-    status_seg='%F{green}✓%f'
-    anchor='%B%F{cyan}╰─❯%f%b'
-  else
-    status_seg="%B%F{red}✗ ${rc}%f%b"
-    anchor='%B%F{red}╰─❯%f%b'
-  fi
+  # Success stays quiet; errors are prominent but do not override mode color.
+  status_seg=''
+  (( rc != 0 )) && status_seg="${join}%B%F{red}✗ ${rc}%f%b"
 
-  # Two lines normally; show metadata separately in narrow tmux panes.
-  estimated=$(( ${#path_val} + ${#_prompt_dir_info} + 39 ))
+  # Sculpted two-line prompt; move metadata below in narrow tmux panes.
+  estimated=$(( ${#path_val} + ${#_prompt_dir_info} + 43 ))
   if (( width < 85 || estimated >= width )); then
-    PROMPT=$'\n'"${rail} ${mode_seg}${join}${path_seg}${join}${status_seg}"$'\n'\
+    PROMPT=$'\n'"${rail} ${mode_seg} ${bar} ${path_seg}${status_seg}"$'\n'\
 "%F{blue}│%f  ${time_seg}${join}${stats_seg}"$'\n'"${anchor} "
   else
-    PROMPT=$'\n'"${rail} ${mode_seg}${join}${time_seg}${join}${path_seg}${join}${stats_seg}${join}${status_seg}"$'\n'"${anchor} "
+    PROMPT=$'\n'"${rail} ${mode_seg} ${bar} ${time_seg}${join}${path_seg}${join}${stats_seg}${status_seg}"$'\n'"${anchor} "
   fi
 
   PS2='%F{blue}│%f  '
