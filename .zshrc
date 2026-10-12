@@ -375,17 +375,19 @@ zle-keymap-select() { _sync_vi_mode; }
 zle -N zle-keymap-select
 zle -N zle-line-init zle-keymap-select
 
-# Soft limit for the displayed path. The prompt separately enforces pane width.
-typeset -gi ZSH_PATH_MAX=${ZSH_PATH_MAX:-48}
+# Compress individual path components, never entire hierarchy levels.
+# Thresholds include the Unicode ellipsis: parent 6…5 (12), leaf 10…9 (20).
+typeset -gi ZSH_PATH_PARENT_MAX=${ZSH_PATH_PARENT_MAX:-12}
+typeset -gi ZSH_PATH_LEAF_MAX=${ZSH_PATH_LEAF_MAX:-20}
 
 _shorten_path() {
   emulate -L zsh
 
-  local full="${1:-$PWD}" prefix="" candidate display
-  local -i limit=$ZSH_PATH_MAX
-  local -a parts
+  local full=${1:-$PWD} prefix='' component
+  local -a parts compact=()
+  local -i i limit left right length
 
-  # Use a compact home prefix without hiding any directory names.
+  # Keep the home/root prefix intact.
   if [[ $full == "$HOME" ]]; then
     REPLY='~'
     return
@@ -397,37 +399,33 @@ _shorten_path() {
     full=${full#/}
   fi
 
-  display="${prefix}${full}"
-
-  # First condition: short paths stay complete, regardless of depth.
-  if (( ${#display} <= limit )); then
-    REPLY=$display
+  if [[ -z $full ]]; then
+    REPLY=${prefix:-.}
     return
   fi
 
   parts=("${(@s:/:)full}")
 
-  # Second condition: for long, deeply nested paths preserve both ends.
-  if (( ${#parts} > 4 )); then
-    candidate="${prefix}${parts[1]}/${parts[2]}/…/${parts[-2]}/${parts[-1]}"
-    if (( ${#candidate} <= limit )); then
-      REPLY=$candidate
-      return
+  for (( i = 1; i <= ${#parts}; ++i )); do
+    component=${parts[i]}
+    if (( i == ${#parts} )); then
+      limit=$ZSH_PATH_LEAF_MAX
+    else
+      limit=$ZSH_PATH_PARENT_MAX
     fi
+    (( limit < 3 )) && limit=3
 
-    candidate="${prefix}${parts[1]}/…/${parts[-2]}/${parts[-1]}"
-    if (( ${#candidate} <= limit )); then
-      REPLY=$candidate
-      return
+    length=${#component}
+    if (( length > limit )); then
+      # Keep both ends: 12 -> first 6 + … + last 5 characters.
+      left=$(( limit / 2 ))
+      right=$(( limit - left - 1 ))
+      component="${component[1,$left]}…${component[$(( length - right + 1 )),-1]}"
     fi
+    compact+=("$component")
+  done
 
-    # The native prompt-width truncation handles exceptionally long names.
-    if (( ${#candidate} < ${#display} )); then
-      display=$candidate
-    fi
-  fi
-
-  REPLY=$display
+  REPLY="${prefix}${(j:/:)compact}"
 }
 
 # Directory information cache
@@ -541,15 +539,9 @@ _update_prompt() {
     path_seg="%B%F{magenta}${path_val}%f%b"
   fi
 
-  # Keep long paths contained within the available tmux pane width.
-  if (( width < 80 )); then
-    path_limit=$(( width - 30 ))
-    (( path_limit > 34 )) && path_limit=34
-  else
-    path_limit=48
-  fi
-  (( path_limit < 12 )) && path_limit=12
-  path_seg="%${path_limit}<…<${path_seg}%<<"
+  # Full per-component-compressed path is retained when it fits.
+  # On narrow panes, native Zsh truncation is the last-resort fallback.
+  # The exact width is selected below after choosing the prompt layout.
 
   # Read cached plain data, leaving the expensive directory scan untouched.
   if [[ $_prompt_dir_info == *' | '* ]]; then
@@ -571,9 +563,15 @@ _update_prompt() {
   # Sculpted two-line prompt; move metadata below in narrow tmux panes.
   estimated=$(( ${#path_val} + ${#_prompt_dir_info} + 43 ))
   if (( width < 85 || estimated >= width )); then
+    # Leave space for the rail, mode, and optional nonzero exit status.
+    path_limit=$(( width - 18 ))
+    (( rc != 0 )) && (( path_limit -= ${#rc} + 7 ))
+    (( path_limit < 8 )) && path_limit=8
+    path_seg="%${path_limit}<…<${path_seg}%<<"
     PROMPT=$'\n'"${rail} ${mode_seg} ${bar} ${path_seg}${status_seg}"$'\n'\
 "%F{blue}│%f  ${time_seg}${join}${stats_seg}"$'\n'"${anchor} "
   else
+    # Nothing is discarded if the entire path and metadata fit.
     PROMPT=$'\n'"${rail} ${mode_seg} ${bar} ${time_seg}${join}${path_seg}${join}${stats_seg}${status_seg}"$'\n'"${anchor} "
   fi
 
