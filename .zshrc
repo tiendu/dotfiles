@@ -271,7 +271,7 @@ watch() {
     if (( show_title )); then
       print -P \
         "%Bwatch%b  %F{cyan}${interval}s%f  %F{yellow}%D{%Y-%m-%d %H:%M:%S}%f  %F{magenta}${HOST}%f"
-      print -P "%F{242}${(l:$COLUMNS::-:)}%f"
+      print -P "%F{blue}${(l:$COLUMNS::-:)}%f"
     fi
 
     (
@@ -351,21 +351,27 @@ bindkey -M viins '^I' _first_tab
 zmodload -F zsh/stat b:zstat
 
 typeset -gi LAST_STATUS=0
-typeset -g VIM_MODE=""
+typeset -g VIM_MODE="INS"
 typeset -g _prompt_dir_info="0 | 0 B"
 typeset -g _prompt_path=""
 
 ##### Prompt
-zle-keymap-select() {
-  if [[ $KEYMAP == vicmd ]]; then
-    VIM_MODE="%K{yellow}%B%F{black} NOR %f%b%k"
-  else
-    VIM_MODE="%K{green}%B%F{black} INS %f%b%k"
+# Keep mode as plain data; style it only when building PROMPT.
+_sync_vi_mode() {
+  local mode=INS
+  if (( REGION_ACTIVE )); then
+    mode=VIS
+  elif [[ $KEYMAP == vicmd || $KEYMAP == viopp ]]; then
+    mode=NOR
   fi
 
+  [[ $mode == $VIM_MODE ]] && return 0
+  VIM_MODE=$mode
   _update_prompt "$LAST_STATUS"
   zle reset-prompt
 }
+
+zle-keymap-select() { _sync_vi_mode; }
 zle -N zle-keymap-select
 zle -N zle-line-init zle-keymap-select
 
@@ -463,25 +469,95 @@ _prompt_directory_info() {
   fi
 }
 
+# Theme-adaptive UTF-8 prompt: Zsh's named ANSI colors only.
+# Actual shades come from Ghostty/tmux terminal palette; no hex/256 colors.
+# Default foreground is inherited from the terminal theme.
 _update_prompt() {
-  local s=$1
-  local vm="${VIM_MODE:-}"
-  local st
+  emulate -L zsh
 
-  if (( s == 0 )); then
-    st="%K{cyan} %B%F{green}0%f%b %k"
+  local -i rc=${1:-0}
+  local -i width=${COLUMNS:-80}
+  local -i estimated path_limit
+  local mode_seg path_seg time_seg stats_seg status_seg anchor
+  local parent leaf count size partial_seg=''
+  local path_val="${_prompt_path:-~}"
+  local rail='%F{blue}╭─%f'
+  local join='%F{blue}  ·  %f'
+
+  # No background blocks: let the terminal choose readable foreground shades.
+  case ${VIM_MODE:-INS} in
+    NOR) mode_seg='%B%F{yellow}‹NOR›%f%b' ;;
+    VIS) mode_seg='%B%F{magenta}‹VIS›%f%b' ;;
+    *)   mode_seg='%B%F{green}‹INS›%f%b' ;;
+  esac
+
+  time_seg='%D{%H:%M:%S}'
+
+  # Parent paths inherit the terminal foreground; the leaf stands out.
+  # _prompt_precmd has already escaped literal percent signs.
+  if [[ $path_val == */* && $path_val != / ]]; then
+    parent=${path_val%/*}
+    leaf=${path_val##*/}
+    if [[ -z $parent ]]; then
+      path_seg="/%B%F{magenta}${leaf}%f%b"
+    else
+      path_seg="${parent}/%B%F{magenta}${leaf}%f%b"
+    fi
   else
-    st="%K{cyan} %B%F{red}${s}%f%b %k"
+    path_seg="%B%F{magenta}${path_val}%f%b"
   fi
 
-  # Cached values expand at display time; the path's percent signs are escaped.
-  PROMPT="${vm} %B::%b %K{blue} %B%F{white}%D{%H:%M:%S}%f%b %k %B:::%b "'%K{magenta} %B%F{white}${_prompt_path}%f%b %k %B:::%b %K{cyan} %B%F{black}${_prompt_dir_info}%f%b %k'" %B::%b ${st}"$'\n''%B%F{white}#%f%b '
-  PS2="  "
+  # Native prompt truncation, without counting embedded color escapes.
+  if (( width < 80 )); then
+    path_limit=$(( width - 28 ))
+    (( path_limit > 34 )) && path_limit=34
+  else
+    path_limit=48
+  fi
+  (( path_limit < 12 )) && path_limit=12
+  path_seg="%${path_limit}<…<${path_seg}%<<"
+
+  # The directory cache stores plain 'count | size'.
+  if [[ $_prompt_dir_info == *' | '* ]]; then
+    count=${_prompt_dir_info%%' | '*}
+    size=${_prompt_dir_info#*' | '}
+    if [[ $size == *' : partial' ]]; then
+      size=${size%' : partial'}
+      partial_seg=' %F{yellow}~%f'
+    fi
+    stats_seg="%B%F{cyan}≡ ${count}%f%b%F{blue} │ %f${size}${partial_seg}"
+  else
+    stats_seg="${_prompt_dir_info}"
+  fi
+
+  if (( rc == 0 )); then
+    status_seg='%F{green}✓%f'
+    anchor='%B%F{cyan}╰─❯%f%b'
+  else
+    status_seg="%B%F{red}✗ ${rc}%f%b"
+    anchor='%B%F{red}╰─❯%f%b'
+  fi
+
+  # Two lines normally; show metadata separately in narrow tmux panes.
+  estimated=$(( ${#path_val} + ${#_prompt_dir_info} + 39 ))
+  if (( width < 85 || estimated >= width )); then
+    PROMPT=$'\n'"${rail} ${mode_seg}${join}${path_seg}${join}${status_seg}"$'\n'\
+"%F{blue}│%f  ${time_seg}${join}${stats_seg}"$'\n'"${anchor} "
+  else
+    PROMPT=$'\n'"${rail} ${mode_seg}${join}${time_seg}${join}${path_seg}${join}${stats_seg}${join}${status_seg}"$'\n'"${anchor} "
+  fi
+
+  PS2='%F{blue}│%f  '
 }
 
 _prompt_precmd() {
   LAST_STATUS=$?
   _prompt_path="$(_shorten_path)"
+  # Render control characters visibly and prevent % prompt-escape injection.
+  _prompt_path=${_prompt_path//$'\n'/↵}
+  _prompt_path=${_prompt_path//$'\r'/}
+  _prompt_path=${_prompt_path//$'\t'/⇥}
+  _prompt_path=${_prompt_path//$'\e'/}
   _prompt_path="${_prompt_path//\%/%%}"
   _prompt_directory_info
   _update_prompt "$LAST_STATUS"
@@ -699,6 +775,8 @@ _custom_highlight() {
 typeset -g _hl_previous_buffer=''
 typeset -gi _hl_previous_valid=0
 _highlight_pre_redraw() {
+  _sync_vi_mode
+
   if (( _hl_previous_valid )) &&
      [[ $BUFFER == "$_hl_previous_buffer" ]]; then
     return
