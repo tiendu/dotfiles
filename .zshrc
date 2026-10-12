@@ -375,8 +375,8 @@ zle-keymap-select() { _sync_vi_mode; }
 zle -N zle-keymap-select
 zle -N zle-line-init zle-keymap-select
 
-# Compress individual path components, never entire hierarchy levels.
-# Thresholds include the Unicode ellipsis: parent 6…5 (12), leaf 10…9 (20).
+# Compress names independently; preserve every path level when possible.
+# 12/20 are maximum component widths, not fixed path-length limits.
 typeset -gi ZSH_PATH_PARENT_MAX=${ZSH_PATH_PARENT_MAX:-12}
 typeset -gi ZSH_PATH_LEAF_MAX=${ZSH_PATH_LEAF_MAX:-20}
 
@@ -384,10 +384,11 @@ _shorten_path() {
   emulate -L zsh
 
   local full=${1:-$PWD} prefix='' component
-  local -a parts compact=()
-  local -i i limit left right length
+  local -a parts caps=() compact=()
+  local -i budget=${2:-0}
+  local -i n i length cap left right total stage floor best pick
 
-  # Keep the home/root prefix intact.
+  # Never compress the home marker or filesystem root.
   if [[ $full == "$HOME" ]]; then
     REPLY='~'
     return
@@ -399,28 +400,73 @@ _shorten_path() {
     full=${full#/}
   fi
 
-  if [[ -z $full ]]; then
-    REPLY=${prefix:-.}
-    return
+  [[ -n $full ]] || { REPLY=${prefix:-.}; return; }
+  parts=("${(@s:/:)full}")
+  n=${#parts}
+  total=$(( ${#prefix} + n - 1 ))  # Slashes are never removed.
+
+  # Initial limits: parents <= 12, leaf <= 20 (by default).
+  for (( i = 1; i <= n; ++i )); do
+    length=${#parts[i]}
+    if (( i == n )); then
+      cap=$ZSH_PATH_LEAF_MAX
+    else
+      cap=$ZSH_PATH_PARENT_MAX
+    fi
+    (( cap < 3 )) && cap=3
+    (( cap > length )) && cap=$length
+    caps[i]=$cap
+    (( total += cap ))
+  done
+
+  # Narrow panes: progressively reduce components before losing any levels.
+  # Keep the leaf more legible than parents, and favor nearby context.
+  if (( budget > 0 && total > budget )); then
+    for stage in 1 2 3 4 5; do
+      while (( total > budget )); do
+        pick=0
+        if (( stage == 2 || stage == 4 )); then
+          # Leaf: first to 12, and only later to 8 characters.
+          if (( stage == 2 )); then floor=12; else floor=8; fi
+          (( caps[n] > floor )) && pick=$n
+        else
+          # Parents: 12 -> 5 -> 3 -> 1, longest first.
+          case $stage in
+            1) floor=5 ;;
+            3) floor=3 ;;
+            5) floor=1 ;;
+          esac
+          best=0
+          for (( i = 1; i < n; ++i )); do
+            if (( caps[i] > floor && caps[i] > best )); then
+              best=${caps[i]}
+              pick=$i
+            fi
+          done
+        fi
+        (( pick )) || break
+        (( caps[pick]--, total-- ))
+      done
+      (( total <= budget )) && break
+    done
   fi
 
-  parts=("${(@s:/:)full}")
-
-  for (( i = 1; i <= ${#parts}; ++i )); do
+  # Always keep every slash. For shortened components, preserve both ends
+  # whenever the width allows; one-cell parents keep their initial.
+  for (( i = 1; i <= n; ++i )); do
     component=${parts[i]}
-    if (( i == ${#parts} )); then
-      limit=$ZSH_PATH_LEAF_MAX
-    else
-      limit=$ZSH_PATH_PARENT_MAX
-    fi
-    (( limit < 3 )) && limit=3
-
     length=${#component}
-    if (( length > limit )); then
-      # Keep both ends: 12 -> first 6 + … + last 5 characters.
-      left=$(( limit / 2 ))
-      right=$(( limit - left - 1 ))
-      component="${component[1,$left]}…${component[$(( length - right + 1 )),-1]}"
+    cap=${caps[i]}
+    if (( length > cap )); then
+      if (( cap == 1 )); then
+        component=${component[1]}
+      elif (( cap == 2 )); then
+        component="${component[1]}…"
+      else
+        left=$(( cap / 2 ))
+        right=$(( cap - left - 1 ))
+        component="${component[1,$left]}…${component[$((length - right + 1)),-1]}"
+      fi
     fi
     compact+=("$component")
   done
@@ -508,13 +554,13 @@ _update_prompt() {
 
   local -i rc=${1:-0}
   local -i width=${COLUMNS:-80}
-  local -i estimated path_limit
+  local -i wide_budget narrow_budget
   local mode_seg mode_color path_seg time_seg stats_seg status_seg anchor
-  local parent leaf count size partial_seg=''
-  local path_val="${_prompt_path:-~}"
+  local parent leaf count size partial_seg='' path_val
   local rail='%F{blue}╭─┤%f'
   local bar='%F{blue}├──%f'
   local join='%F{blue} ── %f'
+  local layout=wide
 
   # Native Zsh colors: actual shades come from the terminal theme.
   case ${VIM_MODE:-INS} in
@@ -525,25 +571,7 @@ _update_prompt() {
   anchor="%B%F{${mode_color}}╰─❯%f%b"
   time_seg='%D{%H:%M:%S}'
 
-  # Parent path uses default foreground; highlight only the leaf.
-  # Percent signs and control characters are handled by _prompt_precmd.
-  if [[ $path_val == */* && $path_val != / ]]; then
-    parent=${path_val%/*}
-    leaf=${path_val##*/}
-    if [[ -z $parent ]]; then
-      path_seg="/%B%F{magenta}${leaf}%f%b"
-    else
-      path_seg="${parent}/%B%F{magenta}${leaf}%f%b"
-    fi
-  else
-    path_seg="%B%F{magenta}${path_val}%f%b"
-  fi
-
-  # Full per-component-compressed path is retained when it fits.
-  # On narrow panes, native Zsh truncation is the last-resort fallback.
-  # The exact width is selected below after choosing the prompt layout.
-
-  # Read cached plain data, leaving the expensive directory scan untouched.
+  # Read cached directory statistics without rescanning.
   if [[ $_prompt_dir_info == *' | '* ]]; then
     count=${_prompt_dir_info%%' | '*}
     size=${_prompt_dir_info#*' | '}
@@ -556,22 +584,58 @@ _update_prompt() {
     stats_seg="${_prompt_dir_info}"
   fi
 
-  # Success stays quiet; errors are prominent but do not override mode color.
+  # Keep successes quiet; reserve the error marker on either layout.
   status_seg=''
   (( rc != 0 )) && status_seg="${join}%B%F{red}✗ ${rc}%f%b"
 
-  # Sculpted two-line prompt; move metadata below in narrow tmux panes.
-  estimated=$(( ${#path_val} + ${#_prompt_dir_info} + 43 ))
-  if (( width < 85 || estimated >= width )); then
-    # Leave space for the rail, mode, and optional nonzero exit status.
-    path_limit=$(( width - 18 ))
-    (( rc != 0 )) && (( path_limit -= ${#rc} + 7 ))
-    (( path_limit < 8 )) && path_limit=8
-    path_seg="%${path_limit}<…<${path_seg}%<<"
+  # A wide line contains rail/mode/time/path/stats/error. Use actual fixed
+  # text lengths to decide whether it fits, not a fixed path-length cutoff.
+  # 14: rail + mode + bar + spaces. 8: HH:MM:SS. 8: two joins.
+  # Stats: '≡ count · size', approximately raw 'count | size' + 2.
+  # A little slack prevents wrapping in fonts with unusual Unicode widths.
+  wide_budget=$(( width - 14 - 8 - 8 - ${#_prompt_dir_info} - 2 - 2 ))
+  (( rc != 0 )) && (( wide_budget -= 6 + ${#rc} ))
+
+  # First try default per-component limits (12/20) in the full layout.
+  _shorten_path "$PWD"
+  if (( width < 85 || ${#REPLY} > wide_budget )); then
+    layout=narrow
+    # Only the rail, mode, path and optional error appear on line one.
+    narrow_budget=$(( width - 14 - 2 ))
+    (( rc != 0 )) && (( narrow_budget -= 6 + ${#rc} ))
+    (( narrow_budget < 1 )) && narrow_budget=1
+    _shorten_path "$PWD" "$narrow_budget"
+  fi
+  path_val=$REPLY
+
+  # Sanitize control characters and escape prompt percent sequences.
+  # PROMPT_SUBST stays disabled; these are plain rendered values.
+  path_val=${path_val//$'\n'/↵}
+  path_val=${path_val//$'\r'/}
+  path_val=${path_val//$'\t'/⇥}
+  path_val=${path_val//$'\e'/}
+  path_val="${path_val//\%/%%}"
+
+  # Parent path uses normal foreground; leaf remains highlighted.
+  if [[ $path_val == */* && $path_val != / ]]; then
+    parent=${path_val%/*}
+    leaf=${path_val##*/}
+    if [[ -z $parent ]]; then
+      path_seg="/%B%F{magenta}${leaf}%f%b"
+    else
+      path_seg="${parent}/%B%F{magenta}${leaf}%f%b"
+    fi
+  else
+    path_seg="%B%F{magenta}${path_val}%f%b"
+  fi
+
+  if [[ $layout == narrow ]]; then
+    # Last-resort Zsh truncation only if even minimum components don't fit.
+    # The rightmost component is preserved as far as the terminal allows.
+    path_seg="%${narrow_budget}<…<${path_seg}%<<"
     PROMPT=$'\n'"${rail} ${mode_seg} ${bar} ${path_seg}${status_seg}"$'\n'\
 "%F{blue}│%f  ${time_seg}${join}${stats_seg}"$'\n'"${anchor} "
   else
-    # Nothing is discarded if the entire path and metadata fit.
     PROMPT=$'\n'"${rail} ${mode_seg} ${bar} ${time_seg}${join}${path_seg}${join}${stats_seg}${status_seg}"$'\n'"${anchor} "
   fi
 
@@ -580,14 +644,6 @@ _update_prompt() {
 
 _prompt_precmd() {
   LAST_STATUS=$?
-  _shorten_path
-  _prompt_path=$REPLY
-  # Render control characters visibly and prevent % prompt-escape injection.
-  _prompt_path=${_prompt_path//$'\n'/↵}
-  _prompt_path=${_prompt_path//$'\r'/}
-  _prompt_path=${_prompt_path//$'\t'/⇥}
-  _prompt_path=${_prompt_path//$'\e'/}
-  _prompt_path="${_prompt_path//\%/%%}"
   _prompt_directory_info
   _update_prompt "$LAST_STATUS"
 }
