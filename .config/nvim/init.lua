@@ -259,9 +259,11 @@ api.nvim_create_autocmd("BufWritePre", {
       return
     end
 
-    local view = fn.winsaveview()
-    vim.cmd([[silent! keeppatterns %s/\s\+$//e]])
-    fn.winrestview(view)
+    api.nvim_buf_call(args.buf, function()
+      local view = vim.fn.winsaveview()
+      vim.cmd([[silent keepjumps keeppatterns %s/\s\+$//e]])
+      vim.fn.winrestview(view)
+    end)
   end,
 })
 
