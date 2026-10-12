@@ -375,26 +375,59 @@ zle-keymap-select() { _sync_vi_mode; }
 zle -N zle-keymap-select
 zle -N zle-line-init zle-keymap-select
 
+# Soft limit for the displayed path. The prompt separately enforces pane width.
+typeset -gi ZSH_PATH_MAX=${ZSH_PATH_MAX:-48}
+
 _shorten_path() {
   emulate -L zsh
-  local full="${1:-$PWD}" prefix=""
 
+  local full="${1:-$PWD}" prefix="" candidate display
+  local -i limit=$ZSH_PATH_MAX
+  local -a parts
+
+  # Use a compact home prefix without hiding any directory names.
   if [[ $full == "$HOME" ]]; then
-    print -r -- '~'
+    REPLY='~'
     return
   elif [[ $full == "$HOME/"* ]]; then
-    prefix="~"
-    full="${full#$HOME}"
+    prefix='~/'
+    full=${full#"$HOME/"}
+  elif [[ $full == /* ]]; then
+    prefix='/'
+    full=${full#/}
   fi
 
-  local -a parts
-  parts=("${(@s:/:)${full#/}}")
+  display="${prefix}${full}"
 
+  # First condition: short paths stay complete, regardless of depth.
+  if (( ${#display} <= limit )); then
+    REPLY=$display
+    return
+  fi
+
+  parts=("${(@s:/:)full}")
+
+  # Second condition: for long, deeply nested paths preserve both ends.
   if (( ${#parts} > 4 )); then
-    print -r -- "${prefix}/${(j:/:)parts[1,2]}/.../${(j:/:)parts[-2,-1]}"
-  else
-    print -r -- "${prefix}/${(j:/:)parts}"
+    candidate="${prefix}${parts[1]}/${parts[2]}/…/${parts[-2]}/${parts[-1]}"
+    if (( ${#candidate} <= limit )); then
+      REPLY=$candidate
+      return
+    fi
+
+    candidate="${prefix}${parts[1]}/…/${parts[-2]}/${parts[-1]}"
+    if (( ${#candidate} <= limit )); then
+      REPLY=$candidate
+      return
+    fi
+
+    # The native prompt-width truncation handles exceptionally long names.
+    if (( ${#candidate} < ${#display} )); then
+      display=$candidate
+    fi
   fi
+
+  REPLY=$display
 }
 
 # Directory information cache
@@ -549,7 +582,8 @@ _update_prompt() {
 
 _prompt_precmd() {
   LAST_STATUS=$?
-  _prompt_path="$(_shorten_path)"
+  _shorten_path
+  _prompt_path=$REPLY
   # Render control characters visibly and prevent % prompt-escape injection.
   _prompt_path=${_prompt_path//$'\n'/↵}
   _prompt_path=${_prompt_path//$'\r'/}
