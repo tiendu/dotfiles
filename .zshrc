@@ -227,6 +227,11 @@ watch() {
           return 2
         }
         interval="$2"
+        if [[ $interval != <-> && $interval != <->.<-> ]] ||
+          (( interval <= 0 )); then
+          print -u2 -- "watch: interval must be a positive number"
+          return 2
+        fi
         shift 2
         ;;
       -t|--no-title)
@@ -292,22 +297,30 @@ watch() {
 HISTSIZE=10000
 SAVEHIST=10000
 HISTFILE=${HISTFILE:-$HOME/.zsh_history}
-
 setopt SHARE_HISTORY HIST_FCNTL_LOCK
-setopt HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS
-setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_VERIFY
-setopt EXTENDED_HISTORY HIST_FIND_NO_DUPS HIST_SAVE_NO_DUPS
+setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS HIST_SAVE_NO_DUPS
+setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_NO_STORE
+setopt HIST_VERIFY
 
-setopt MENUCOMPLETE AUTO_MENU LIST_PACKED
-setopt AUTOCD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
-setopt INTERACTIVE_COMMENTS LONG_LIST_JOBS NO_BEEP GLOBDOTS
-setopt PROMPT_SUBST NO_FLOW_CONTROL PIPE_FAIL ALWAYS_TO_END
-setopt NO_CLOBBER RM_STAR_WAIT
-setopt AUTO_PARAM_SLASH NO_CASE_GLOB NUMERIC_GLOBSORT
-setopt COMPLETE_ALIASES NOTIFY WARN_CREATE_GLOBAL
+##### Completion
+setopt MENU_COMPLETE LIST_PACKED ALWAYS_TO_END
+
+##### Navigation
+setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
+
+##### Shell behavior
+setopt INTERACTIVE_COMMENTS NO_FLOW_CONTROL
+setopt PIPE_FAIL WARN_CREATE_GLOBAL
+
+##### Job control
+setopt LONG_LIST_JOBS NOTIFY
+
+##### Safety
+setopt NO_CLOBBER RM_STAR_WAIT NO_BEEP
 
 ##### Vim mode & Keybinds
 bindkey -v
+KEYTIMEOUT=15
 
 autoload -Uz up-line-or-search down-line-or-search
 bindkey -M viins '^P' up-line-or-search
@@ -378,22 +391,41 @@ _shorten_path() {
   fi
 }
 
+# Directory information cache
+typeset -gi ZSH_DIR_CACHE_TTL=${ZSH_DIR_CACHE_TTL:-30}
+typeset -gA _dir_cache_stamp=()
+typeset -gA _dir_cache_time=()
+typeset -gA _dir_cache_value=()
+
 _prompt_directory_info() {
   emulate -L zsh
-  local entry formatted
-  local -A info
+
+  local -A dir_info file_info after_info
+  local entry formatted stamp after_stamp
+  local key=$PWD
+  local -i now=$SECONDS
   local -i count=0 bytes=0 incomplete=0
 
-  if [[ ! -r . || ! -x . ]]; then
+  if [[ ! -r . || ! -x . ]] ||
+     ! zstat -H dir_info -- . 2>/dev/null; then
     _prompt_dir_info='? | ?'
     return
   fi
 
-  # Direct regular files only, including hidden files; exclude symlinks.
+  # Directory checkpoint
+  stamp="${dir_info[device]}:${dir_info[inode]}:${dir_info[mtime]}:${dir_info[ctime]}"
+
+  # Reuse cache if unchanged and not expired
+  if [[ ${_dir_cache_stamp[$key]-} == "$stamp" ]] &&
+     (( now - ${_dir_cache_time[$key]:-0} < ZSH_DIR_CACHE_TTL )); then
+    _prompt_dir_info="${_dir_cache_value[$key]}"
+    return
+  fi
+
+  # Recompute direct regular files, including hidden files
   for entry in ./*(ND.); do
-    if zstat -L -H info -- "$entry" 2>/dev/null; then
-      (( (info[mode] & 8#170000) == 8#100000 )) || continue
-      (( ++count, bytes += info[size] ))
+    if zstat -H file_info -- "$entry" 2>/dev/null; then
+      (( ++count, bytes += file_info[size] ))
     else
       incomplete=1
     fi
@@ -411,7 +443,24 @@ _prompt_directory_info() {
 
   _prompt_dir_info="$count | $formatted"
   (( incomplete )) && _prompt_dir_info+=' : partial'
-  return 0
+
+  # Avoid caching a scan if directory entries changed during it
+  if zstat -H after_info -- . 2>/dev/null; then
+    after_stamp="${after_info[device]}:${after_info[inode]}:${after_info[mtime]}:${after_info[ctime]}"
+
+    if [[ $stamp == "$after_stamp" ]]; then
+      # Bound the cache to 64 directories
+      if (( ${#_dir_cache_value} >= 64 )); then
+        _dir_cache_stamp=()
+        _dir_cache_time=()
+        _dir_cache_value=()
+      fi
+
+      _dir_cache_stamp[$key]="$stamp"
+      _dir_cache_time[$key]=$SECONDS
+      _dir_cache_value[$key]="$_prompt_dir_info"
+    fi
+  fi
 }
 
 _update_prompt() {
@@ -438,9 +487,9 @@ _prompt_precmd() {
   _update_prompt "$LAST_STATUS"
 }
 
-setopt PROMPT_SUBST PROMPT_PERCENT PROMPT_CR
+setopt PROMPT_PERCENT PROMPT_CR
+unsetopt PROMPT_SUBST
 autoload -Uz add-zsh-hook
-add-zsh-hook -d preexec _prompt_preexec
 add-zsh-hook precmd _prompt_precmd
 
 ##### Syntax highlighting
@@ -647,12 +696,23 @@ _custom_highlight() {
   done
 }
 
+typeset -g _hl_previous_buffer=''
+typeset -gi _hl_previous_valid=0
 _highlight_pre_redraw() {
+  if (( _hl_previous_valid )) &&
+     [[ $BUFFER == "$_hl_previous_buffer" ]]; then
+    return
+  fi
+
   _custom_highlight
+
+  _hl_previous_buffer=$BUFFER
+  _hl_previous_valid=1
 }
 
 _highlight_finish() {
   region_highlight=()
+  _hl_previous_valid=0
 }
 
 if [[ $- == *i* ]]; then
@@ -663,9 +723,6 @@ fi
 
 ##### Autopair
 if [[ $- == *i* ]]; then
-  _ap_prevc() { print -r -- "${LBUFFER[-1]-}"; }
-  _ap_nextc() { print -r -- "${RBUFFER[1]-}"; }
-
   _ap_is_word()     { [[ -n $1 && $1 == [[:alnum:]_] ]]; }
   _ap_is_closer()   { [[ -n $1 && $1 == [\)\]\}] ]]; }
   _ap_is_hardstop() { [[ -n $1 && $1 == [\\.=] ]]; }
@@ -768,8 +825,8 @@ if [[ $- == *i* ]]; then
   autoload -Uz compinit compaudit
   zmodload zsh/complist
 
-  typeset -a _insecure
-  _insecure=($(compaudit 2>/dev/null))
+  typeset -gi _completion_insecure=0
+  [[ -n $(compaudit 2>/dev/null) ]] && _completion_insecure=1
 
   typeset -g _compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compdump"
   typeset -g _compcache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/compcache"
@@ -791,7 +848,7 @@ if [[ $- == *i* ]]; then
 
   export PROMPT_EOL_MARK=""
 
-  if (( ${#_insecure} )); then
+  if (( _completion_insecure )); then
     print -P "%F{yellow}warning:%f insecure completion dirs detected"
   fi
 fi
