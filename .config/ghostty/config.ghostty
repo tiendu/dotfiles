@@ -1,4 +1,6 @@
 # ~/.config/ghostty/config.ghostty
+custom-shader = ~/.config/ghostty/shaders/cursor-trail.glsl
+custom-shader-animation = true
 
 # Appearance
 theme = Sakura
