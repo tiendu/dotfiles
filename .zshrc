@@ -10,8 +10,9 @@ export LESS='-iMQRFX'
 ##### Tunables
 typeset -gi ZSH_HL_MAX_LEN=${ZSH_HL_MAX_LEN:-1000}
 typeset -gi ZSH_AP_MAX_LEN=${ZSH_AP_MAX_LEN:-4000}
-# Typewriter layout: 1 = center input vertically; 0 = normal prompt flow.
-typeset -gi ZSH_MIDDLE_PROMPT=${ZSH_MIDDLE_PROMPT:-1}
+# Keep this percentage of terminal rows below the next input line.
+# 0 disables adaptive scrolling; 20 leaves roughly 20% breathing room.
+typeset -gi ZSH_PROMPT_SCROLLOFF=${ZSH_PROMPT_SCROLLOFF:-20}
 
 ##### Path
 typeset -Ug path fpath manpath
@@ -356,7 +357,7 @@ typeset -gi LAST_STATUS=0
 typeset -g VIM_MODE="INS"
 typeset -g _prompt_dir_info="0 | 0 B"
 typeset -g _prompt_path=""
-# Private: how many rows this prompt adds before the input cursor.
+# Private: visible rows between the prompt start and its input cursor.
 typeset -gi _prompt_input_offset=2
 
 ##### Prompt
@@ -648,78 +649,99 @@ _update_prompt() {
   PS2='%F{blue}│%f  '
 }
 
-# Private typewriter positioning. Only run immediately before a new prompt;
-# never during ZLE redraws, completion, or Vim mode switches.
+# Output-first scrolloff. Keep a percentage of the terminal height free
+# beneath the next input line, but only when the output has reached it.
+# This works with any VT/xterm-compatible terminal that answers CSI 6n
+# (cursor position report); it does not depend on TERM_PROGRAM, Ghostty,
+# tmux, or Screen. Unsupported/nonresponding terminals fall back quietly.
 #
-# CSI 6n asks the terminal for its *actual* cursor row. A bounded read is
-# essential: unsupported terminals, tmux, SSH, and redirected sessions must
-# not hang the shell. Invalid responses are ignored rather than guessed.
-_middle_prompt() {
+# Do not use CSI S to scroll: its treatment of scrollback varies between
+# terminals. Ordinary LF at the bottom of the screen is more appropriate.
+# A failed cursor-position probe is cached to avoid a timeout each command.
+typeset -gi _prompt_scrolloff_cpr_unavailable=0
+
+_prompt_scrolloff() {
   emulate -L zsh
 
-  (( ZSH_MIDDLE_PROMPT )) || return 0
+  local -i percentage=${ZSH_PROMPT_SCROLLOFF:-0}
+  (( percentage > 0 && percentage < 100 )) || return 0
+  (( _prompt_scrolloff_cpr_unavailable == 0 )) || return 0
   [[ -o interactive && -t 0 && -t 1 && ${TERM:-dumb} != dumb ]] || return 0
 
-  local -i rows=${LINES:-0}
-  local -i cols=${COLUMNS:-0}
+  local -i rows=${LINES:-0} cols=${COLUMNS:-0}
   local -i offset=${_prompt_input_offset:-2}
-  local -i target anchor current column distance i
+  local -i margin limit current column shift_rows i
+  local char reply='' coordinates
 
-  # Very narrow panes may wrap the status line, invalidating the offset.
-  (( rows >= 14 && cols >= 40 )) || return 0
-  target=$(( rows / 2 ))
-  anchor=$(( target - offset ))
-  (( anchor >= 1 )) || return 0
+  # Tiny terminals might wrap the prompt or have no room to scroll safely.
+  (( rows >= 14 && cols >= 50 )) || return 0
+  margin=$(( (rows * percentage + 99) / 100 ))  # Round up.
+  limit=$(( rows - margin ))
+  (( limit > offset + 1 )) || return 0
 
-  local char response='' coords
-
-  # The entire read uses one controlling-tty descriptor, not pipe/stdin data.
-  # read -k processes one terminal character at a time. A timeout applies
-  # to *each* character, so the 18-character bound prevents indefinite waits.
+  # CSI 6n asks the terminal for its physical cursor position. Zsh's
+  # read -k uses one-character input and -t gives a bounded timeout.
+  # All I/O is on /dev/tty so redirected command output is unaffected.
+  # Never guess the position if a terminal does not answer correctly.
   {
-    printf '\033[6n' > /dev/tty || return 0
+    if ! printf '\033[6n' > /dev/tty; then
+      _prompt_scrolloff_cpr_unavailable=1
+      return 0
+    fi
     for (( i = 0; i < 18; ++i )); do
-      if ! IFS= read -r -s -k 1 -t 0.08 char; then
+      if ! IFS= read -r -s -k 1 -t 0.12 char; then
+        _prompt_scrolloff_cpr_unavailable=1
         return 0
       fi
-      response+="$char"
+      reply+="$char"
+      # A mismatched start often means this is a user's keystroke or an
+      # unrelated terminal response. Disable probing rather than consuming
+      # further characters. This cannot reconstruct consumed early input.
+      if (( i == 0 )) && [[ $char != $'\033' ]]; then
+        _prompt_scrolloff_cpr_unavailable=1
+        return 0
+      fi
+      if (( i == 1 )) && [[ $char != '[' ]]; then
+        _prompt_scrolloff_cpr_unavailable=1
+        return 0
+      fi
       [[ $char == R ]] && break
     done
   } < /dev/tty
 
-  # Exact DSR form: ESC [ row ; column R. Reject anything else.
-  [[ $response == $'\033['<->';'<->'R' ]] || return 0
-  coords=${response#$'\033['}
-  coords=${coords%R}
-  current=${coords%%;*}
-  column=${coords#*;}
-  (( current >= 1 && current <= rows && column >= 1 && column <= cols )) || return 0
-
-  if (( current < anchor )); then
-    # Advance through real new lines: don't overwrite output below us.
-    printf '\r'
-    distance=$(( anchor - current ))
-    for (( i = 0; i < distance; ++i )); do printf '\n'; done
-  elif (( current > anchor )); then
-    # Move to the bottom, then scroll the old content *up* using LF.
-    # The command's final cursor row moves to 'anchor', leaving room for
-    # the prompt's initial newline(s), with output retained in scrollback.
-    distance=$(( current - anchor ))
-    printf '\033[%d;1H' "$rows"
-    for (( i = 0; i < distance; ++i )); do printf '\n'; done
-    printf '\033[%d;1H' "$anchor"
-  else
-    printf '\r'
+  if [[ $reply != $'\033['<->';'<->'R' ]]; then
+    _prompt_scrolloff_cpr_unavailable=1
+    return 0
+  fi
+  coordinates=${reply#$'\033['}
+  coordinates=${coordinates%R}
+  current=${coordinates%%;*}
+  column=${coordinates#*;}
+  if (( current < 1 || current > rows || column < 1 || column > cols )); then
+    _prompt_scrolloff_cpr_unavailable=1
+    return 0
   fi
 
-  return 0
+  # PROMPT already begins with a newline. The input line is two rows down
+  # on wide layouts and three rows down on narrow layouts.
+  shift_rows=$(( current + offset - limit ))
+  (( shift_rows > 0 )) || return 0
+
+  # Scroll actual content upward into scrollback, then restore the cursor
+  # to its former content position (which moved up by shift_rows).
+  # Standard LF is emitted at the physical bottom, not into ZLE.
+  printf '\033[%d;1H' "$rows" > /dev/tty
+  for (( i = 0; i < shift_rows; ++i )); do
+    printf '\n' > /dev/tty
+  done
+  printf '\033[%d;%dH' "$(( current - shift_rows ))" "$column" > /dev/tty
 }
 
 _prompt_precmd() {
   LAST_STATUS=$?
   _prompt_directory_info
   _update_prompt "$LAST_STATUS"
-  _middle_prompt
+  _prompt_scrolloff
 }
 
 setopt PROMPT_PERCENT PROMPT_CR
