@@ -10,9 +10,6 @@ export LESS='-iMQRFX'
 ##### Tunables
 typeset -gi ZSH_HL_MAX_LEN=${ZSH_HL_MAX_LEN:-1000}
 typeset -gi ZSH_AP_MAX_LEN=${ZSH_AP_MAX_LEN:-4000}
-# Keep this percentage of terminal rows below the next input line.
-# 0 disables adaptive scrolling; 20 leaves roughly 20% breathing room.
-typeset -gi ZSH_PROMPT_SCROLLOFF=${ZSH_PROMPT_SCROLLOFF:-20}
 
 ##### Path
 typeset -Ug path fpath manpath
@@ -61,12 +58,14 @@ fi
 ##### Minimal safe git aliases
 alias g='git'
 alias gs='git status -sb'
+alias gd='git diff'
+alias gds='git diff --staged'
+alias ga='git add -p'
+alias gc='git commit'
+alias gp='git push'
+alias gf='git fetch --prune'
 alias gb='git branch --show-current'
 alias gl='git log --oneline --decorate --graph --max-count=15'
-alias gf='git fetch --prune'
-alias ga='git add -p'
-alias gr='git restore'
-alias gp='git push'
 
 ##### Cross-platform clipboard
 typeset -ga _clip_copy_cmd=()
@@ -218,6 +217,7 @@ extract() {
 
 watch() {
   emulate -L zsh
+  setopt pipefail
 
   local interval=2
   local show_title=1
@@ -357,8 +357,6 @@ typeset -gi LAST_STATUS=0
 typeset -g VIM_MODE="INS"
 typeset -g _prompt_dir_info="0 | 0 B"
 typeset -g _prompt_path=""
-# Private: visible rows between the prompt start and its input cursor.
-typeset -gi _prompt_input_offset=2
 
 ##### Prompt
 # Keep mode as plain data; style it only when building PROMPT.
@@ -640,108 +638,17 @@ _update_prompt() {
     path_seg="%${narrow_budget}<…<${path_seg}%<<"
     PROMPT=$'\n'"${rail} ${mode_seg} ${bar} ${path_seg}${status_seg}"$'\n'\
 "%F{blue}│%f  ${time_seg}${join}${stats_seg}"$'\n'"${anchor} "
-    _prompt_input_offset=3
   else
     PROMPT=$'\n'"${rail} ${mode_seg} ${bar} ${time_seg}${join}${path_seg}${join}${stats_seg}${status_seg}"$'\n'"${anchor} "
-    _prompt_input_offset=2
   fi
 
   PS2='%F{blue}│%f  '
-}
-
-# Output-first scrolloff. Keep a percentage of the terminal height free
-# beneath the next input line, but only when the output has reached it.
-# This works with any VT/xterm-compatible terminal that answers CSI 6n
-# (cursor position report); it does not depend on TERM_PROGRAM, Ghostty,
-# tmux, or Screen. Unsupported/nonresponding terminals fall back quietly.
-#
-# Do not use CSI S to scroll: its treatment of scrollback varies between
-# terminals. Ordinary LF at the bottom of the screen is more appropriate.
-# A failed cursor-position probe is cached to avoid a timeout each command.
-typeset -gi _prompt_scrolloff_cpr_unavailable=0
-
-_prompt_scrolloff() {
-  emulate -L zsh
-
-  local -i percentage=${ZSH_PROMPT_SCROLLOFF:-0}
-  (( percentage > 0 && percentage < 100 )) || return 0
-  (( _prompt_scrolloff_cpr_unavailable == 0 )) || return 0
-  [[ -o interactive && -t 0 && -t 1 && ${TERM:-dumb} != dumb ]] || return 0
-
-  local -i rows=${LINES:-0} cols=${COLUMNS:-0}
-  local -i offset=${_prompt_input_offset:-2}
-  local -i margin limit current column shift_rows i
-  local char reply='' coordinates
-
-  # Tiny terminals might wrap the prompt or have no room to scroll safely.
-  (( rows >= 14 && cols >= 50 )) || return 0
-  margin=$(( (rows * percentage + 99) / 100 ))  # Round up.
-  limit=$(( rows - margin ))
-  (( limit > offset + 1 )) || return 0
-
-  # CSI 6n asks the terminal for its physical cursor position. Zsh's
-  # read -k uses one-character input and -t gives a bounded timeout.
-  # All I/O is on /dev/tty so redirected command output is unaffected.
-  # Never guess the position if a terminal does not answer correctly.
-  {
-    if ! printf '\033[6n' > /dev/tty; then
-      _prompt_scrolloff_cpr_unavailable=1
-      return 0
-    fi
-    for (( i = 0; i < 18; ++i )); do
-      if ! IFS= read -r -s -k 1 -t 0.12 char; then
-        _prompt_scrolloff_cpr_unavailable=1
-        return 0
-      fi
-      reply+="$char"
-      # A mismatched start often means this is a user's keystroke or an
-      # unrelated terminal response. Disable probing rather than consuming
-      # further characters. This cannot reconstruct consumed early input.
-      if (( i == 0 )) && [[ $char != $'\033' ]]; then
-        _prompt_scrolloff_cpr_unavailable=1
-        return 0
-      fi
-      if (( i == 1 )) && [[ $char != '[' ]]; then
-        _prompt_scrolloff_cpr_unavailable=1
-        return 0
-      fi
-      [[ $char == R ]] && break
-    done
-  } < /dev/tty
-
-  if [[ $reply != $'\033['<->';'<->'R' ]]; then
-    _prompt_scrolloff_cpr_unavailable=1
-    return 0
-  fi
-  coordinates=${reply#$'\033['}
-  coordinates=${coordinates%R}
-  current=${coordinates%%;*}
-  column=${coordinates#*;}
-  if (( current < 1 || current > rows || column < 1 || column > cols )); then
-    _prompt_scrolloff_cpr_unavailable=1
-    return 0
-  fi
-
-  # PROMPT already begins with a newline. The input line is two rows down
-  # on wide layouts and three rows down on narrow layouts.
-  shift_rows=$(( current + offset - limit ))
-  (( shift_rows > 0 )) || return 0
-
-  # Scroll actual content upward into scrollback, then restore the cursor
-  # to its former content position (which moved up by shift_rows).
-  # Standard LF is emitted at the physical bottom, not into ZLE.
-  printf '\033[%d;1H' "$rows" > /dev/tty
-  for (( i = 0; i < shift_rows; ++i )); do
-    printf '\n' > /dev/tty
-  done
-  printf '\033[%d;%dH' "$(( current - shift_rows ))" "$column" > /dev/tty
 }
 
 _prompt_precmd() {
   LAST_STATUS=$?
   _prompt_directory_info
   _update_prompt "$LAST_STATUS"
-  _prompt_scrolloff
 }
 
 setopt PROMPT_PERCENT PROMPT_CR
