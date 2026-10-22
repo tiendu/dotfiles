@@ -66,6 +66,14 @@ alias gp='git push'
 alias gf='git fetch --prune'
 alias gb='git branch --show-current'
 alias gl='git log --oneline --decorate --graph --max-count=15'
+gxi() (
+  set -o pipefail
+  cd "$(git rev-parse --show-toplevel)" || return
+  git ls-files -ci --exclude-standard -z |
+    xargs -0 sh -c '
+      [ "$#" -eq 0 ] || git --literal-pathspecs rm --cached -- "$@"
+    ' sh
+)
 
 ##### Cross-platform clipboard
 typeset -ga _clip_copy_cmd=()
