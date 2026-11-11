@@ -412,49 +412,37 @@ api.nvim_create_autocmd({ "BufWinEnter", "WinEnter", "Syntax" }, {
   callback = refresh_window_matches,
 })
 
--- --- Autosuggestions ---
+
+-- --- Passive autosuggestions ---
+-- Suggestions are visual hints only.
+-- Never automatically insert or accept them.
+
 opt.complete = { ".", "w", "b" }
 opt.completeopt = { "menuone", "noselect" }
 
 if fn.exists("+autocomplete") == 1 then
   opt.autocomplete = true
-  opt.autocompletedelay = 150
-  opt.completeopt = { "menuone", "preinsert" }
-  opt.infercase = true
+  opt.autocompletedelay = 200
 end
 
--- --- Completion navigation ---
--- Tab: cycle forward, or trigger completion when typing.
-map("i", "<Tab>", function()
-  if fn.pumvisible() == 1 then
-    return "<C-n>"
-  end
-
-  local before = fn.getline("."):sub(1, fn.col(".") - 1)
-
-  -- Start completion when typing a word.
-  if before:match("[%w_]$") then
-    return "<C-n>"
-  end
-
-  -- Preserve normal indentation.
-  return "<Tab>"
-end, expr_opts)
-
--- Enter: accept the highlighted suggestion.
--- Otherwise, insert a normal newline.
-map("i", "<CR>", function()
-  if fn.pumvisible() == 1 then
-    local selected = fn.complete_info({ "selected" }).selected
-
-    if selected >= 0 then
-      return "<C-y>"
+-- Enter and Tab always behave normally.
+for _, key in ipairs({ "<CR>", "<Tab>" }) do
+  map("i", key, function()
+    if fn.pumvisible() == 1 then
+      return "<C-e>" .. key
     end
+    return key
+  end, expr_opts)
+end
 
-    -- No selection: cancel popup and insert newline.
-    return "<C-e><CR>"
+-- Disable completion navigation.
+map("i", "<C-n>", "<Nop>", kmopts)
+map("i", "<C-p>", "<Nop>", kmopts)
+
+-- Ctrl+Y dismisses suggestions instead of accepting.
+map("i", "<C-y>", function()
+  if fn.pumvisible() == 1 then
+    return "<C-e>"
   end
-
-  return "<CR>"
+  return "<C-y>"
 end, expr_opts)
-
