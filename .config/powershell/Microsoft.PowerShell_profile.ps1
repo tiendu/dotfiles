@@ -192,7 +192,7 @@ function Get-TextCells {
 
 # Use text-element boundaries so we do not split surrogate pairs or graphemes.
 function Get-FitText {
-    param([string]$Text, [int]$Budget, [switch]$End)
+    param([string]$Text, [int]$Budget, [switch]$End, [switch]$Tail)
     if ((Get-TextCells $Text) -le $Budget) { return $Text }
     if ($Budget -le 0) { return '' }
     $offsets = [Globalization.StringInfo]::ParseCombiningCharacters($Text)
@@ -200,6 +200,7 @@ function Get-FitText {
         if ($End) { $piece = $Text.Substring(0, $offsets[$n]) + '…' }
         else {
             $left = [int][math]::Ceiling($n / 2)
+            if ($Tail -and $n -gt 2) { $left = [int][math]::Floor($n * 2 / 5) }
             $right = $n - $left
             $piece = $Text.Substring(0, $offsets[$left]) + '…'
             if ($right -gt 0) { $piece += $Text.Substring($offsets[$offsets.Length - $right]) }
@@ -207,43 +208,6 @@ function Get-FitText {
         if ((Get-TextCells $piece) -le $Budget) { return $piece }
     }
     '…'
-}
-
-# Preserve home, drive, provider and UNC roots whenever room permits.
-function Get-ShortPath {
-    param([string]$Path, [int]$Budget)
-    if ((Get-TextCells $Path) -le $Budget) { return $Path }
-    $separator = if ($IsWindows -or $Path -match '^[^/\\]+:') { '\' } else { '/' }
-    $prefix = ''
-    $rest = $Path
-    if ($Path -match '^(\\\\[^\\]+\\[^\\]+\\|[^/\\]+::?[/\\]|~[/\\]|[/\\])') {
-        $prefix = $Matches[0]
-        $rest = $Path.Substring($prefix.Length)
-    }
-    if (-not $rest) { return (Get-FitText $Path $Budget) }
-    if ($prefix.EndsWith('/')) { $separator = '/' }
-    $parts = $rest.Split([char]$separator)
-    $leaf = $parts[-1]
-    $parents = $prefix
-    foreach ($cap in 12, 5, 3, 1) {
-        $parents = $prefix
-        for ($i = 0; $i -lt $parts.Count - 1; $i++) {
-            $part = $parts[$i]
-            if ($cap -eq 1 -and $part) {
-                $part = [Globalization.StringInfo]::GetNextTextElement($part)
-                $parents += (Get-FitText $part 2) + $separator
-            } else { $parents += (Get-FitText $part $cap) + $separator }
-        }
-        $candidate = $parents + $leaf
-        if ((Get-TextCells $candidate) -le $Budget) { return $candidate }
-    }
-    $remaining = $Budget - (Get-TextCells $parents)
-    if ($remaining -lt 8 -and $parents -and $parents -ne $prefix) {
-        $parents = $prefix + '…' + $separator
-        $remaining = $Budget - (Get-TextCells $parents)
-    }
-    if ($remaining -lt 4) { $parents = ''; $remaining = $Budget }
-    $parents + (Get-FitText $leaf $remaining)
 }
 
 function global:prompt {
@@ -307,7 +271,9 @@ function global:prompt {
             $state.PromptRows = $rows
         }
         if ($compact) { return "${modeColor}[$($state.Mode)]$reset > " }
-        $p = Get-ShortPath $p $budget
+        # Cap the path at 40 cells; leave 12 cells for input when space permits.
+        $budget = [math]::Min(40, [math]::Max(1, $budget - 11))
+        $p = Get-FitText $p $budget -Tail
         $first = "$($PSStyle.Foreground.Blue)$heading$reset"
         if ($rows -eq 1) { $first += " ── $($state.DirectoryInfo)`n" }
         else {

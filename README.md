@@ -57,8 +57,9 @@ Set-Content -LiteralPath $PROFILE -Value '. "$HOME/.config/powershell/Microsoft.
   standard find/stat only on refresh; Zsh and PowerShell use native facilities.
   A slow filesystem can still delay a refresh; no background cache is used.
 - The prompt uses two lines when the heading and statistics fit, otherwise
-  three. Long paths abbreviate parent components first, then shorten the leaf
-  in the middle. Hostnames and statistics also shorten when necessary; panes
+  three. Paths are capped at 40 display cells using a single middle ellipsis,
+  keeping slightly more of the end. Narrow panes reduce that cap to leave
+  room for typing. Hostnames and statistics also shorten when necessary; panes
   below 20 columns use a minimal input prompt. Zsh reflows on ZLE redraws after
   resize; Bash and PowerShell re-evaluate width on the next prompt (PowerShell
   also on Vi-mode repaint). Zsh and PowerShell use terminal cell widths where

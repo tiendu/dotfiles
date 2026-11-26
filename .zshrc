@@ -428,7 +428,9 @@ _fit_text() {
   while (( n > 0 )); do
     if [[ $style == end ]]; then piece="${value[1,n]}…"
     else
-      left=$(((n+1)/2)); right=$((n-left))
+      left=$(((n+1)/2))
+      if [[ $style == path && $n -gt 2 ]]; then left=$((n*2/5)); fi
+      right=$((n-left))
       piece="${value[1,left]}…"
       (( right )) && piece+=${value[-right,-1]}
     fi
@@ -436,42 +438,6 @@ _fit_text() {
     (( n-- ))
   done
   return 0
-}
-
-# Preserve hierarchy, then shorten the leaf in the middle if necessary.
-_shorten_path() {
-  emulate -L zsh
-  local value=$1 prefix='' rest cap part candidate leaf parents
-  local -i budget=$2 i remaining
-  local -a parts
-  REPLY=$value
-  (( ${(m)#value} > budget )) || return 0
-  case $value in
-    '~/'*) prefix='~/'; rest=${value[3,-1]} ;;
-    /*) prefix=/; rest=${value[2,-1]} ;;
-    *) rest=$value ;;
-  esac
-  parts=("${(@s:/:)rest}")
-  leaf=${parts[-1]}
-  for cap in 12 5 3 1; do
-    parents=$prefix
-    for ((i=1; i<${#parts}; i++)); do
-      part=${parts[i]}
-      if (( cap == 1 )); then _fit_text "${part[1]}" 2
-      else _fit_text "$part" "$cap"; fi
-      parents+="$REPLY/"
-    done
-    candidate=$parents$leaf
-    if (( ${(m)#candidate} <= budget )); then REPLY=$candidate; return 0; fi
-  done
-  remaining=$((budget-${(m)#parents}))
-  if (( remaining < 8 )) && [[ -n $parents && $parents != "$prefix" ]]; then
-    parents="${prefix}…/"
-    remaining=$((budget-${(m)#parents}))
-  fi
-  if (( remaining < 4 )); then parents=''; remaining=$budget; fi
-  _fit_text "$leaf" "$remaining"
-  REPLY=$parents$REPLY
 }
 
 typeset -gi _prompt_width=0
@@ -490,7 +456,11 @@ _update_prompt() {
     PROMPT="%F{${mode_color}}[${VIM_MODE}]%f %# "
     return 0
   fi
-  _shorten_path "$value" "$budget"
+  # Cap the path at 40 cells; leave 12 cells for input when space permits.
+  (( budget -= 11 ))
+  (( budget > 0 )) || budget=1
+  (( budget <= 40 )) || budget=40
+  _fit_text "$value" "$budget" path
   display=${REPLY//\%/%%}
   _fit_text "$host" "$((width-16))"; host=$REPLY
   PROMPT="%F{blue}╭─ %D{%H:%M:%S} ── ${host//\%/%%}%f"

@@ -178,7 +178,9 @@ _fit_text() {
   while (( n > 0 )); do
     if [[ $style == end ]]; then piece="${value:0:n}…"
     else
-      left=$(((n+1)/2)); right=$((n-left))
+      left=$(((n+1)/2))
+      if [[ $style == path && $n -gt 2 ]]; then left=$((n*2/5)); fi
+      right=$((n-left))
       piece="${value:0:left}…"
       (( right )) && piece+=${value: -right}
     fi
@@ -187,42 +189,6 @@ _fit_text() {
     (( n-- ))
   done
   return 0
-}
-
-# Preserve hierarchy, then shorten the leaf in the middle if necessary.
-_shorten_path() {
-  local value=$1 budget=$2 prefix='' rest cap part candidate i leaf parents remaining REPLY _fitted
-  local -a parts=()
-  _prompt_path=$value
-  _cells "$value"
-  (( REPLY > budget )) || return 0
-  case $value in
-    '~/'*) prefix='~/'; rest=${value:2} ;;
-    /*) prefix=/; rest=${value:1} ;;
-    *) rest=$value ;;
-  esac
-  IFS=/ read -r -a parts <<< "$rest"
-  leaf=${parts[${#parts[@]}-1]}
-  for cap in 12 5 3 1; do
-    parents=$prefix
-    for ((i=0; i<${#parts[@]}-1; i++)); do
-      part=${parts[i]}
-      if (( cap == 1 )); then _fit_text "${part:0:1}" 2
-      else _fit_text "$part" "$cap"; fi
-      parents+="$_fitted/"
-    done
-    candidate=$parents$leaf
-    _cells "$candidate"
-    if (( REPLY <= budget )); then _prompt_path=$candidate; return 0; fi
-  done
-  _cells "$parents"; remaining=$((budget-REPLY))
-  if (( remaining < 8 )) && [[ -n $parents && $parents != "$prefix" ]]; then
-    parents="${prefix}…/"
-    _cells "$parents"; remaining=$((budget-REPLY))
-  fi
-  if (( remaining < 4 )); then parents=''; remaining=$budget; fi
-  _fit_text "$leaf" "$remaining"
-  _prompt_path=$parents$_fitted
 }
 
 _render_prompt() {
@@ -236,7 +202,11 @@ _render_prompt() {
   # Leave a spare cell to avoid terminal autowrap, including the mode label.
   budget=$((width - 2 - 6 - 1 - ${#_exit_status} - 3 - 1))
   if (( width < 20 || budget < 1 )); then PS1='\$ '; return 0; fi
-  _shorten_path "$value" "$budget"
+  # Cap the path at 40 cells; leave 12 cells for input when space permits.
+  (( budget -= 11 ))
+  (( budget > 0 )) || budget=1
+  (( budget <= 40 )) || budget=40
+  _fit_text "$value" "$budget" path; _prompt_path=$_fitted
   _fit_text "$host" "$((width-16))"; _prompt_host=$_fitted
   _cells "$_prompt_host"; host_cells=$REPLY
   _cells "$_dir_info"
