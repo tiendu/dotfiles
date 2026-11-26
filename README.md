@@ -28,7 +28,7 @@ Set-Content -LiteralPath $PROFILE -Value '. "$HOME/.config/powershell/Microsoft.
 ## Shells
 
 - Vi editing, fast `jk` escape (250 ms), mode indicator, history search by
-  prefix (Up/Down), case-insensitive completion and Git-aware prompts.
+  prefix (Up/Down), case-insensitive completion and directory-aware prompts.
 - Bash: native Readline, history sync, optional system bash-completion.
   Older Readline versions may not display mode labels. No custom syntax parser.
 - Zsh: native completion, shared history, command highlighting, quote pairing,
@@ -46,7 +46,27 @@ Set-Content -LiteralPath $PROFILE -Value '. "$HOME/.config/powershell/Microsoft.
   use tmux's OSC 52 copy mode with a compatible terminal.
 - Optional: fzf (shell integration requires 0.48+), fd, zoxide, eza, ripgrep,
   bat, jq. Install independently if desired; no automatic installs.
-- Git status checks include untracked files; very large worktrees can be slower.
+- The prompt never calls Git. `≡` counts immediate files, `⊞` counts immediate
+  directories, and the size is the combined apparent size of those files.
+  Hidden entries are included; symlinks/reparse points are excluded. Bash and
+  Zsh count regular files only; PowerShell counts non-link .NET FileInfo entries.
+- Results refresh on directory changes or after 30 seconds, at the next prompt.
+  At most 512 entries are inspected per refresh; `…` marks partial results and
+  `?` marks unavailable information. Enumeration is non-recursive. Bash uses
+  standard find/stat only on refresh; Zsh and PowerShell use native facilities.
+  A slow filesystem can still delay a refresh; no background cache is used.
+- The prompt uses two lines when the heading and statistics fit, otherwise
+  three. Long paths abbreviate parent components first, preserving the leaf
+  where possible. Zsh also reflows on ZLE redraws after resize; Bash and
+  PowerShell re-evaluate width on the next prompt (PowerShell also on Vi-mode
+  repaint). Unicode cell widths may vary with the terminal.
+- Arrowless Insert-mode editing: Ctrl+F (forward / accept history suggestion
+  in Zsh and PSReadLine), Ctrl+B (back), Ctrl+A/E (line start/end), Ctrl+P/N
+  (previous/next history), Ctrl+R (reverse history search), Ctrl+Space (complete),
+  Tab and Shift+Tab (completion / previous candidate). Zsh also uses Ctrl+P/N
+  to cycle completion-menu candidates. Menu behavior in Bash and PowerShell
+  follows native Readline/PSReadLine. Some terminals intercept Ctrl+Space.
+  Native Ctrl+R takes precedence over optional fzf's Ctrl+R binding.
 
 ## Editors and terminal
 
@@ -72,7 +92,9 @@ tmux -L dotfiles-check kill-server
 ```
 
 Interactively check `jk`, lone `j`, backspace, Tab, Up/Down, Ctrl+R, failed
-commands, prompt mode changes and clipboard. Verify in and outside a Git repo.
+commands, prompt mode changes, Ctrl+F/B/P/N/R/A/E, Ctrl+Space, Shift+Tab,
+terminal resizing and clipboard. Check empty, hidden, large and
+non-Git/Git directories; confirm no Git commands run for the prompt.
 For PowerShell, also test on Windows and Linux/macOS with PSReadLine enabled.
 
 Older general system administration notes are retained in [workstation notes](docs/workstation.md).

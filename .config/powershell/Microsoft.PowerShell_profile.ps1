@@ -120,58 +120,126 @@ if (Get-Command eza -CommandType Application -ErrorAction SilentlyContinue) {
     function la { Get-ChildItem -Force @args }
 }
 
-# Preserve command status and Git state when repainting.
+# Preserve command status and cached directory statistics when repainting.
 $global:PromptState = @{
     Mode = 'INS'
     Repaint = $false
-    Branch = ''
     Failed = $false
     LastJ = $null
+    DirectoryPath = $null
+    DirectoryTime = 0L
+    DirectoryInfo = '≡ ? · ⊞ ? · ?'
+    PromptRows = 1
+}
+
+function Get-PromptDirectoryInfo {
+    param([string]$Path)
+    $files = 0; $dirs = 0; $seen = 0
+    $bytes = 0L; $complete = $true; $valid = $true
+    $entries = $null
+    try {
+        $options = [IO.EnumerationOptions]::new()
+        $options.AttributesToSkip = 0
+        $options.IgnoreInaccessible = $false
+        $options.RecurseSubdirectories = $false
+        $entries = [IO.DirectoryInfo]::new($Path).EnumerateFileSystemInfos('*', $options).GetEnumerator()
+        while ($entries.MoveNext()) {
+            if ($seen -ge 512) { $complete = $false; break }
+            $seen++
+            $entry = $entries.Current
+            try {
+                if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
+                if ($entry -is [IO.DirectoryInfo]) { $dirs++ }
+                elseif ($entry -is [IO.FileInfo]) {
+                    $files++
+                    $bytes += $entry.Length
+                }
+            } catch { $valid = $false; $complete = $false }
+        }
+    } catch {
+        if ($seen -eq 0) { return '≡ ? · ⊞ ? · ?' }
+        $complete = $false
+    } finally {
+        if ($null -ne $entries) { $entries.Dispose() }
+    }
+    $size = '?'
+    if ($valid) {
+        $unit = 1L
+        foreach ($label in 'B', 'KiB', 'MiB', 'GiB', 'TiB') {
+            if ($bytes / $unit -lt 1024 -or $label -eq 'TiB') { break }
+            $unit *= 1024
+        }
+        if ($unit -eq 1) { $size = "$bytes B" }
+        else {
+            $value = [math]::Floor(($bytes / $unit) * 10) / 10
+            $size = $value.ToString('0.0', [Globalization.CultureInfo]::InvariantCulture) + " $label"
+        }
+    }
+    $suffix = if ($complete) { '' } else { ' …' }
+    "≡ $files · ⊞ $dirs · $size$suffix"
+}
+
+# Only abbreviate parent names when the full path does not fit.
+function Get-ShortPath {
+    param([string]$Path, [int]$Budget)
+    if ($Path.Length -le $Budget) { return $Path }
+    $separator = if ($Path.Contains('\')) { '\' } else { '/' }
+    $parts = $Path.Split([char]$separator)
+    $candidate = $Path
+    foreach ($cap in 12, 5, 3, 1) {
+        $short = for ($i = 0; $i -lt $parts.Count; $i++) {
+            $part = $parts[$i]
+            if ($i -eq $parts.Count - 1 -or $part.Length -le $cap -or $part.EndsWith(':')) { $part }
+            elseif ($cap -eq 1) { $part.Substring(0, 1) }
+            else {
+                $left = [int][math]::Floor($cap / 2)
+                $right = $cap - $left - 1
+                $part.Substring(0, $left) + '…' + $part.Substring($part.Length - $right)
+            }
+        }
+        $candidate = $short -join $separator
+        if ($candidate.Length -le $Budget) { return $candidate }
+    }
+    if ($Budget -le 1) { return '…' }
+    '…' + $candidate.Substring($candidate.Length - $Budget + 1)
 }
 
 function global:prompt {
     $ok = $?
     $nativeExit = $global:LASTEXITCODE
     $state = $global:PromptState
-    $PSNativeCommandUseErrorActionPreference = $false
+    $location = $executionContext.SessionState.Path.CurrentLocation
 
     try {
         if (-not $state.Repaint) {
             $state.Failed = -not $ok
-            $state.Branch = ''
             $state.LastJ = $null
             $state.Mode = 'INS'
-
-            if ($executionContext.SessionState.Path.CurrentLocation.Provider.Name -eq 'FileSystem' -and
-                (Get-Command git -CommandType Application -ErrorAction SilentlyContinue)) {
-
-                $branch = & git symbolic-ref --quiet --short HEAD 2>$null
-
-                if ($LASTEXITCODE -ne 0) {
-                    $branch = & git rev-parse --short HEAD 2>$null
+            if ($location.Provider.Name -eq 'FileSystem') {
+                $directory = $location.ProviderPath
+                $now = [Environment]::TickCount64
+                if ($state.DirectoryPath -cne $directory -or $now - $state.DirectoryTime -ge 30000) {
+                    $state.DirectoryInfo = Get-PromptDirectoryInfo $directory
+                    $state.DirectoryPath = $directory
+                    $state.DirectoryTime = [Environment]::TickCount64
                 }
-
-                if ($LASTEXITCODE -eq 0 -and $branch) {
-                    $dirty = & git --no-optional-locks status --porcelain --untracked-files=normal 2>$null
-                    $state.Branch = ' ' + ($branch -join '') + $(
-                        if ($LASTEXITCODE -eq 0 -and $dirty) { '*' }
-                    )
-                }
+            } else {
+                $state.DirectoryPath = $null
+                $state.DirectoryInfo = '≡ ? · ⊞ ? · ?'
             }
         }
 
-        $p = $executionContext.SessionState.Path.CurrentLocation.Path
+        $p = $location.Path
         $sep = [IO.Path]::DirectorySeparatorChar
 
         if ($p -eq $HOME) {
             $p = '~'
         }
-        elseif ($p.StartsWith($HOME.TrimEnd($sep) + $sep, [StringComparison]::Ordinal)) {
+        elseif ($p.StartsWith($HOME.TrimEnd($sep) + $sep, $(if ($IsWindows) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }))) {
             $p = '~' + $p.Substring($HOME.TrimEnd($sep).Length)
         }
 
         $p = $p -replace '[\x00-\x1f\x7f]', '?'
-        $branchText = $state.Branch -replace '[\x00-\x1f\x7f]', '?'
         $fail = if ($state.Failed) { ' failed' } else { '' }
 
         $modeColor = if ($state.Mode -eq 'NOR') {
@@ -182,8 +250,31 @@ function global:prompt {
 
         $reset = $PSStyle.Reset
 
-        "$($PSStyle.Foreground.Blue)╭─ $(Get-Date -Format HH:mm:ss) ── $([Environment]::MachineName)$reset`n" +
-        "${modeColor}╰─ [$($state.Mode)]$reset $($PSStyle.Foreground.Cyan)$p$reset$($PSStyle.Foreground.Magenta)$branchText$reset$($PSStyle.Foreground.Red)$fail$reset > "
+        $width = 80
+        try { $width = $Host.UI.RawUI.WindowSize.Width } catch {}
+        if ($width -le 0) { $width = 80 }
+        $heading = "╭─ $([DateTime]::Now.ToString('HH:mm:ss')) ── $([Environment]::MachineName)"
+        $full = "$heading ── $($state.DirectoryInfo)"
+        $cells = $full.Length
+        try { $cells = $Host.UI.RawUI.LengthInBufferCells($full) } catch {}
+        $rows = if ($cells -lt $width) { 1 } else { 2 }
+        # PSReadLine needs the count of extra prompt lines for redraws.
+        if ($state.PromptRows -ne $rows -and (Get-Module PSReadLine)) {
+            Set-PSReadLineOption -ExtraPromptLineCount $rows
+            $state.PromptRows = $rows
+        }
+        $budget = [math]::Max(1, $width - 3 - 6 - $fail.Length - 3 - 1)
+        $p = Get-ShortPath $p $budget
+        # Use terminal cell width when available (for wide Unicode path names).
+        try {
+            while ($p.Length -gt 1 -and $Host.UI.RawUI.LengthInBufferCells($p) -gt $budget) {
+                $p = '…' + $p.Substring(2)
+            }
+        } catch {}
+        $first = "$($PSStyle.Foreground.Blue)$heading$reset"
+        if ($rows -eq 1) { $first += " ── $($state.DirectoryInfo)`n" }
+        else { $first += "`n$($PSStyle.Foreground.Blue)│$reset  $($state.DirectoryInfo)`n" }
+        $first + "${modeColor}╰─ [$($state.Mode)]$reset $($PSStyle.Foreground.Cyan)$p$reset$($PSStyle.Foreground.Red)$fail$reset > "
     }
     finally {
         $global:LASTEXITCODE = $nativeExit
@@ -219,6 +310,13 @@ if ($Host.Name -eq 'ConsoleHost' -and
         DownArrow       = 'HistorySearchForward'
         'Ctrl+r'        = 'ReverseSearchHistory'
         RightArrow      = 'ForwardChar'
+        'Ctrl+f'        = 'ForwardChar'
+        'Ctrl+b'        = 'BackwardChar'
+        'Ctrl+p'        = 'HistorySearchBackward'
+        'Ctrl+n'        = 'HistorySearchForward'
+        'Ctrl+a'        = 'BeginningOfLine'
+        'Ctrl+e'        = 'EndOfLine'
+        'Shift+Tab'     = 'TabCompletePrevious'
         Enter           = 'ValidateAndAcceptLine'
         F1              = 'ShowCommandHelp'
         'Alt+e'         = 'ViEditVisually'

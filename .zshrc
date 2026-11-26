@@ -365,21 +365,117 @@ _first_tab() {
 zle -N _first_tab
 bindkey -M viins '^I' _first_tab
 
-##### Prompt (no directory scans; Git status once per prompt)
-typeset -gi LAST_STATUS=0
-typeset -g VIM_MODE=INS _git_branch='' _exit_status=''
+##### Prompt: bounded directory statistics, no Git lookup.
+typeset -gi LAST_STATUS=0 _dir_time=0
+typeset -g VIM_MODE=INS _exit_status='' _dir_path='' _dir_info='≡ ? · ⊞ ? · ?'
+zmodload -F zsh/stat b:zstat 2>/dev/null || :
+
+_directory_info() {
+  emulate -L zsh
+  [[ $_dir_path == "$PWD" ]] && (( SECONDS - _dir_time >= 0 && SECONDS - _dir_time < 30 )) && return 0
+  local -a entries
+  local -A file_info
+  local entry size='?' suffix='' label=B
+  local -i files=0 dirs=0 bytes=0 unit=1 valid=1 seen=0
+  _dir_path=$PWD
+  _dir_info='≡ ? · ⊞ ? · ?'
+  if [[ -r . && -x . ]]; then
+    # Y513 short-circuits glob traversal, including hidden entries; the extra
+    # entry distinguishes complete results from a truncated sample.
+    entries=(./*(NDY513))
+    if (( ${#entries} > 512 )); then
+      suffix=' …'
+    fi
+    for entry in "${entries[@]}"; do
+      (( seen >= 512 )) && break
+      (( seen += 1 ))
+      if [[ -L $entry ]]; then continue
+      elif [[ -d $entry ]]; then (( dirs += 1 ))
+      elif [[ -f $entry ]]; then
+        (( files += 1 ))
+        if (( $+builtins[zstat] )) && zstat -H file_info -- "$entry" 2>/dev/null; then
+          (( bytes += file_info[size] ))
+          (( bytes >= 0 )) || valid=0
+        else valid=0; fi
+      fi
+    done
+    if (( valid )); then
+      for label in B KiB MiB GiB TiB; do
+        (( bytes / unit < 1024 )) && break
+        [[ $label == TiB ]] && break
+        (( unit *= 1024 ))
+      done
+      if (( unit == 1 )); then size="$bytes B"
+      else printf -v size '%d.%d %s' "$((bytes / unit))" "$(((bytes % unit) * 10 / unit))" "$label"; fi
+    fi
+    _dir_info="≡ $files · ⊞ $dirs · $size$suffix"
+  fi
+  _dir_time=$SECONDS
+}
+
+# Compress parent components only when the full path does not fit.
+_shorten_path() {
+  emulate -L zsh
+  local value=$1 prefix='' rest cap part piece candidate
+  local -i budget=$2 i left right
+  local -a parts
+  REPLY=$value
+  (( ${#value} > budget )) || return 0
+  case $value in
+    '~/'*) prefix='~/'; rest=${value[3,-1]} ;;
+    /*) prefix=/; rest=${value[2,-1]} ;;
+    *) rest=$value ;;
+  esac
+  parts=("${(@s:/:)rest}")
+  for cap in 12 5 3 1; do
+    candidate=$prefix
+    for ((i=1; i<=${#parts}; i++)); do
+      part=${parts[i]}; piece=$part
+      if (( i < ${#parts} && ${#part} > cap )); then
+        if (( cap == 1 )); then piece=${part[1]}
+        else
+          left=$((cap/2)); right=$((cap-left-1))
+          piece="${part[1,left]}…${part[-right,-1]}"
+        fi
+      fi
+      (( i > 1 )) && candidate+=/
+      candidate+=$piece
+    done
+    REPLY=$candidate
+    (( ${#candidate} <= budget )) && return 0
+  done
+  # Final native prompt truncation below keeps the rightmost text.
+  return 0
+}
+
+typeset -gi _prompt_width=0
 _update_prompt() {
-  local mode_color=green
+  emulate -L zsh
+  local mode_color=green host=${(%):-%m} value=${(%):-%~} display
+  local -i width=${COLUMNS:-80} budget
+  local REPLY
   case $VIM_MODE in NOR) mode_color=yellow ;; VIS) mode_color=magenta ;; esac
-  PROMPT='%F{blue}╭─ %D{%H:%M:%S} ── %m%f'$'\n'
-  PROMPT+="%F{${mode_color}}╰─ [${VIM_MODE}]%f %F{cyan}%~%f%F{magenta}${_git_branch}%f%F{red}${_exit_status}%f %# "
+  host=${host//[[:cntrl:]]/?}
+  value=${value//[[:cntrl:]]/?}
+  budget=$((width - 3 - 6 - ${#_exit_status} - 3 - 1))
+  (( budget > 0 )) || budget=1
+  _shorten_path "$value" "$budget"
+  display=${REPLY//\%/%%}
+  _prompt_width=$width
+  PROMPT="%F{blue}╭─ %D{%H:%M:%S} ── ${host//\%/%%}%f"
+  if (( 15 + ${#host} + 4 + ${#_dir_info} < width )); then
+    PROMPT+=" ── ${_dir_info}"$'\n'
+  else
+    PROMPT+=$'\n'"%F{blue}│%f  ${_dir_info}"$'\n'
+  fi
+  PROMPT+="%F{${mode_color}}╰─ [${VIM_MODE}]%f %F{cyan}%${budget}<…<${display}%<<%f%F{red}${_exit_status}%f %# "
   PS2='%F{blue}│%f  '
 }
 _sync_vi_mode() {
   local mode=INS
   if (( REGION_ACTIVE )); then mode=VIS
   elif [[ $KEYMAP == vicmd || $KEYMAP == viopp ]]; then mode=NOR; fi
-  [[ $mode == $VIM_MODE ]] && return 0
+  [[ $mode == $VIM_MODE && ${COLUMNS:-80} == $_prompt_width ]] && return 0
   VIM_MODE=$mode
   _update_prompt
   zle reset-prompt
@@ -390,16 +486,9 @@ zle -N zle-keymap-select
 zle -N zle-line-init
 _prompt_precmd() {
   LAST_STATUS=$?
-  local branch='' dirty='' info=''
-  _git_branch='' _exit_status=''
-  if (( $+commands[git] )); then
-    branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null) || branch=''
-    if [[ -n $branch ]]; then
-      info=$(git --no-optional-locks status --porcelain --untracked-files=normal 2>/dev/null) && [[ -n $info ]] && dirty='*'
-      _git_branch=" ${branch//\%/%%}${dirty}"
-    fi
-  fi
+  _exit_status=''
   (( LAST_STATUS )) && _exit_status=" exit:$LAST_STATUS"
+  _directory_info
   _update_prompt
 }
 setopt PROMPT_PERCENT PROMPT_CR
@@ -810,4 +899,24 @@ ff() {
 if (( $+commands[fzf] )); then
   _fzf_init=$(fzf --zsh 2>/dev/null) && eval "$_fzf_init"
   unset _fzf_init
+fi
+
+# Arrowless Insert-mode editing (and separate completion-menu navigation).
+bindkey -M viins '^F' _accept
+bindkey -M viins '^B' backward-char
+bindkey -M viins '^A' beginning-of-line
+bindkey -M viins '^E' end-of-line
+bindkey -M viins '^P' up-line-or-search
+bindkey -M viins '^N' down-line-or-search
+bindkey -M viins '^R' history-incremental-search-backward
+bindkey -M viins '^@' expand-or-complete
+bindkey -M viins '^[[Z' reverse-menu-complete
+# zsh/complist supplies the menuselect keymap.
+if bindkey -M menuselect >/dev/null 2>&1; then
+  bindkey -M menuselect '^P' reverse-menu-complete
+  bindkey -M menuselect '^N' menu-complete
+  bindkey -M menuselect '^B' backward-char
+  bindkey -M menuselect '^F' forward-char
+  bindkey -M menuselect '^I' menu-complete
+  bindkey -M menuselect '^[[Z' reverse-menu-complete
 fi
