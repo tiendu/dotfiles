@@ -37,9 +37,6 @@ vnoremap <A-k> :m '<-2<CR>gv=gv
 
 " Map keys to Esc
 inoremap jk <Esc>
-inoremap kj <Esc>
-inoremap jj <Esc>
-inoremap kk <Esc>
 
 " Navigate in insert mode
 inoremap <C-k> <Esc>ka
@@ -61,3 +58,15 @@ highlight Whitespace guifg=#808080    " Grey color for whitespace
 highlight TabLine guifg=#808080       " Grey color for tab line
 highlight EndOfLine guifg=#808080     " Grey color for end of line
 highlight CursorLine cterm=underline  " Underline the current line
+
+" Explicit saves, persistent undo outside the project.
+set timeoutlen=250
+set splitright splitbelow wildmenu scrolloff=3
+if has('persistent_undo')
+  let s:undo_dir = expand('~/.vim/undo')
+  if !isdirectory(s:undo_dir) | call mkdir(s:undo_dir, 'p', 0700) | endif
+  let &undodir = s:undo_dir . '//'
+  set undofile
+endif
+syntax on
+filetype plugin indent on

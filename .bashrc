@@ -1,156 +1,122 @@
 # ~/.bashrc
 case $- in *i*) ;; *) return ;; esac
 
-export EDITOR="nvim"
-export VISUAL="nvim"
 export LESS='-iMQRFX'
-
-path_prepend() {
-  [[ -d "$1" ]] || return
-  case ":$PATH:" in *":$1:"*) ;; *) PATH="$1:$PATH" ;; esac
-}
-
-manpath_prepend() {
-  [[ -d "$1" ]] || return
-  case ":${MANPATH:-}:" in *":$1:"*) ;; *) MANPATH="$1${MANPATH:+:$MANPATH}" ;; esac
-}
-
-path_prepend "/opt/homebrew/bin"
-for d in /opt/homebrew/opt/*/libexec/gnubin; do path_prepend "$d"; done
-for d in /opt/homebrew/opt/*/libexec/gnuman; do manpath_prepend "$d"; done
-path_prepend "$HOME/miniforge/bin"
-export PATH MANPATH
-
-if command -v eza >/dev/null 2>&1; then
-  alias ls='eza'
-  alias ll='eza -l'
-  alias la='eza -la'
-  alias tree='eza --tree --level=3'
-else
-  if [[ "$OSTYPE" == darwin* ]]; then
-    alias ls='ls -G'
-  else
-    alias ls='ls --color=auto'
-  fi
+for d in /opt/homebrew/bin "$HOME/.local/bin" /opt/homebrew/opt/*/libexec/gnubin "$HOME/miniforge/bin"; do
+  [[ -d $d && :$PATH: != *":$d:"* ]] && PATH="$d:$PATH"
+done
+export PATH
+if command -v nvim >/dev/null 2>&1; then
+  export EDITOR=nvim
+  alias vi=nvim vim=nvim
+elif command -v vim >/dev/null 2>&1; then export EDITOR=vim
+else export EDITOR=vi
 fi
+export VISUAL="$EDITOR"
 
-command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"
-
-alias rm='rm -i'
-alias cp='cp -i'
-alias mv='mv -i'
-alias l='ls'
-alias e='nvim'
-alias h='history'
-alias ta='tmux attach || tmux new'
-alias ..='cd ..'
-alias ...='cd ../..'
-alias ....='cd ../../..'
-
-config() {
-  command git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME" "$@"
-}
-
-alias g='git'
-alias gs='git status -sb'
-alias gl='git log --oneline --decorate --graph --max-count=15'
-alias gf='git fetch --prune'
-alias ga='git add -p'
-alias gr='git restore'
-alias gp='git push'
-
-if [[ "$OSTYPE" == darwin* ]]; then
-  pbcopy() { if (( $# )); then command cat -- "$@" | command pbcopy; else command pbcopy; fi; }
-  pbpaste() { command pbpaste; }
-elif command -v wl-copy >/dev/null 2>&1; then
-  pbcopy() { if (( $# )); then command cat -- "$@" | command wl-copy; else command wl-copy; fi; }
-  pbpaste() { command wl-paste; }
-elif command -v xclip >/dev/null 2>&1; then
-  pbcopy() { if (( $# )); then command cat -- "$@" | command xclip -selection clipboard; else command xclip -selection clipboard; fi; }
-  pbpaste() { command xclip -selection clipboard -o; }
-elif command -v xsel >/dev/null 2>&1; then
-  pbcopy() { if (( $# )); then command cat -- "$@" | command xsel --clipboard --input; else command xsel --clipboard --input; fi; }
-  pbpaste() { command xsel --clipboard --output; }
-else
-  pbcopy() { cat >/dev/null; }
-  pbpaste() { return 1; }
-fi
-
-mkcd() {
-  [[ -n "$1" ]] || return 1
-  mkdir -p -- "$1" && cd -- "$1"
-}
-
-extract() {
-  [[ -f "$1" ]] || { echo "Not a file: $1"; return 1; }
-  case "$1" in
-    *.tar.bz2) tar xjf "$1" ;;
-    *.tar.gz)  tar xzf "$1" ;;
-    *.zip)     unzip -q "$1" ;;
-    *.tar.xz)  tar xJf "$1" ;;
-    *.rar)     unrar x -idq "$1" ;;
-    *) echo "Unknown archive"; return 1 ;;
-  esac
-}
-
-HISTFILE="${HISTFILE:-$HOME/.bash_history}"
 HISTSIZE=10000
 HISTFILESIZE=20000
-HISTCONTROL=ignoredups:erasedups
+HISTCONTROL=ignoreboth:erasedups
 shopt -s histappend checkwinsize
-
+shopt -s globstar 2>/dev/null || :
 set -o vi
-set -o noclobber
-set -o pipefail
+bind 'set show-mode-in-prompt on' 2>/dev/null || :
+bind 'set vi-ins-mode-string "[INS] "' 2>/dev/null || :
+bind 'set vi-cmd-mode-string "[NOR] "' 2>/dev/null || :
+bind 'set keyseq-timeout 250' 2>/dev/null || :
+bind -m vi-insert '"jk": vi-movement-mode'
+bind 'set completion-ignore-case on'
+bind -m vi-insert '"\e[A": history-search-backward'
+bind -m vi-insert '"\e[B": history-search-forward'
+bind -m vi-insert '"\eOA": history-search-backward'
+bind -m vi-insert '"\eOB": history-search-forward'
+bind -m vi-insert '"\C-p": history-search-backward'
+bind -m vi-insert '"\C-n": history-search-forward'
+# Native completion on Linux when already installed.
+if [[ -r /usr/share/bash-completion/bash_completion ]]; then
+  . /usr/share/bash-completion/bash_completion
+fi
 
-bind '"jk": vi-movement-mode'
-bind '"kj": vi-movement-mode'
-bind '"\C-p": history-search-backward'
-bind '"\C-n": history-search-forward'
+config() { command git --git-dir="$HOME/.dotfiles" --work-tree="$HOME" "$@"; }
+alias gs='git status -sb' gd='git diff' gds='git diff --staged' gl='git log --oneline --decorate --graph --max-count=15'
+alias gf='git fetch --prune' ga='git add -p' gp='git push' ta='tmux attach || tmux new'
+mkcd() { [[ $# == 1 ]] && mkdir -p -- "$1" && cd -- "$1"; }
+extract() {
+  [[ $# == 1 && -f $1 ]] || { printf 'usage: extract archive\n' >&2; return 2; }
+  case $1 in
+    *.tar.gz|*.tgz|*.tar.bz2|*.tar.xz|*.tar) tar -xf "$1" ;;
+    *.zip) unzip "$1" ;;
+    *) printf 'Unsupported archive: %s\n' "$1" >&2; return 2 ;;
+  esac
+}
+copy() {
+  if (( $# )); then (set -o pipefail; cat -- "$@" | _dot_copy); else _dot_copy; fi
+}
+_dot_copy() {
+  if [[ $OSTYPE == darwin* ]] && command -v pbcopy >/dev/null; then command pbcopy
+  elif [[ -n ${WAYLAND_DISPLAY:-} ]] && command -v wl-copy >/dev/null; then wl-copy
+  elif [[ -n ${DISPLAY:-} ]] && command -v xclip >/dev/null; then xclip -selection clipboard
+  elif [[ -n ${DISPLAY:-} ]] && command -v xsel >/dev/null; then xsel --clipboard --input
+  else printf 'copy: no clipboard backend (use tmux copy mode over SSH)\n' >&2; return 127; fi
+}
+paste() {
+  if [[ $OSTYPE == darwin* ]] && command -v pbpaste >/dev/null; then command pbpaste
+  elif [[ -n ${WAYLAND_DISPLAY:-} ]] && command -v wl-paste >/dev/null; then wl-paste
+  elif [[ -n ${DISPLAY:-} ]] && command -v xclip >/dev/null; then xclip -selection clipboard -o
+  elif [[ -n ${DISPLAY:-} ]] && command -v xsel >/dev/null; then xsel --clipboard --output
+  else printf 'paste: no clipboard backend\n' >&2; return 127; fi
+}
+if ! command -v watch >/dev/null 2>&1; then
+  watch() (
+    local interval=2
+    if [[ ${1:-} == -n ]]; then interval=${2:-}; shift 2 || return 2; fi
+    [[ $interval =~ ^[0-9]+([.][0-9]+)?$ && $interval =~ [1-9] && $# -gt 0 ]] || return 2
+    while :; do clear; date; "$@"; sleep "$interval" || return; done
+  )
+fi
 
-_shorten_path() {
-  local full="${1:-$PWD}" prefix=""
-  [[ "$full" == "$HOME"* ]] && prefix="~" full="${full/#$HOME/}"
+if command -v eza >/dev/null 2>&1; then
+  alias ll='eza -l' la='eza -la' tree='eza --tree --level=3'
+else
+  alias ll='ls -l' la='ls -la'
+fi
+if command -v zoxide >/dev/null 2>&1; then eval "$(zoxide init bash)"; fi
+if command -v fzf >/dev/null 2>&1; then
+  # fzf >= 0.48; older builds remain usable as a command.
+  _fzf_init=$(fzf --bash 2>/dev/null) && eval "$_fzf_init"
+  unset _fzf_init
+fi
+ff() {
+  local root=${1:-.} file
+  if command -v fzf >/dev/null 2>&1; then
+    if command -v fd >/dev/null 2>&1; then file=$(fd -0 -t f . "$root" | fzf --read0 --print0 | tr -d '\000') || return
+    else file=$(find "$root" -type f -print | fzf) || return; fi
+    [[ -n $file ]] && "$EDITOR" -- "$file"
+  else find "$root" -type f; fi
+}
 
-  IFS='/' read -ra parts <<< "${full#/}"
+path_entries() { printf '%s\n' "$PATH" | tr ':' '\n'; }
+ports() {
+  if command -v ss >/dev/null 2>&1; then ss -lntup
+  elif command -v lsof >/dev/null 2>&1; then lsof -nP -iTCP -sTCP:LISTEN
+  else printf 'ports: ss or lsof required\n' >&2; return 127; fi
+}
 
-  if (( ${#parts[@]} == 0 )); then
-    printf '%s/\n' "$prefix"
-  elif (( ${#parts[@]} > 4 )); then
-    printf '%s/%s/%s/.../%s/%s\n' \
-      "$prefix" "${parts[0]}" "${parts[1]}" \
-      "${parts[${#parts[@]}-2]}" "${parts[${#parts[@]}-1]}"
-  else
-    local joined
-    joined="$(IFS=/; echo "${parts[*]}")"
-    printf '%s/%s\n' "$prefix" "$joined"
+# Git status is calculated once per prompt; never interpolate it as shell code.
+_dot_prompt() {
+  local rc=$? branch='' dirty='' status='' git_info=''
+  history -a; history -n
+  if command -v git >/dev/null 2>&1; then
+    branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null) || branch=''
+    if [[ -n $branch ]]; then
+      git_info=$(git --no-optional-locks status --porcelain --untracked-files=normal 2>/dev/null) && [[ -n $git_info ]] && dirty='*'
+    fi
   fi
+  (( rc )) && status=" exit:$rc"
+  # Use literal parameter expansion in PS1 (no recursive evaluation of values).
+  _dot_branch=${branch:+ $branch$dirty}
+  _dot_status=$status
+  PS1='\[\e[34m\]╭─ \t ── \h\[\e[0m\]\n\[\e[36m\]╰─ \w\[\e[35m\]${_dot_branch}\[\e[31m\]${_dot_status}\[\e[0m\] \$ '
+  return "$rc"
 }
-
-__prompt() {
-  local s="$1"
-  local reset='\[\033[0m\]'
-  local bold='\[\033[1m\]'
-  local white='\[\033[1;37m\]'
-  local red='\[\033[1;31m\]'
-  local green='\[\033[1;32m\]'
-  local cyan_bg='\[\033[46m\]'
-  local blue_bg='\[\033[44m\]'
-  local magenta='\[\033[1;35m\]'
-
-  local st="${cyan_bg} ${green}0 ${reset} "
-  [[ "$s" -ne 0 ]] && st="${cyan_bg} ${red}${s} ${reset} "
-
-  PS1="${blue_bg} ${white}\A ${reset} :: ${magenta}$(_shorten_path)${reset} :: ${st}
-${white}#${reset} "
-  PS2="  "
-}
-
-__prompt_command() {
-  local s=$?
-  history -a
-  history -n
-  __prompt "$s"
-}
-
-PROMPT_COMMAND=__prompt_command
+PROMPT_COMMAND=_dot_prompt

@@ -56,7 +56,7 @@ opt.undofile = true
 if fn.has("clipboard") == 1 then
   opt.clipboard = "unnamedplus"
 end
-opt.timeoutlen = 300
+opt.timeoutlen = 250
 opt.autoread = true
 opt.confirm = true
 opt.mouse = "a"
@@ -149,9 +149,6 @@ map("n", "<Esc>", "<Cmd>nohlsearch<CR>", kmopts)
 
 -- Fast Escape
 map("i", "jk", "<Esc>", kmopts)
-map("i", "kj", "<Esc>", kmopts)
-map("i", "jj", "<Esc>", kmopts)
-map("i", "kk", "<Esc>", kmopts)
 
 -- Quickfix
 map("n", "<leader>co", "<Cmd>copen<CR>", kmopts)
@@ -216,54 +213,6 @@ api.nvim_create_autocmd("FileType", {
     vim.opt_local.tabstop = 4
     vim.opt_local.shiftwidth = 4
     vim.opt_local.softtabstop = 0
-  end,
-})
-
--- Autosave current buffer only on InsertLeave. Report write failures instead
--- of silently hiding permission, disk, or read-only errors.
-api.nvim_create_autocmd("InsertLeave", {
-  group = api.nvim_create_augroup("autosave_modified", { clear = true }),
-  callback = function(args)
-    local b = args.buf
-    local name = api.nvim_buf_get_name(b)
-
-    if name == "" then
-      return
-    end
-
-    if vim.bo[b].buftype == ""
-      and vim.bo[b].modifiable
-      and vim.bo[b].buflisted
-      and vim.bo[b].modified
-    then
-      local ok, err = pcall(api.nvim_buf_call, b, function()
-        vim.cmd("silent keepalt write")
-      end)
-
-      if not ok then
-        vim.notify(
-          ("Autosave failed for %s: %s"):format(name, tostring(err)),
-          vim.log.levels.ERROR
-        )
-      end
-    end
-  end,
-})
-
--- Trim trailing spaces on save
-api.nvim_create_autocmd("BufWritePre", {
-  group = api.nvim_create_augroup("trim_trailing_ws", { clear = true }),
-  callback = function(args)
-    local ft = vim.bo[args.buf].filetype
-    if ft == "markdown" or ft == "asciidoc" then
-      return
-    end
-
-    api.nvim_buf_call(args.buf, function()
-      local view = vim.fn.winsaveview()
-      vim.cmd([[silent keepjumps keeppatterns %s/\s\+$//e]])
-      vim.fn.winrestview(view)
-    end)
   end,
 })
 
@@ -424,25 +373,3 @@ if fn.exists("+autocomplete") == 1 then
   opt.autocomplete = true
   opt.autocompletedelay = 200
 end
-
--- Enter and Tab always behave normally.
-for _, key in ipairs({ "<CR>", "<Tab>" }) do
-  map("i", key, function()
-    if fn.pumvisible() == 1 then
-      return "<C-e>" .. key
-    end
-    return key
-  end, expr_opts)
-end
-
--- Disable completion navigation.
-map("i", "<C-n>", "<Nop>", kmopts)
-map("i", "<C-p>", "<Nop>", kmopts)
-
--- Ctrl+Y dismisses suggestions instead of accepting.
-map("i", "<C-y>", function()
-  if fn.pumvisible() == 1 then
-    return "<C-e>"
-  end
-  return "<C-y>"
-end, expr_opts)

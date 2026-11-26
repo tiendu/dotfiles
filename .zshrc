@@ -1,10 +1,16 @@
 # ~/.zshrc
+[[ -o interactive ]] || return
 ##### Modules
 zmodload zsh/zle
 
 ##### General environment
-export EDITOR="nvim"
-export VISUAL="nvim"
+if (( $+commands[nvim] )); then
+  export EDITOR=nvim
+  alias vi=nvim vim=nvim
+elif (( $+commands[vim] )); then export EDITOR=vim
+else export EDITOR=vi
+fi
+export VISUAL="$EDITOR"
 export LESS='-iMQRFX'
 
 ##### Tunables
@@ -46,13 +52,10 @@ if [[ $- == *i* ]]; then
   alias cp='cp -i'
   alias mv='mv -i'
   alias l='ls'
-  alias e='nvim'
+  alias e='$EDITOR'
   alias h='fc -ln 1'
   alias ta='tmux attach || tmux new'
   alias config='command git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-  alias ..='cd ..'
-  alias ...='cd ../..'
-  alias ....='cd ../../..'
 fi
 
 ##### Minimal safe git aliases
@@ -331,15 +334,18 @@ setopt NO_CLOBBER RM_STAR_WAIT NO_BEEP
 
 ##### Vim mode & Keybinds
 bindkey -v
-KEYTIMEOUT=15
+KEYTIMEOUT=25
 
 autoload -Uz up-line-or-search down-line-or-search
 bindkey -M viins '^P' up-line-or-search
 bindkey -M viins '^N' down-line-or-search
+bindkey -M viins '^[[A' history-beginning-search-backward
+bindkey -M viins '^[[B' history-beginning-search-forward
+bindkey -M viins '^[OA' history-beginning-search-backward
+bindkey -M viins '^[OB' history-beginning-search-forward
 bindkey -M vicmd '/' history-incremental-search-forward
 bindkey -M vicmd '?' history-incremental-search-backward
 bindkey -M viins 'jk' vi-cmd-mode
-bindkey -M viins 'kj' vi-cmd-mode
 bindkey -M viins $'\x7f' backward-delete-char
 bindkey -M viins $'\x08' backward-delete-char
 
@@ -359,306 +365,43 @@ _first_tab() {
 zle -N _first_tab
 bindkey -M viins '^I' _first_tab
 
-zmodload -F zsh/stat b:zstat
-
+##### Prompt (no directory scans; Git status once per prompt)
 typeset -gi LAST_STATUS=0
-typeset -g VIM_MODE="INS"
-typeset -g _prompt_dir_info="0 | 0 B"
-typeset -g _prompt_path=""
-
-##### Prompt
-# Keep mode as plain data; style it only when building PROMPT.
-_sync_vi_mode() {
-  local mode=INS
-  if (( REGION_ACTIVE )); then
-    mode=VIS
-  elif [[ $KEYMAP == vicmd || $KEYMAP == viopp ]]; then
-    mode=NOR
-  fi
-
-  [[ $mode == $VIM_MODE ]] && return 0
-  VIM_MODE=$mode
-  _update_prompt "$LAST_STATUS"
-  zle reset-prompt
-}
-
-zle-keymap-select() { _sync_vi_mode; }
-zle -N zle-keymap-select
-zle -N zle-line-init zle-keymap-select
-
-# Compress names independently; preserve every path level when possible.
-# 12/20 are maximum component widths, not fixed path-length limits.
-typeset -gi ZSH_PATH_PARENT_MAX=${ZSH_PATH_PARENT_MAX:-12}
-typeset -gi ZSH_PATH_LEAF_MAX=${ZSH_PATH_LEAF_MAX:-20}
-
-_shorten_path() {
-  emulate -L zsh
-
-  local full=${1:-$PWD} prefix='' component
-  local -a parts caps=() compact=()
-  local -i budget=${2:-0}
-  local -i n i length cap left right total stage floor best pick
-
-  # Never compress the home marker or filesystem root.
-  if [[ $full == "$HOME" ]]; then
-    REPLY='~'
-    return
-  elif [[ $full == "$HOME/"* ]]; then
-    prefix='~/'
-    full=${full#"$HOME/"}
-  elif [[ $full == /* ]]; then
-    prefix='/'
-    full=${full#/}
-  fi
-
-  [[ -n $full ]] || { REPLY=${prefix:-.}; return; }
-  parts=("${(@s:/:)full}")
-  n=${#parts}
-  total=$(( ${#prefix} + n - 1 ))  # Slashes are never removed.
-
-  # Initial limits: parents <= 12, leaf <= 20 (by default).
-  for (( i = 1; i <= n; ++i )); do
-    length=${#parts[i]}
-    if (( i == n )); then
-      cap=$ZSH_PATH_LEAF_MAX
-    else
-      cap=$ZSH_PATH_PARENT_MAX
-    fi
-    (( cap < 3 )) && cap=3
-    (( cap > length )) && cap=$length
-    caps[i]=$cap
-    (( total += cap ))
-  done
-
-  # Narrow panes: progressively reduce components before losing any levels.
-  # Keep the leaf more legible than parents, and favor nearby context.
-  if (( budget > 0 && total > budget )); then
-    for stage in 1 2 3 4 5; do
-      while (( total > budget )); do
-        pick=0
-        if (( stage == 2 || stage == 4 )); then
-          # Leaf: first to 12, and only later to 8 characters.
-          if (( stage == 2 )); then floor=12; else floor=8; fi
-          (( caps[n] > floor )) && pick=$n
-        else
-          # Parents: 12 -> 5 -> 3 -> 1, longest first.
-          case $stage in
-            1) floor=5 ;;
-            3) floor=3 ;;
-            5) floor=1 ;;
-          esac
-          best=0
-          for (( i = 1; i < n; ++i )); do
-            if (( caps[i] > floor && caps[i] > best )); then
-              best=${caps[i]}
-              pick=$i
-            fi
-          done
-        fi
-        (( pick )) || break
-        (( caps[pick]--, total-- ))
-      done
-      (( total <= budget )) && break
-    done
-  fi
-
-  # Always keep every slash. For shortened components, preserve both ends
-  # whenever the width allows; one-cell parents keep their initial.
-  for (( i = 1; i <= n; ++i )); do
-    component=${parts[i]}
-    length=${#component}
-    cap=${caps[i]}
-    if (( length > cap )); then
-      if (( cap == 1 )); then
-        component=${component[1]}
-      elif (( cap == 2 )); then
-        component="${component[1]}…"
-      else
-        left=$(( cap / 2 ))
-        right=$(( cap - left - 1 ))
-        component="${component[1,$left]}…${component[$((length - right + 1)),-1]}"
-      fi
-    fi
-    compact+=("$component")
-  done
-
-  REPLY="${prefix}${(j:/:)compact}"
-}
-
-# Directory information cache
-typeset -gi ZSH_DIR_CACHE_TTL=${ZSH_DIR_CACHE_TTL:-30}
-typeset -gA _dir_cache_stamp=()
-typeset -gA _dir_cache_time=()
-typeset -gA _dir_cache_value=()
-
-_prompt_directory_info() {
-  emulate -L zsh
-
-  local -A dir_info file_info after_info
-  local entry formatted stamp after_stamp
-  local key=$PWD
-  local -i now=$SECONDS
-  local -i count=0 bytes=0 incomplete=0
-
-  if [[ ! -r . || ! -x . ]] ||
-     ! zstat -H dir_info -- . 2>/dev/null; then
-    _prompt_dir_info='? | ?'
-    return
-  fi
-
-  # Directory checkpoint
-  stamp="${dir_info[device]}:${dir_info[inode]}:${dir_info[mtime]}:${dir_info[ctime]}"
-
-  # Reuse cache if unchanged and not expired
-  if [[ ${_dir_cache_stamp[$key]-} == "$stamp" ]] &&
-     (( now - ${_dir_cache_time[$key]:-0} < ZSH_DIR_CACHE_TTL )); then
-    _prompt_dir_info="${_dir_cache_value[$key]}"
-    return
-  fi
-
-  # Recompute direct regular files, including hidden files
-  for entry in ./*(ND.); do
-    if zstat -H file_info -- "$entry" 2>/dev/null; then
-      (( ++count, bytes += file_info[size] ))
-    else
-      incomplete=1
-    fi
-  done
-
-  if (( bytes < 1024 )); then
-    formatted="$bytes B"
-  elif (( bytes < 1048576 )); then
-    printf -v formatted '%.1f KiB' $(( bytes / 1024.0 ))
-  elif (( bytes < 1073741824 )); then
-    printf -v formatted '%.1f MiB' $(( bytes / 1048576.0 ))
-  else
-    printf -v formatted '%.1f GiB' $(( bytes / 1073741824.0 ))
-  fi
-
-  _prompt_dir_info="$count | $formatted"
-  (( incomplete )) && _prompt_dir_info+=' : partial'
-
-  # Avoid caching a scan if directory entries changed during it
-  if zstat -H after_info -- . 2>/dev/null; then
-    after_stamp="${after_info[device]}:${after_info[inode]}:${after_info[mtime]}:${after_info[ctime]}"
-
-    if [[ $stamp == "$after_stamp" ]]; then
-      # Bound the cache to 64 directories
-      if (( ${#_dir_cache_value} >= 64 )); then
-        _dir_cache_stamp=()
-        _dir_cache_time=()
-        _dir_cache_value=()
-      fi
-
-      _dir_cache_stamp[$key]="$stamp"
-      _dir_cache_time[$key]=$SECONDS
-      _dir_cache_value[$key]="$_prompt_dir_info"
-    fi
-  fi
-}
-
-# Sculpted rail / VHS-mode prompt. Theme-adaptive named ANSI colors only.
-# ● Insert (record), ■ Normal (stop), ▶ Visual (play).
-# PROMPT_SUBST is deliberately disabled; values expand while building PROMPT.
+typeset -g VIM_MODE=INS _dot_git='' _dot_status=''
 _update_prompt() {
-  emulate -L zsh
-
-  local -i rc=${1:-0}
-  local -i width=${COLUMNS:-80}
-  local -i wide_budget narrow_budget
-  local mode_seg mode_color path_seg time_seg stats_seg status_seg anchor
-  local parent leaf count size partial_seg='' path_val
-  local rail='%F{blue}╭─┤%f'
-  local bar='%F{blue}├──%f'
-  local join='%F{blue} ── %f'
-  local layout=wide
-
-  # Native Zsh colors: actual shades come from the terminal theme.
-  case ${VIM_MODE:-INS} in
-    NOR) mode_color=yellow;  mode_seg='%B%F{yellow}■ NOR%f%b' ;;
-    VIS) mode_color=magenta; mode_seg='%B%F{magenta}▶ VIS%f%b' ;;
-    *)   mode_color=green;   mode_seg='%B%F{green}● INS%f%b' ;;
-  esac
-  anchor="%B%F{${mode_color}}╰─❯%f%b"
-  time_seg='%D{%H:%M:%S}'
-
-  # Read cached directory statistics without rescanning.
-  if [[ $_prompt_dir_info == *' | '* ]]; then
-    count=${_prompt_dir_info%%' | '*}
-    size=${_prompt_dir_info#*' | '}
-    if [[ $size == *' : partial' ]]; then
-      size=${size%' : partial'}
-      partial_seg=' %F{yellow}~%f'
-    fi
-    stats_seg="%B%F{cyan}≡ ${count}%f%b · ${size}${partial_seg}"
-  else
-    stats_seg="${_prompt_dir_info}"
-  fi
-
-  # Keep successes quiet; reserve the error marker on either layout.
-  status_seg=''
-  (( rc != 0 )) && status_seg="${join}%B%F{red}✗ ${rc}%f%b"
-
-  # A wide line contains rail/mode/time/path/stats/error. Use actual fixed
-  # text lengths to decide whether it fits, not a fixed path-length cutoff.
-  # 14: rail + mode + bar + spaces. 8: HH:MM:SS. 8: two joins.
-  # Stats: '≡ count · size', approximately raw 'count | size' + 2.
-  # A little slack prevents wrapping in fonts with unusual Unicode widths.
-  wide_budget=$(( width - 14 - 8 - 8 - ${#_prompt_dir_info} - 2 - 2 ))
-  (( rc != 0 )) && (( wide_budget -= 6 + ${#rc} ))
-
-  # First try default per-component limits (12/20) in the full layout.
-  _shorten_path "$PWD"
-  if (( width < 85 || ${#REPLY} > wide_budget )); then
-    layout=narrow
-    # Only the rail, mode, path and optional error appear on line one.
-    narrow_budget=$(( width - 14 - 2 ))
-    (( rc != 0 )) && (( narrow_budget -= 6 + ${#rc} ))
-    (( narrow_budget < 1 )) && narrow_budget=1
-    _shorten_path "$PWD" "$narrow_budget"
-  fi
-  path_val=$REPLY
-
-  # Sanitize control characters and escape prompt percent sequences.
-  # PROMPT_SUBST stays disabled; these are plain rendered values.
-  path_val=${path_val//$'\n'/↵}
-  path_val=${path_val//$'\r'/}
-  path_val=${path_val//$'\t'/⇥}
-  path_val=${path_val//$'\e'/}
-  path_val="${path_val//\%/%%}"
-
-  # Parent path uses normal foreground; leaf remains highlighted.
-  if [[ $path_val == */* && $path_val != / ]]; then
-    parent=${path_val%/*}
-    leaf=${path_val##*/}
-    if [[ -z $parent ]]; then
-      path_seg="/%B%F{magenta}${leaf}%f%b"
-    else
-      path_seg="${parent}/%B%F{magenta}${leaf}%f%b"
-    fi
-  else
-    path_seg="%B%F{magenta}${path_val}%f%b"
-  fi
-
-  if [[ $layout == narrow ]]; then
-    # Last-resort Zsh truncation only if even minimum components don't fit.
-    # The rightmost component is preserved as far as the terminal allows.
-    path_seg="%${narrow_budget}<…<${path_seg}%<<"
-    PROMPT=$'\n'"${rail} ${mode_seg} ${bar} ${path_seg}${status_seg}"$'\n'\
-"%F{blue}│%f  ${time_seg}${join}${stats_seg}"$'\n'"${anchor} "
-  else
-    PROMPT=$'\n'"${rail} ${mode_seg} ${bar} ${time_seg}${join}${path_seg}${join}${stats_seg}${status_seg}"$'\n'"${anchor} "
-  fi
-
+  local mode_color=green
+  case $VIM_MODE in NOR) mode_color=yellow ;; VIS) mode_color=magenta ;; esac
+  PROMPT='%F{blue}╭─ %D{%H:%M:%S} ── %m%f'$'\n'
+  PROMPT+="%F{${mode_color}}╰─ [${VIM_MODE}]%f %F{cyan}%~%f%F{magenta}${_dot_git}%f%F{red}${_dot_status}%f %# "
   PS2='%F{blue}│%f  '
 }
-
+_sync_vi_mode() {
+  local mode=INS
+  if (( REGION_ACTIVE )); then mode=VIS
+  elif [[ $KEYMAP == vicmd || $KEYMAP == viopp ]]; then mode=NOR; fi
+  [[ $mode == $VIM_MODE ]] && return 0
+  VIM_MODE=$mode
+  _update_prompt
+  zle reset-prompt
+}
+zle-keymap-select() { _sync_vi_mode; }
+zle-line-init() { _sync_vi_mode; }
+zle -N zle-keymap-select
+zle -N zle-line-init
 _prompt_precmd() {
   LAST_STATUS=$?
-  _prompt_directory_info
-  _update_prompt "$LAST_STATUS"
+  local branch='' dirty='' info=''
+  _dot_git='' _dot_status=''
+  if (( $+commands[git] )); then
+    branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null) || branch=''
+    if [[ -n $branch ]]; then
+      info=$(git --no-optional-locks status --porcelain --untracked-files=normal 2>/dev/null) && [[ -n $info ]] && dirty='*'
+      _dot_git=" ${branch//\%/%%}${dirty}"
+    fi
+  fi
+  (( LAST_STATUS )) && _dot_status=" exit:$LAST_STATUS"
+  _update_prompt
 }
-
 setopt PROMPT_PERCENT PROMPT_CR
 unsetopt PROMPT_SUBST
 autoload -Uz add-zsh-hook
@@ -868,32 +611,7 @@ _custom_highlight() {
   done
 }
 
-typeset -g _hl_previous_buffer=''
-typeset -gi _hl_previous_valid=0
-_highlight_pre_redraw() {
-  _sync_vi_mode
-
-  if (( _hl_previous_valid )) &&
-     [[ $BUFFER == "$_hl_previous_buffer" ]]; then
-    return
-  fi
-
-  _custom_highlight
-
-  _hl_previous_buffer=$BUFFER
-  _hl_previous_valid=1
-}
-
-_highlight_finish() {
-  region_highlight=()
-  _hl_previous_valid=0
-}
-
-if [[ $- == *i* ]]; then
-  autoload -Uz add-zle-hook-widget
-  add-zle-hook-widget line-pre-redraw _highlight_pre_redraw
-  add-zle-hook-widget line-finish     _highlight_finish
-fi
+autoload -Uz add-zle-hook-widget
 
 ##### Autopair
 if [[ $- == *i* ]]; then
@@ -978,7 +696,7 @@ if [[ $- == *i* ]]; then
       esac
     fi
 
-    zle .backward-delete-char
+    zle backward-delete-char
   }
 
   _ap_apos() { _autopair_open $'\'' $'\'' boundary; }
@@ -1012,7 +730,7 @@ if [[ $- == *i* ]]; then
   zstyle ':completion:*' cache-path "$_compcache"
   zstyle ':completion:*' menu select
   zstyle ':completion:*' matcher-list \
-    'm:{a-zA-Z}={A-Za-z}' \
+    '' 'm:{a-zA-Z}={A-Za-z}' \
     'r:|[._-]=* r:|=*'
   zstyle ':completion:*' group-name ''
   zstyle ':completion:*' list-colors ''
@@ -1025,4 +743,71 @@ if [[ $- == *i* ]]; then
   if (( _completion_insecure )); then
     print -P "%F{yellow}warning:%f insecure completion dirs detected"
   fi
+fi
+
+# Native history suggestion: show a matching command without inserting it.
+zmodload zsh/parameter
+_dot_suggest() {
+  POSTDISPLAY=''
+  [[ ( $KEYMAP == viins || $KEYMAP == main ) && -n $BUFFER && $CURSOR == ${#BUFFER} && $BUFFER != *$'\n'* ]] || return 0
+  local item
+  local -i event floor
+  floor=$(( HISTCMD > 200 ? HISTCMD - 200 : 1 ))
+  for (( event=HISTCMD-1; event>=floor; --event )); do
+    item=${history[$event]-}
+    if [[ $item == "$BUFFER"* && $item != "$BUFFER" && $item != *$'\n'* ]]; then
+      POSTDISPLAY=${item[${#BUFFER}+1,-1]}
+      break
+    fi
+  done
+  if [[ -n $POSTDISPLAY ]]; then
+    region_highlight+=("${#BUFFER} $((${#BUFFER}+${#POSTDISPLAY})) fg=8")
+  fi
+}
+_dot_accept() {
+  if [[ -n $POSTDISPLAY && $CURSOR == ${#BUFFER} ]]; then
+    BUFFER+=$POSTDISPLAY; CURSOR=${#BUFFER}; POSTDISPLAY=''
+  else zle forward-char; fi
+}
+zle -N _dot_accept
+bindkey -M viins '^[[C' _dot_accept
+bindkey -M viins '^[OC' _dot_accept
+# Recompute highlighting before adding the hint to avoid accumulating regions.
+typeset -ga _dot_base_highlight=()
+typeset -g _dot_last_buffer=''
+typeset -gi _dot_highlight_valid=0
+_dot_redraw() {
+  _sync_vi_mode
+  if (( _dot_highlight_valid )) && [[ $BUFFER == "$_dot_last_buffer" ]]; then
+    region_highlight=("${_dot_base_highlight[@]}")
+  else
+    _custom_highlight
+    _dot_base_highlight=("${region_highlight[@]}")
+    _dot_last_buffer=$BUFFER
+    _dot_highlight_valid=1
+  fi
+  _dot_suggest
+}
+_dot_finish() { POSTDISPLAY=''; region_highlight=(); _dot_highlight_valid=0; }
+add-zle-hook-widget line-pre-redraw _dot_redraw
+add-zle-hook-widget line-finish _dot_finish
+
+paste() { _clip_available && command "${_clip_paste_cmd[@]}"; }
+path_entries() { print -rl -- "${path[@]}"; }
+ports() {
+  if (( $+commands[ss] )); then ss -lntup
+  elif (( $+commands[lsof] )); then lsof -nP -iTCP -sTCP:LISTEN
+  else print -u2 'ports: ss or lsof required'; return 127; fi
+}
+ff() {
+  local root=${1:-.} file
+  if (( $+commands[fzf] )); then
+    if (( $+commands[fd] )); then file=$(fd -t f . "$root" | fzf) || return
+    else file=$(find "$root" -type f -print | fzf) || return; fi
+    [[ -n $file ]] && "$EDITOR" -- "$file"
+  else find "$root" -type f; fi
+}
+if (( $+commands[fzf] )); then
+  _dot_fzf_init=$(fzf --zsh 2>/dev/null) && eval "$_dot_fzf_init"
+  unset _dot_fzf_init
 fi
