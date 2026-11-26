@@ -15,6 +15,11 @@ function config {
     & git --git-dir="$HOME/.dotfiles" --work-tree="$HOME" @args
 }
 
+function .. { Set-Location -LiteralPath '..' }
+function ... { Set-Location -LiteralPath '../..' }
+function .... { Set-Location -LiteralPath '../../..' }
+function ..... { Set-Location -LiteralPath '../../../..' }
+
 function mkcd {
     param([Parameter(Mandatory)][string]$Path)
     $dir = New-Item -ItemType Directory -Path $Path -Force -ErrorAction Stop
@@ -179,29 +184,66 @@ function Get-PromptDirectoryInfo {
     "≡ $files · ⊞ $dirs · $size$suffix"
 }
 
-# Only abbreviate parent names when the full path does not fit.
+function Get-TextCells {
+    param([string]$Text)
+    try { $Host.UI.RawUI.LengthInBufferCells($Text) }
+    catch { [Text.Encoding]::UTF8.GetByteCount($Text.Replace('…', '.').Replace('≡', '=').Replace('⊞', '+').Replace('·', '.')) }
+}
+
+# Use text-element boundaries so we do not split surrogate pairs or graphemes.
+function Get-FitText {
+    param([string]$Text, [int]$Budget, [switch]$End)
+    if ((Get-TextCells $Text) -le $Budget) { return $Text }
+    if ($Budget -le 0) { return '' }
+    $offsets = [Globalization.StringInfo]::ParseCombiningCharacters($Text)
+    for ($n = [math]::Min($Budget - 1, $offsets.Length - 1); $n -gt 0; $n--) {
+        if ($End) { $piece = $Text.Substring(0, $offsets[$n]) + '…' }
+        else {
+            $left = [int][math]::Ceiling($n / 2)
+            $right = $n - $left
+            $piece = $Text.Substring(0, $offsets[$left]) + '…'
+            if ($right -gt 0) { $piece += $Text.Substring($offsets[$offsets.Length - $right]) }
+        }
+        if ((Get-TextCells $piece) -le $Budget) { return $piece }
+    }
+    '…'
+}
+
+# Preserve home, drive, provider and UNC roots whenever room permits.
 function Get-ShortPath {
     param([string]$Path, [int]$Budget)
-    if ($Path.Length -le $Budget) { return $Path }
-    $separator = if ($Path.Contains('\')) { '\' } else { '/' }
-    $parts = $Path.Split([char]$separator)
-    $candidate = $Path
-    foreach ($cap in 12, 5, 3, 1) {
-        $short = for ($i = 0; $i -lt $parts.Count; $i++) {
-            $part = $parts[$i]
-            if ($i -eq $parts.Count - 1 -or $part.Length -le $cap -or $part.EndsWith(':')) { $part }
-            elseif ($cap -eq 1) { $part.Substring(0, 1) }
-            else {
-                $left = [int][math]::Floor($cap / 2)
-                $right = $cap - $left - 1
-                $part.Substring(0, $left) + '…' + $part.Substring($part.Length - $right)
-            }
-        }
-        $candidate = $short -join $separator
-        if ($candidate.Length -le $Budget) { return $candidate }
+    if ((Get-TextCells $Path) -le $Budget) { return $Path }
+    $separator = if ($IsWindows -or $Path -match '^[^/\\]+:') { '\' } else { '/' }
+    $prefix = ''
+    $rest = $Path
+    if ($Path -match '^(\\\\[^\\]+\\[^\\]+\\|[^/\\]+::?[/\\]|~[/\\]|[/\\])') {
+        $prefix = $Matches[0]
+        $rest = $Path.Substring($prefix.Length)
     }
-    if ($Budget -le 1) { return '…' }
-    '…' + $candidate.Substring($candidate.Length - $Budget + 1)
+    if (-not $rest) { return (Get-FitText $Path $Budget) }
+    if ($prefix.EndsWith('/')) { $separator = '/' }
+    $parts = $rest.Split([char]$separator)
+    $leaf = $parts[-1]
+    $parents = $prefix
+    foreach ($cap in 12, 5, 3, 1) {
+        $parents = $prefix
+        for ($i = 0; $i -lt $parts.Count - 1; $i++) {
+            $part = $parts[$i]
+            if ($cap -eq 1 -and $part) {
+                $part = [Globalization.StringInfo]::GetNextTextElement($part)
+                $parents += (Get-FitText $part 2) + $separator
+            } else { $parents += (Get-FitText $part $cap) + $separator }
+        }
+        $candidate = $parents + $leaf
+        if ((Get-TextCells $candidate) -le $Budget) { return $candidate }
+    }
+    $remaining = $Budget - (Get-TextCells $parents)
+    if ($remaining -lt 8 -and $parents -and $parents -ne $prefix) {
+        $parents = $prefix + '…' + $separator
+        $remaining = $Budget - (Get-TextCells $parents)
+    }
+    if ($remaining -lt 4) { $parents = ''; $remaining = $Budget }
+    $parents + (Get-FitText $leaf $remaining)
 }
 
 function global:prompt {
@@ -253,27 +295,25 @@ function global:prompt {
         $width = 80
         try { $width = $Host.UI.RawUI.WindowSize.Width } catch {}
         if ($width -le 0) { $width = 80 }
-        $heading = "╭─ $([DateTime]::Now.ToString('HH:mm:ss')) ── $([Environment]::MachineName)"
+        $budget = $width - 3 - 6 - $fail.Length - 3 - 1
+        $compact = $width -lt 20 -or $budget -lt 1
+        $machine = Get-FitText ([Environment]::MachineName) ([math]::Max(0, $width - 16))
+        $heading = "╭─ $([DateTime]::Now.ToString('HH:mm:ss')) ── $machine"
         $full = "$heading ── $($state.DirectoryInfo)"
-        $cells = $full.Length
-        try { $cells = $Host.UI.RawUI.LengthInBufferCells($full) } catch {}
-        $rows = if ($cells -lt $width) { 1 } else { 2 }
+        $rows = if ($compact) { 0 } elseif ((Get-TextCells $full) -lt $width) { 1 } else { 2 }
         # PSReadLine needs the count of extra prompt lines for redraws.
         if ($state.PromptRows -ne $rows -and (Get-Module PSReadLine)) {
             Set-PSReadLineOption -ExtraPromptLineCount $rows
             $state.PromptRows = $rows
         }
-        $budget = [math]::Max(1, $width - 3 - 6 - $fail.Length - 3 - 1)
+        if ($compact) { return "${modeColor}[$($state.Mode)]$reset > " }
         $p = Get-ShortPath $p $budget
-        # Use terminal cell width when available (for wide Unicode path names).
-        try {
-            while ($p.Length -gt 1 -and $Host.UI.RawUI.LengthInBufferCells($p) -gt $budget) {
-                $p = '…' + $p.Substring(2)
-            }
-        } catch {}
         $first = "$($PSStyle.Foreground.Blue)$heading$reset"
         if ($rows -eq 1) { $first += " ── $($state.DirectoryInfo)`n" }
-        else { $first += "`n$($PSStyle.Foreground.Blue)│$reset  $($state.DirectoryInfo)`n" }
+        else {
+            $stats = Get-FitText $state.DirectoryInfo ($width - 4) -End
+            $first += "`n$($PSStyle.Foreground.Blue)│$reset  $stats`n"
+        }
         $first + "${modeColor}╰─ [$($state.Mode)]$reset $($PSStyle.Foreground.Cyan)$p$reset$($PSStyle.Foreground.Red)$fail$reset > "
     }
     finally {

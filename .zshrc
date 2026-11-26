@@ -321,6 +321,7 @@ setopt MENU_COMPLETE LIST_PACKED ALWAYS_TO_END
 
 ##### Navigation
 setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_MINUS
+alias ..='cd ..' ...='cd ../..' ....='cd ../../..' .....='cd ../../../..'
 
 ##### Shell behavior
 setopt INTERACTIVE_COMMENTS NO_FLOW_CONTROL
@@ -413,63 +414,93 @@ _directory_info() {
   _dir_time=$SECONDS
 }
 
-# Compress parent components only when the full path does not fit.
+# The (m) length flag counts terminal cells rather than code points.
+_fit_text() {
+  emulate -L zsh
+  local value=$1 style=${3:-middle} piece
+  local -i budget=$2 n left right
+  REPLY=$value
+  (( ${(m)#value} > budget )) || return 0
+  REPLY=''
+  (( budget > 0 )) || return 0
+  REPLY='…'
+  n=$((budget-1)); (( n < ${#value} )) || n=$(( ${#value}-1 ))
+  while (( n > 0 )); do
+    if [[ $style == end ]]; then piece="${value[1,n]}…"
+    else
+      left=$(((n+1)/2)); right=$((n-left))
+      piece="${value[1,left]}…"
+      (( right )) && piece+=${value[-right,-1]}
+    fi
+    if (( ${(m)#piece} <= budget )); then REPLY=$piece; return 0; fi
+    (( n-- ))
+  done
+  return 0
+}
+
+# Preserve hierarchy, then shorten the leaf in the middle if necessary.
 _shorten_path() {
   emulate -L zsh
-  local value=$1 prefix='' rest cap part piece candidate
-  local -i budget=$2 i left right
+  local value=$1 prefix='' rest cap part candidate leaf parents
+  local -i budget=$2 i remaining
   local -a parts
   REPLY=$value
-  (( ${#value} > budget )) || return 0
+  (( ${(m)#value} > budget )) || return 0
   case $value in
     '~/'*) prefix='~/'; rest=${value[3,-1]} ;;
     /*) prefix=/; rest=${value[2,-1]} ;;
     *) rest=$value ;;
   esac
   parts=("${(@s:/:)rest}")
+  leaf=${parts[-1]}
   for cap in 12 5 3 1; do
-    candidate=$prefix
-    for ((i=1; i<=${#parts}; i++)); do
-      part=${parts[i]}; piece=$part
-      if (( i < ${#parts} && ${#part} > cap )); then
-        if (( cap == 1 )); then piece=${part[1]}
-        else
-          left=$((cap/2)); right=$((cap-left-1))
-          piece="${part[1,left]}…${part[-right,-1]}"
-        fi
-      fi
-      (( i > 1 )) && candidate+=/
-      candidate+=$piece
+    parents=$prefix
+    for ((i=1; i<${#parts}; i++)); do
+      part=${parts[i]}
+      if (( cap == 1 )); then _fit_text "${part[1]}" 2
+      else _fit_text "$part" "$cap"; fi
+      parents+="$REPLY/"
     done
-    REPLY=$candidate
-    (( ${#candidate} <= budget )) && return 0
+    candidate=$parents$leaf
+    if (( ${(m)#candidate} <= budget )); then REPLY=$candidate; return 0; fi
   done
-  # Final native prompt truncation below keeps the rightmost text.
-  return 0
+  remaining=$((budget-${(m)#parents}))
+  if (( remaining < 8 )) && [[ -n $parents && $parents != "$prefix" ]]; then
+    parents="${prefix}…/"
+    remaining=$((budget-${(m)#parents}))
+  fi
+  if (( remaining < 4 )); then parents=''; remaining=$budget; fi
+  _fit_text "$leaf" "$remaining"
+  REPLY=$parents$REPLY
 }
 
 typeset -gi _prompt_width=0
 _update_prompt() {
   emulate -L zsh
-  local mode_color=green host=${(%):-%m} value=${(%):-%~} display
+  local mode_color=green host=${(%):-%m} value=${(%):-%~} display stats
   local -i width=${COLUMNS:-80} budget
   local REPLY
   case $VIM_MODE in NOR) mode_color=yellow ;; VIS) mode_color=magenta ;; esac
   host=${host//[[:cntrl:]]/?}
   value=${value//[[:cntrl:]]/?}
   budget=$((width - 3 - 6 - ${#_exit_status} - 3 - 1))
-  (( budget > 0 )) || budget=1
+  _prompt_width=$width
+  PS2='%F{blue}│%f  '
+  if (( width < 20 || budget < 1 )); then
+    PROMPT="%F{${mode_color}}[${VIM_MODE}]%f %# "
+    return 0
+  fi
   _shorten_path "$value" "$budget"
   display=${REPLY//\%/%%}
-  _prompt_width=$width
+  _fit_text "$host" "$((width-16))"; host=$REPLY
   PROMPT="%F{blue}╭─ %D{%H:%M:%S} ── ${host//\%/%%}%f"
-  if (( 15 + ${#host} + 4 + ${#_dir_info} < width )); then
+  if (( 15 + ${(m)#host} + 4 + ${(m)#_dir_info} < width )); then
     PROMPT+=" ── ${_dir_info}"$'\n'
   else
-    PROMPT+=$'\n'"%F{blue}│%f  ${_dir_info}"$'\n'
+    _fit_text "$_dir_info" "$((width-4))" end; stats=$REPLY
+    PROMPT+=$'\n'"%F{blue}│%f  ${stats}"$'\n'
   fi
-  PROMPT+="%F{${mode_color}}╰─ [${VIM_MODE}]%f %F{cyan}%${budget}<…<${display}%<<%f%F{red}${_exit_status}%f %# "
-  PS2='%F{blue}│%f  '
+  PROMPT+="%F{${mode_color}}╰─ [${VIM_MODE}]%f %F{cyan}${display}%f%F{red}${_exit_status}%f %# "
 }
 _sync_vi_mode() {
   local mode=INS

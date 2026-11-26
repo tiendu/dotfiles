@@ -39,6 +39,7 @@ Set-Content -LiteralPath $PROFILE -Value '. "$HOME/.config/powershell/Microsoft.
 - `ff [root]`: choose a file with fzf and open it in your editor; without fzf,
   list files instead. Interactive selection is intended for ordinary filenames
   (newlines in filenames are not supported by every shell implementation).
+- `..`, `...`, `....`, `.....`: move up one, two, three or four directory levels.
 - `mkcd`, `extract`, `watch`, `config`, `path_entries`, `ports`; Bash/Zsh `copy` and `paste`, PowerShell
   `clipcopy` and `clippaste` (do not shadow its built-in `copy` alias).
   Example: `watch { Get-Process } -Interval 2` in PowerShell.
@@ -56,10 +57,12 @@ Set-Content -LiteralPath $PROFILE -Value '. "$HOME/.config/powershell/Microsoft.
   standard find/stat only on refresh; Zsh and PowerShell use native facilities.
   A slow filesystem can still delay a refresh; no background cache is used.
 - The prompt uses two lines when the heading and statistics fit, otherwise
-  three. Long paths abbreviate parent components first, preserving the leaf
-  where possible. Zsh also reflows on ZLE redraws after resize; Bash and
-  PowerShell re-evaluate width on the next prompt (PowerShell also on Vi-mode
-  repaint). Unicode cell widths may vary with the terminal.
+  three. Long paths abbreviate parent components first, then shorten the leaf
+  in the middle. Hostnames and statistics also shorten when necessary; panes
+  below 20 columns use a minimal input prompt. Zsh reflows on ZLE redraws after
+  resize; Bash and PowerShell re-evaluate width on the next prompt (PowerShell
+  also on Vi-mode repaint). Zsh and PowerShell use terminal cell widths where
+  available; Bash estimates Unicode widths conservatively using UTF-8 bytes.
 - Arrowless Insert-mode editing: Ctrl+F (forward / accept history suggestion
   in Zsh and PSReadLine), Ctrl+B (back), Ctrl+A/E (line start/end), Ctrl+P/N
   (previous/next history), Ctrl+R (reverse history search), Ctrl+Space (complete),

@@ -38,6 +38,7 @@ fi
 config() { command git --git-dir="$HOME/.dotfiles" --work-tree="$HOME" "$@"; }
 alias gs='git status -sb' gd='git diff' gds='git diff --staged' gl='git log --oneline --decorate --graph --max-count=15'
 alias gf='git fetch --prune' ga='git add -p' gp='git push' ta='tmux attach || tmux new'
+alias ..='cd ..' ...='cd ../..' ....='cd ../../..' .....='cd ../../../..'
 mkcd() { [[ $# == 1 ]] && mkdir -p -- "$1" && cd -- "$1"; }
 extract() {
   [[ $# == 1 && -f $1 ]] || { printf 'usage: extract archive\n' >&2; return 2; }
@@ -157,60 +158,95 @@ _directory_info() {
   _dir_time=$SECONDS
 }
 
-# Shorten only when needed; preserve hierarchy and the leaf as long as possible.
+# Bash has no wcwidth builtin. Count UTF-8 bytes conservatively, except for
+# our fixed single-cell prompt glyphs. Return the estimate in REPLY.
+_cells() {
+  local value=$1
+  value=${value//…/.}; value=${value//≡/=}; value=${value//⊞/+}; value=${value//·/.}
+  local LC_ALL=C
+  REPLY=${#value}
+}
+
+_fit_text() {
+  local value=$1 budget=$2 style=${3:-middle} n left right piece REPLY
+  _cells "$value"
+  if (( REPLY <= budget )); then _fitted=$value; return 0; fi
+  _fitted=''
+  (( budget > 0 )) || return 0
+  _fitted='…'
+  n=$((budget-1)); (( n < ${#value} )) || n=$((${#value}-1))
+  while (( n > 0 )); do
+    if [[ $style == end ]]; then piece="${value:0:n}…"
+    else
+      left=$(((n+1)/2)); right=$((n-left))
+      piece="${value:0:left}…"
+      (( right )) && piece+=${value: -right}
+    fi
+    _cells "$piece"
+    if (( REPLY <= budget )); then _fitted=$piece; return 0; fi
+    (( n-- ))
+  done
+  return 0
+}
+
+# Preserve hierarchy, then shorten the leaf in the middle if necessary.
 _shorten_path() {
-  local value=$1 budget=$2 prefix='' rest cap part piece candidate i left right
+  local value=$1 budget=$2 prefix='' rest cap part candidate i leaf parents remaining REPLY _fitted
   local -a parts=()
   _prompt_path=$value
-  (( budget > 0 && ${#value} > budget )) || return 0
+  _cells "$value"
+  (( REPLY > budget )) || return 0
   case $value in
     '~/'*) prefix='~/'; rest=${value:2} ;;
     /*) prefix=/; rest=${value:1} ;;
     *) rest=$value ;;
   esac
   IFS=/ read -r -a parts <<< "$rest"
+  leaf=${parts[${#parts[@]}-1]}
   for cap in 12 5 3 1; do
-    candidate=$prefix
-    for ((i=0; i<${#parts[@]}; i++)); do
-      part=${parts[i]}; piece=$part
-      if (( i < ${#parts[@]}-1 && ${#part} > cap )); then
-        if (( cap == 1 )); then piece=${part:0:1}
-        else
-          left=$((cap/2)); right=$((cap-left-1))
-          piece="${part:0:left}…${part: -right}"
-        fi
-      fi
-      (( i )) && candidate+=/
-      candidate+=$piece
+    parents=$prefix
+    for ((i=0; i<${#parts[@]}-1; i++)); do
+      part=${parts[i]}
+      if (( cap == 1 )); then _fit_text "${part:0:1}" 2
+      else _fit_text "$part" "$cap"; fi
+      parents+="$_fitted/"
     done
-    _prompt_path=$candidate
-    (( ${#candidate} <= budget )) && return 0
+    candidate=$parents$leaf
+    _cells "$candidate"
+    if (( REPLY <= budget )); then _prompt_path=$candidate; return 0; fi
   done
-  # Only discard leading context if even one-character parents cannot fit.
-  if (( budget == 1 )); then _prompt_path='…'
-  else _prompt_path="…${_prompt_path: -$((budget-1))}"; fi
-  return 0
+  _cells "$parents"; remaining=$((budget-REPLY))
+  if (( remaining < 8 )) && [[ -n $parents && $parents != "$prefix" ]]; then
+    parents="${prefix}…/"
+    _cells "$parents"; remaining=$((budget-REPLY))
+  fi
+  if (( remaining < 4 )); then parents=''; remaining=$budget; fi
+  _fit_text "$leaf" "$remaining"
+  _prompt_path=$parents$_fitted
 }
 
 _render_prompt() {
-  local width=${COLUMNS:-80} host=${HOSTNAME%%.*} value=$PWD budget
+  local width=${COLUMNS:-80} host=${HOSTNAME%%.*} value=$PWD budget host_cells REPLY _fitted
   [[ $width =~ ^[0-9]+$ ]] || width=80
   host=${host:-localhost}
   host=${host//[[:cntrl:]]/?}
   if [[ $value == "$HOME" ]]; then value='~'
   elif [[ $value == "$HOME/"* ]]; then value="~/${value#"$HOME/"}"; fi
   value=${value//[[:cntrl:]]/?}
-  # Readline puts its mode label on the final prompt line. Reserve its width.
+  # Leave a spare cell to avoid terminal autowrap, including the mode label.
   budget=$((width - 2 - 6 - 1 - ${#_exit_status} - 3 - 1))
-  (( budget > 0 )) || budget=1
+  if (( width < 20 || budget < 1 )); then PS1='\$ '; return 0; fi
   _shorten_path "$value" "$budget"
-  _prompt_host=$host
+  _fit_text "$host" "$((width-16))"; _prompt_host=$_fitted
+  _cells "$_prompt_host"; host_cells=$REPLY
+  _cells "$_dir_info"
   PS1='\[\e[34m\]╭─ \t ── ${_prompt_host}\[\e[0m\]'
-  # Visible first line: 15 fixed cells + host + 4-cell separator + stats.
-  if (( 15 + ${#host} + 4 + ${#_dir_info} < width )); then
-    PS1+=' ── ${_dir_info}\n'
+  if (( 15 + host_cells + 4 + REPLY < width )); then
+    _prompt_stats=$_dir_info
+    PS1+=' ── ${_prompt_stats}\n'
   else
-    PS1+='\n\[\e[34m\]│\[\e[0m\]  ${_dir_info}\n'
+    _fit_text "$_dir_info" "$((width-4))" end; _prompt_stats=$_fitted
+    PS1+='\n\[\e[34m\]│\[\e[0m\]  ${_prompt_stats}\n'
   fi
   PS1+='\[\e[36m\]╰─ ${_prompt_path}\[\e[31m\]${_exit_status}\[\e[0m\] \$ '
 }
