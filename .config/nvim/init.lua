@@ -139,22 +139,22 @@ apply_highlights()
 
 -- --- Keymaps ---
 local map = vim.keymap.set
-local kmopts = { noremap = true, silent = true }
+local map_opts = { noremap = true, silent = true }
 
 -- Save / Quit
-map("n", "<leader>w", "<Cmd>w<CR>", kmopts)
-map("n", "<leader>q", "<Cmd>q<CR>", kmopts)
-map("n", "<leader>x", "<Cmd>wq<CR>", kmopts)
-map("n", "<Esc>", "<Cmd>nohlsearch<CR>", kmopts)
+map("n", "<leader>w", "<Cmd>w<CR>", map_opts)
+map("n", "<leader>q", "<Cmd>q<CR>", map_opts)
+map("n", "<leader>x", "<Cmd>wq<CR>", map_opts)
+map("n", "<Esc>", "<Cmd>nohlsearch<CR>", map_opts)
 
 -- Fast Escape
-map("i", "jk", "<Esc>", kmopts)
+map("i", "jk", "<Esc>", map_opts)
 
 -- Quickfix
-map("n", "<leader>co", "<Cmd>copen<CR>", kmopts)
-map("n", "<leader>cc", "<Cmd>cclose<CR>", kmopts)
-map("n", "<leader>cn", "<Cmd>cnext<CR>", kmopts)
-map("n", "<leader>cp", "<Cmd>cprev<CR>", kmopts)
+map("n", "<leader>co", "<Cmd>copen<CR>", map_opts)
+map("n", "<leader>cc", "<Cmd>cclose<CR>", map_opts)
+map("n", "<leader>cn", "<Cmd>cnext<CR>", map_opts)
+map("n", "<leader>cp", "<Cmd>cprev<CR>", map_opts)
 
 -- Tabs
 map("n", "<C-l>", "<Cmd>tabnext<CR>", { noremap = true, silent = true, desc = "Next tab" })
@@ -218,7 +218,7 @@ api.nvim_create_autocmd("FileType", {
 
 -- Highlight on yank, with compatibility across Neovim versions.
 api.nvim_create_autocmd("TextYankPost", {
-  group = api.nvim_create_augroup("yank_hi", { clear = true }),
+  group = api.nvim_create_augroup("highlight_yank", { clear = true }),
   callback = function()
     local opts = { higroup = "IncSearch", timeout = 200 }
 
@@ -357,7 +357,7 @@ local function refresh_window_matches()
 end
 
 api.nvim_create_autocmd({ "BufWinEnter", "WinEnter", "Syntax" }, {
-  group = api.nvim_create_augroup("match_keywords_ws", { clear = true }),
+  group = api.nvim_create_augroup("highlight_keywords", { clear = true }),
   callback = refresh_window_matches,
 })
 

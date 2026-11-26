@@ -50,9 +50,9 @@ extract() {
   esac
 }
 copy() {
-  if (( $# )); then (set -o pipefail; cat -- "$@" | _dot_copy); else _dot_copy; fi
+  if (( $# )); then (set -o pipefail; cat -- "$@" | _copy); else _copy; fi
 }
-_dot_copy() {
+_copy() {
   if [[ $OSTYPE == darwin* ]] && command -v pbcopy >/dev/null; then command pbcopy
   elif [[ -n ${WAYLAND_DISPLAY:-} ]] && command -v wl-copy >/dev/null; then wl-copy
   elif [[ -n ${DISPLAY:-} ]] && command -v xclip >/dev/null; then xclip -selection clipboard
@@ -103,7 +103,7 @@ ports() {
 }
 
 # Git status is calculated once per prompt; never interpolate it as shell code.
-_dot_prompt() {
+_prompt() {
   local rc=$? branch='' dirty='' status='' git_info=''
   history -a; history -n
   if command -v git >/dev/null 2>&1; then
@@ -114,9 +114,9 @@ _dot_prompt() {
   fi
   (( rc )) && status=" exit:$rc"
   # Use literal parameter expansion in PS1 (no recursive evaluation of values).
-  _dot_branch=${branch:+ $branch$dirty}
-  _dot_status=$status
-  PS1='\[\e[34m\]╭─ \t ── \h\[\e[0m\]\n\[\e[36m\]╰─ \w\[\e[35m\]${_dot_branch}\[\e[31m\]${_dot_status}\[\e[0m\] \$ '
+  _git_branch=${branch:+ $branch$dirty}
+  _exit_status=$status
+  PS1='\[\e[34m\]╭─ \t ── \h\[\e[0m\]\n\[\e[36m\]╰─ \w\[\e[35m\]${_git_branch}\[\e[31m\]${_exit_status}\[\e[0m\] \$ '
   return "$rc"
 }
-PROMPT_COMMAND=_dot_prompt
+PROMPT_COMMAND=_prompt

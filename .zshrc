@@ -367,12 +367,12 @@ bindkey -M viins '^I' _first_tab
 
 ##### Prompt (no directory scans; Git status once per prompt)
 typeset -gi LAST_STATUS=0
-typeset -g VIM_MODE=INS _dot_git='' _dot_status=''
+typeset -g VIM_MODE=INS _git_branch='' _exit_status=''
 _update_prompt() {
   local mode_color=green
   case $VIM_MODE in NOR) mode_color=yellow ;; VIS) mode_color=magenta ;; esac
   PROMPT='%F{blue}╭─ %D{%H:%M:%S} ── %m%f'$'\n'
-  PROMPT+="%F{${mode_color}}╰─ [${VIM_MODE}]%f %F{cyan}%~%f%F{magenta}${_dot_git}%f%F{red}${_dot_status}%f %# "
+  PROMPT+="%F{${mode_color}}╰─ [${VIM_MODE}]%f %F{cyan}%~%f%F{magenta}${_git_branch}%f%F{red}${_exit_status}%f %# "
   PS2='%F{blue}│%f  '
 }
 _sync_vi_mode() {
@@ -391,15 +391,15 @@ zle -N zle-line-init
 _prompt_precmd() {
   LAST_STATUS=$?
   local branch='' dirty='' info=''
-  _dot_git='' _dot_status=''
+  _git_branch='' _exit_status=''
   if (( $+commands[git] )); then
     branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null) || branch=''
     if [[ -n $branch ]]; then
       info=$(git --no-optional-locks status --porcelain --untracked-files=normal 2>/dev/null) && [[ -n $info ]] && dirty='*'
-      _dot_git=" ${branch//\%/%%}${dirty}"
+      _git_branch=" ${branch//\%/%%}${dirty}"
     fi
   fi
-  (( LAST_STATUS )) && _dot_status=" exit:$LAST_STATUS"
+  (( LAST_STATUS )) && _exit_status=" exit:$LAST_STATUS"
   _update_prompt
 }
 setopt PROMPT_PERCENT PROMPT_CR
@@ -747,7 +747,7 @@ fi
 
 # Native history suggestion: show a matching command without inserting it.
 zmodload zsh/parameter
-_dot_suggest() {
+_suggest() {
   POSTDISPLAY=''
   [[ ( $KEYMAP == viins || $KEYMAP == main ) && -n $BUFFER && $CURSOR == ${#BUFFER} && $BUFFER != *$'\n'* ]] || return 0
   local item
@@ -764,33 +764,33 @@ _dot_suggest() {
     region_highlight+=("${#BUFFER} $((${#BUFFER}+${#POSTDISPLAY})) fg=8")
   fi
 }
-_dot_accept() {
+_accept() {
   if [[ -n $POSTDISPLAY && $CURSOR == ${#BUFFER} ]]; then
     BUFFER+=$POSTDISPLAY; CURSOR=${#BUFFER}; POSTDISPLAY=''
   else zle forward-char; fi
 }
-zle -N _dot_accept
-bindkey -M viins '^[[C' _dot_accept
-bindkey -M viins '^[OC' _dot_accept
+zle -N _accept
+bindkey -M viins '^[[C' _accept
+bindkey -M viins '^[OC' _accept
 # Recompute highlighting before adding the hint to avoid accumulating regions.
-typeset -ga _dot_base_highlight=()
-typeset -g _dot_last_buffer=''
-typeset -gi _dot_highlight_valid=0
-_dot_redraw() {
+typeset -ga _base_highlight=()
+typeset -g _last_buffer=''
+typeset -gi _highlight_valid=0
+_redraw() {
   _sync_vi_mode
-  if (( _dot_highlight_valid )) && [[ $BUFFER == "$_dot_last_buffer" ]]; then
-    region_highlight=("${_dot_base_highlight[@]}")
+  if (( _highlight_valid )) && [[ $BUFFER == "$_last_buffer" ]]; then
+    region_highlight=("${_base_highlight[@]}")
   else
     _custom_highlight
-    _dot_base_highlight=("${region_highlight[@]}")
-    _dot_last_buffer=$BUFFER
-    _dot_highlight_valid=1
+    _base_highlight=("${region_highlight[@]}")
+    _last_buffer=$BUFFER
+    _highlight_valid=1
   fi
-  _dot_suggest
+  _suggest
 }
-_dot_finish() { POSTDISPLAY=''; region_highlight=(); _dot_highlight_valid=0; }
-add-zle-hook-widget line-pre-redraw _dot_redraw
-add-zle-hook-widget line-finish _dot_finish
+_finish() { POSTDISPLAY=''; region_highlight=(); _highlight_valid=0; }
+add-zle-hook-widget line-pre-redraw _redraw
+add-zle-hook-widget line-finish _finish
 
 paste() { _clip_available && command "${_clip_paste_cmd[@]}"; }
 path_entries() { print -rl -- "${path[@]}"; }
@@ -808,6 +808,6 @@ ff() {
   else find "$root" -type f; fi
 }
 if (( $+commands[fzf] )); then
-  _dot_fzf_init=$(fzf --zsh 2>/dev/null) && eval "$_dot_fzf_init"
-  unset _dot_fzf_init
+  _fzf_init=$(fzf --zsh 2>/dev/null) && eval "$_fzf_init"
+  unset _fzf_init
 fi
