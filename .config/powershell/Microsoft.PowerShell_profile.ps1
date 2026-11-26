@@ -133,7 +133,7 @@ $global:PromptState = @{
     LastJ = $null
     DirectoryPath = $null
     DirectoryTime = 0L
-    DirectoryInfo = '≡ ? · ⊞ ? · ?'
+    DirectoryInfo = '≡ ? · □ ? · ?'
     PromptRows = 1
 }
 
@@ -162,7 +162,7 @@ function Get-PromptDirectoryInfo {
             } catch { $valid = $false; $complete = $false }
         }
     } catch {
-        if ($seen -eq 0) { return '≡ ? · ⊞ ? · ?' }
+        if ($seen -eq 0) { return '≡ ? · □ ? · ?' }
         $complete = $false
     } finally {
         if ($null -ne $entries) { $entries.Dispose() }
@@ -181,13 +181,13 @@ function Get-PromptDirectoryInfo {
         }
     }
     $suffix = if ($complete) { '' } else { ' …' }
-    "≡ $files · ⊞ $dirs · $size$suffix"
+    "≡ $files · □ $dirs · $size$suffix"
 }
 
 function Get-TextCells {
     param([string]$Text)
     try { $Host.UI.RawUI.LengthInBufferCells($Text) }
-    catch { [Text.Encoding]::UTF8.GetByteCount($Text.Replace('…', '.').Replace('≡', '=').Replace('⊞', '+').Replace('·', '.')) }
+    catch { [Text.Encoding]::UTF8.GetByteCount($Text.Replace('…', '.').Replace('≡', '=').Replace('□', '+').Replace('·', '.')) }
 }
 
 # Use text-element boundaries so we do not split surrogate pairs or graphemes.
@@ -231,7 +231,7 @@ function global:prompt {
                 }
             } else {
                 $state.DirectoryPath = $null
-                $state.DirectoryInfo = '≡ ? · ⊞ ? · ?'
+                $state.DirectoryInfo = '≡ ? · □ ? · ?'
             }
         }
 
@@ -246,7 +246,7 @@ function global:prompt {
         }
 
         $p = $p -replace '[\x00-\x1f\x7f]', '?'
-        $fail = if ($state.Failed) { ' failed' } else { '' }
+        $fail = if ($state.Failed) { ' ✗' } else { '' }
 
         $modeColor = if ($state.Mode -eq 'NOR') {
             $PSStyle.Foreground.Yellow
@@ -259,28 +259,44 @@ function global:prompt {
         $width = 80
         try { $width = $Host.UI.RawUI.WindowSize.Width } catch {}
         if ($width -le 0) { $width = 80 }
-        $budget = $width - 3 - 6 - $fail.Length - 3 - 1
-        $compact = $width -lt 20 -or $budget -lt 1
-        $machine = Get-FitText ([Environment]::MachineName) ([math]::Max(0, $width - 16))
-        $heading = "╭─ $([DateTime]::Now.ToString('HH:mm:ss')) ── $machine"
-        $full = "$heading ── $($state.DirectoryInfo)"
-        $rows = if ($compact) { 0 } elseif ((Get-TextCells $full) -lt $width) { 1 } else { 2 }
-        # PSReadLine needs the count of extra prompt lines for redraws.
+        $rail = $PSStyle.Bold + $PSStyle.Foreground.Blue
+        $cyan = $PSStyle.Foreground.Cyan
+        $red = $PSStyle.Foreground.Red
+        $compact = $width -lt 20 -or $env:TERM -eq 'dumb'
+        $rows = 0
+        $first = ''
+        if (-not $compact) {
+            $symbol = if ($state.Mode -eq 'NOR') { '■' } else { '●' }
+            $label = "$symbol $($state.Mode)"
+            $machine = Get-FitText ([Environment]::MachineName) ($width - 16 - $fail.Length)
+            $meta = [DateTime]::Now.ToString('HH:mm:ss')
+            if ($machine) { $meta = "$machine · $meta" }
+            $first = "${rail}┏━━┫ $reset$modeColor$label$reset${rail} ┣━━$reset"
+            if (15 + (Get-TextCells $meta) + $fail.Length -lt $width) {
+                $first += " $meta$red$fail$reset`n"
+                $rows = 1
+            } else {
+                $first += "`n${rail}┣━━ $reset$meta$red$fail$reset`n"
+                $rows = 2
+            }
+            $p = Get-FitText $p ([math]::Min(40, $width - 5)) -Tail
+            $first += "${rail}┣━━ $reset$cyan$p$reset"
+            if (4 + (Get-TextCells $p) + 4 + (Get-TextCells $state.DirectoryInfo) -lt $width) {
+                $first += "${rail} ━━ $reset$($state.DirectoryInfo)`n"
+                $rows++
+            } else {
+                $stats = Get-FitText $state.DirectoryInfo ($width - 5) -End
+                $first += "`n${rail}┣━━ $reset$stats`n"
+                $rows += 2
+            }
+        }
+        # PSReadLine needs the number of metadata lines above input.
         if ($state.PromptRows -ne $rows -and (Get-Module PSReadLine)) {
             Set-PSReadLineOption -ExtraPromptLineCount $rows
             $state.PromptRows = $rows
         }
-        if ($compact) { return "${modeColor}[$($state.Mode)]$reset > " }
-        # Cap the path at 40 cells; leave 12 cells for input when space permits.
-        $budget = [math]::Min(40, [math]::Max(1, $budget - 11))
-        $p = Get-FitText $p $budget -Tail
-        $first = "$($PSStyle.Foreground.Blue)$heading$reset"
-        if ($rows -eq 1) { $first += " ── $($state.DirectoryInfo)`n" }
-        else {
-            $stats = Get-FitText $state.DirectoryInfo ($width - 4) -End
-            $first += "`n$($PSStyle.Foreground.Blue)│$reset  $stats`n"
-        }
-        $first + "${modeColor}╰─ [$($state.Mode)]$reset $($PSStyle.Foreground.Cyan)$p$reset$($PSStyle.Foreground.Red)$fail$reset > "
+        if ($compact) { return '> ' }
+        $first + "${rail}┗━━$reset${modeColor}❯$reset "
     }
     finally {
         $global:LASTEXITCODE = $nativeExit

@@ -21,8 +21,8 @@ shopt -s histappend checkwinsize promptvars
 shopt -s globstar 2>/dev/null || :
 set -o vi
 bind 'set show-mode-in-prompt on' 2>/dev/null || :
-bind 'set vi-ins-mode-string "[INS] "' 2>/dev/null || :
-bind 'set vi-cmd-mode-string "[NOR] "' 2>/dev/null || :
+bind 'set vi-ins-mode-string "\1\e[1;34m\2┗━━┫ \1\e[0;32m\2● INS\1\e[1;34m\2 ┣━━\1\e[0m\2"' 2>/dev/null || :
+bind 'set vi-cmd-mode-string "\1\e[1;34m\2┗━━┫ \1\e[0;33m\2■ NOR\1\e[1;34m\2 ┣━━\1\e[0m\2"' 2>/dev/null || :
 bind 'set keyseq-timeout 250' 2>/dev/null || :
 bind -m vi-insert '"jk": vi-movement-mode'
 bind 'set completion-ignore-case on'
@@ -104,7 +104,7 @@ ports() {
 # Directory statistics: immediate entries only; reuse the current result for 30s.
 _dir_path=''
 _dir_time=0
-_dir_info='≡ ? · ⊞ ? · ?'
+_dir_info='≡ ? · □ ? · ?'
 
 _directory_info() {
   [[ $_dir_path == "$PWD" ]] && (( SECONDS - _dir_time >= 0 && SECONDS - _dir_time < 30 )) && return 0
@@ -112,7 +112,7 @@ _directory_info() {
   local unit=1 label=B
   local -a paths=()
   _dir_path=$PWD
-  _dir_info='≡ ? · ⊞ ? · ?'
+  _dir_info='≡ ? · □ ? · ?'
   if [[ -r . && -x . ]]; then
     # NUL-separated entries, no recursion. A final empty record marks success.
     while IFS= read -r -d '' entry; do
@@ -153,7 +153,7 @@ _directory_info() {
         fi
       fi
     fi
-    _dir_info="≡ $files · ⊞ $dirs · $size$suffix"
+    _dir_info="≡ $files · □ $dirs · $size$suffix"
   fi
   _dir_time=$SECONDS
 }
@@ -162,7 +162,7 @@ _directory_info() {
 # our fixed single-cell prompt glyphs. Return the estimate in REPLY.
 _cells() {
   local value=$1
-  value=${value//…/.}; value=${value//≡/=}; value=${value//⊞/+}; value=${value//·/.}
+  value=${value//…/.}; value=${value//≡/=}; value=${value//□/+}; value=${value//·/.}; value=${value//✗/x}
   local LC_ALL=C
   REPLY=${#value}
 }
@@ -192,40 +192,49 @@ _fit_text() {
 }
 
 _render_prompt() {
-  local width=${COLUMNS:-80} host=${HOSTNAME%%.*} value=$PWD budget host_cells REPLY _fitted
+  local width=${COLUMNS:-80} host=${HOSTNAME%%.*} value=$PWD budget REPLY _fitted
+  local path_cells fail_cells compact=0
   [[ $width =~ ^[0-9]+$ ]] || width=80
   host=${host:-localhost}
   host=${host//[[:cntrl:]]/?}
   if [[ $value == "$HOME" ]]; then value='~'
   elif [[ $value == "$HOME/"* ]]; then value="~/${value#"$HOME/"}"; fi
   value=${value//[[:cntrl:]]/?}
-  # Leave a spare cell to avoid terminal autowrap, including the mode label.
-  budget=$((width - 2 - 6 - 1 - ${#_exit_status} - 3 - 1))
-  if (( width < 20 || budget < 1 )); then PS1='\$ '; return 0; fi
-  # Cap the path at 40 cells; leave 12 cells for input when space permits.
-  (( budget -= 11 ))
-  (( budget > 0 )) || budget=1
-  (( budget <= 40 )) || budget=40
-  _fit_text "$value" "$budget" path; _prompt_path=$_fitted
-  _fit_text "$host" "$((width-16))"; _prompt_host=$_fitted
-  _cells "$_prompt_host"; host_cells=$REPLY
-  _cells "$_dir_info"
-  PS1='\[\e[34m\]╭─ \t ── ${_prompt_host}\[\e[0m\]'
-  if (( 15 + host_cells + 4 + REPLY < width )); then
-    _prompt_stats=$_dir_info
-    PS1+=' ── ${_prompt_stats}\n'
-  else
-    _fit_text "$_dir_info" "$((width-4))" end; _prompt_stats=$_fitted
-    PS1+='\n\[\e[34m\]│\[\e[0m\]  ${_prompt_stats}\n'
+  if [[ ${TERM:-dumb} == dumb ]] || (( width < 20 )); then compact=1; fi
+  # Readline owns the live mode string on the final line. Hide it in tiny panes.
+  if [[ ${_prompt_compact:-0} != "$compact" ]]; then
+    if (( compact )); then bind 'set show-mode-in-prompt off' 2>/dev/null || :
+    else bind 'set show-mode-in-prompt on' 2>/dev/null || :; fi
+    _prompt_compact=$compact
   fi
-  PS1+='\[\e[36m\]╰─ ${_prompt_path}\[\e[31m\]${_exit_status}\[\e[0m\] \$ '
+  if (( compact )); then PS1='\$ '; return 0; fi
+  _cells "$_exit_status"; fail_cells=$REPLY
+  # Keep the clock and failure visible even when the hostname does not fit.
+  _fit_text "$host" "$((width-16-fail_cells))"; _prompt_host=$_fitted
+  PS1='\[\e[1;34m\]┏━━ \[\e[0m\]'
+  [[ -n $_prompt_host ]] && PS1+='${_prompt_host} · '
+  PS1+='\t\[\e[31m\]${_exit_status}\[\e[0m\]\n'
+  budget=$((width-5)); (( budget > 40 )) && budget=40
+  _fit_text "$value" "$budget" path; _prompt_path=$_fitted
+  _cells "$_prompt_path"; path_cells=$REPLY
+  _cells "$_dir_info"
+  PS1+='\[\e[1;34m\]┣━━ \[\e[0;36m\]${_prompt_path}\[\e[0m\]'
+  if (( 4 + path_cells + 4 + REPLY < width )); then
+    _prompt_stats=$_dir_info
+    PS1+='\[\e[1;34m\] ━━ \[\e[0m\]${_prompt_stats}\n'
+  else
+    _fit_text "$_dir_info" "$((width-5))" end; _prompt_stats=$_fitted
+    PS1+='\n\[\e[1;34m\]┣━━ \[\e[0m\]${_prompt_stats}\n'
+  fi
+  # The final line begins with Readline's Vi-mode rail, not a right prompt.
+  PS1+='❯ '
 }
 
 _prompt() {
   local rc=$? status=''
   history -a; history -n
   _directory_info
-  (( rc )) && status=" exit:$rc"
+  (( rc )) && status=" ✗ $rc"
   _exit_status=$status
   _render_prompt
   return "$rc"

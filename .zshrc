@@ -368,7 +368,7 @@ bindkey -M viins '^I' _first_tab
 
 ##### Prompt: bounded directory statistics, no Git lookup.
 typeset -gi LAST_STATUS=0 _dir_time=0
-typeset -g VIM_MODE=INS _exit_status='' _dir_path='' _dir_info='≡ ? · ⊞ ? · ?'
+typeset -g VIM_MODE=INS _exit_status='' _dir_path='' _dir_info='≡ ? · □ ? · ?'
 zmodload -F zsh/stat b:zstat 2>/dev/null || :
 
 _directory_info() {
@@ -379,7 +379,7 @@ _directory_info() {
   local entry size='?' suffix='' label=B
   local -i files=0 dirs=0 bytes=0 unit=1 valid=1 seen=0
   _dir_path=$PWD
-  _dir_info='≡ ? · ⊞ ? · ?'
+  _dir_info='≡ ? · □ ? · ?'
   if [[ -r . && -x . ]]; then
     # Y513 short-circuits glob traversal, including hidden entries; the extra
     # entry distinguishes complete results from a truncated sample.
@@ -409,7 +409,7 @@ _directory_info() {
       if (( unit == 1 )); then size="$bytes B"
       else printf -v size '%d.%d %s' "$((bytes / unit))" "$(((bytes % unit) * 10 / unit))" "$label"; fi
     fi
-    _dir_info="≡ $files · ⊞ $dirs · $size$suffix"
+    _dir_info="≡ $files · □ $dirs · $size$suffix"
   fi
   _dir_time=$SECONDS
 }
@@ -443,35 +443,49 @@ _fit_text() {
 typeset -gi _prompt_width=0
 _update_prompt() {
   emulate -L zsh
-  local mode_color=green host=${(%):-%m} value=${(%):-%~} display stats
-  local -i width=${COLUMNS:-80} budget
+  local mode_color=green mode_symbol=● host=${(%):-%m} value=${(%):-%~}
+  local display stats meta mode_label
+  local -i width=${COLUMNS:-80} budget path_cells meta_cells
   local REPLY
-  case $VIM_MODE in NOR) mode_color=yellow ;; VIS) mode_color=magenta ;; esac
+  case $VIM_MODE in
+    NOR) mode_color=yellow; mode_symbol=■ ;;
+    VIS) mode_color=magenta; mode_symbol=▶ ;;
+  esac
   host=${host//[[:cntrl:]]/?}
   value=${value//[[:cntrl:]]/?}
-  budget=$((width - 3 - 6 - ${#_exit_status} - 3 - 1))
   _prompt_width=$width
-  PS2='%F{blue}│%f  '
-  if (( width < 20 || budget < 1 )); then
-    PROMPT="%F{${mode_color}}[${VIM_MODE}]%f %# "
+  PS2='%B%F{blue}┃%f%b   '
+  if [[ ${TERM:-dumb} == dumb ]] || (( width < 20 )); then
+    PROMPT="%# "
     return 0
   fi
-  # Cap the path at 40 cells; leave 12 cells for input when space permits.
-  (( budget -= 11 ))
-  (( budget > 0 )) || budget=1
-  (( budget <= 40 )) || budget=40
-  _fit_text "$value" "$budget" path
-  display=${REPLY//\%/%%}
-  _fit_text "$host" "$((width-16))"; host=$REPLY
-  PROMPT="%F{blue}╭─ %D{%H:%M:%S} ── ${host//\%/%%}%f"
-  if (( 15 + ${(m)#host} + 4 + ${(m)#_dir_info} < width )); then
-    PROMPT+=" ── ${_dir_info}"$'\n'
-  else
-    _fit_text "$_dir_info" "$((width-4))" end; stats=$REPLY
-    PROMPT+=$'\n'"%F{blue}│%f  ${stats}"$'\n'
+  _fit_text "$host" "$((width-16-${(m)#_exit_status}))"; host=$REPLY
+  meta='%D{%H:%M:%S}'
+  meta_cells=8
+  if [[ -n $host ]]; then
+    meta="${host//\%/%%} · $meta"
+    (( meta_cells += ${(m)#host} + 3 ))
   fi
-  PROMPT+="%F{${mode_color}}╰─ [${VIM_MODE}]%f %F{cyan}${display}%f%F{red}${_exit_status}%f %# "
+  mode_label="%F{${mode_color}}$mode_symbol $VIM_MODE%f"
+  PROMPT="%B%F{blue}┏━━┫ %f%b${mode_label}%B%F{blue} ┣━━%f%b"
+  if (( 15 + meta_cells + ${(m)#_exit_status} < width )); then
+    PROMPT+=" $meta%F{red}${_exit_status}%f"$'\n'
+  else
+    PROMPT+=$'\n'"%B%F{blue}┣━━ %f%b$meta%F{red}${_exit_status}%f"$'\n'
+  fi
+  budget=$((width-5)); (( budget > 40 )) && budget=40
+  _fit_text "$value" "$budget" path
+  path_cells=${(m)#REPLY}; display=${REPLY//\%/%%}
+  PROMPT+="%B%F{blue}┣━━ %f%b%F{cyan}$display%f"
+  if (( 4 + path_cells + 4 + ${(m)#_dir_info} < width )); then
+    PROMPT+="%B%F{blue} ━━ %f%b${_dir_info}"$'\n'
+  else
+    _fit_text "$_dir_info" "$((width-5))" end; stats=$REPLY
+    PROMPT+=$'\n'"%B%F{blue}┣━━ %f%b$stats"$'\n'
+  fi
+  PROMPT+="%B%F{blue}┗━━%f%b%F{${mode_color}}❯%f "
 }
+
 _sync_vi_mode() {
   local mode=INS
   if (( REGION_ACTIVE )); then mode=VIS
@@ -488,7 +502,7 @@ zle -N zle-line-init
 _prompt_precmd() {
   LAST_STATUS=$?
   _exit_status=''
-  (( LAST_STATUS )) && _exit_status=" exit:$LAST_STATUS"
+  (( LAST_STATUS )) && _exit_status=" ✗ $LAST_STATUS"
   _directory_info
   _update_prompt
 }

@@ -47,7 +47,7 @@ Set-Content -LiteralPath $PROFILE -Value '. "$HOME/.config/powershell/Microsoft.
   use tmux's OSC 52 copy mode with a compatible terminal.
 - Optional: fzf (shell integration requires 0.48+), fd, zoxide, eza, ripgrep,
   bat, jq. Install independently if desired; no automatic installs.
-- The prompt never calls Git. `≡` counts immediate files, `⊞` counts immediate
+- The prompt never calls Git. `≡` counts immediate files, `□` counts immediate
   directories, and the size is the combined apparent size of those files.
   Hidden entries are included; symlinks/reparse points are excluded. Bash and
   Zsh count regular files only; PowerShell counts non-link .NET FileInfo entries.
@@ -56,10 +56,11 @@ Set-Content -LiteralPath $PROFILE -Value '. "$HOME/.config/powershell/Microsoft.
   `?` marks unavailable information. Enumeration is non-recursive. Bash uses
   standard find/stat only on refresh; Zsh and PowerShell use native facilities.
   A slow filesystem can still delay a refresh; no background cache is used.
-- The prompt uses two lines when the heading and statistics fit, otherwise
-  three. Paths are capped at 40 display cells using a single middle ellipsis,
-  keeping slightly more of the end. Narrow panes reduce that cap to leave
-  room for typing. Hostnames and statistics also shorten when necessary; panes
+- The prompt uses a compact VHS-style heavy rail, geometric Vi-mode markers,
+  a chevron and a red cross on failure (with the exit code in Bash/Zsh).
+  The input always has its own line. Metadata splits across rows in narrow
+  panes; paths retain a 40-cell middle-ellipsis cap. No background colors
+  or right prompt. Bash keeps its live mode on the input line. Panes
   below 20 columns use a minimal input prompt. Zsh reflows on ZLE redraws after
   resize; Bash and PowerShell re-evaluate width on the next prompt (PowerShell
   also on Vi-mode repaint). Zsh and PowerShell use terminal cell widths where
