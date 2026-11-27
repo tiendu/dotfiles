@@ -262,14 +262,14 @@ function global:prompt {
         $rail = $PSStyle.Bold + $PSStyle.Foreground.Blue
         $cyan = $PSStyle.Foreground.Cyan
         $red = $PSStyle.Foreground.Red
-        $compact = $width -lt 20 -or $env:TERM -eq 'dumb'
+        $compact = $width -lt 20 -or $width -lt (17 + $fail.Length) -or $env:TERM -eq 'dumb'
         $rows = 0
         $first = ''
         if (-not $compact) {
             $symbol = if ($state.Mode -eq 'NOR') { '■' } else { '●' }
             $label = "$symbol $($state.Mode)"
-            $machine = Get-FitText ([Environment]::MachineName) ($width - 16 - $fail.Length)
-            $meta = [DateTime]::Now.ToString('HH:mm:ss')
+            $machine = Get-FitText ([Environment]::MachineName) ($width - 20 - $fail.Length)
+            $meta = [DateTime]::Now.ToString('dd MMM HH:mm', [Globalization.CultureInfo]::InvariantCulture).ToUpperInvariant()
             if ($machine) { $meta = "$machine · $meta" }
             $first = "${rail}┏━━┫ $reset$modeColor$label$reset${rail} ┣━━$reset"
             if (15 + (Get-TextCells $meta) + $fail.Length -lt $width) {

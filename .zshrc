@@ -455,13 +455,18 @@ _update_prompt() {
   value=${value//[[:cntrl:]]/?}
   _prompt_width=$width
   PS2='%B%F{blue}┃%f%b   '
-  if [[ ${TERM:-dumb} == dumb ]] || (( width < 20 )); then
+  if [[ ${TERM:-dumb} == dumb ]] || (( width < 20 || width < 17 + ${(m)#_exit_status} )); then
     PROMPT="%# "
     return 0
   fi
-  _fit_text "$host" "$((width-16-${(m)#_exit_status}))"; host=$REPLY
-  meta='%D{%H:%M:%S}'
-  meta_cells=8
+  _fit_text "$host" "$((width-20-${(m)#_exit_status}))"; host=$REPLY
+  # Scope the English month format to this expansion only.
+  () {
+    local LC_ALL=C stamp_format='%D{%d %b %H:%M}'
+    meta=${(%)stamp_format}
+    meta=${(U)meta}
+  }
+  meta_cells=12
   if [[ -n $host ]]; then
     meta="${host//\%/%%} · $meta"
     (( meta_cells += ${(m)#host} + 3 ))

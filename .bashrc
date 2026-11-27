@@ -200,7 +200,8 @@ _render_prompt() {
   if [[ $value == "$HOME" ]]; then value='~'
   elif [[ $value == "$HOME/"* ]]; then value="~/${value#"$HOME/"}"; fi
   value=${value//[[:cntrl:]]/?}
-  if [[ ${TERM:-dumb} == dumb ]] || (( width < 20 )); then compact=1; fi
+  _cells "$_exit_status"; fail_cells=$REPLY
+  if [[ ${TERM:-dumb} == dumb ]] || (( width < 20 || width < 17 + fail_cells )); then compact=1; fi
   # Readline owns the live mode string on the final line. Hide it in tiny panes.
   if [[ ${_prompt_compact:-0} != "$compact" ]]; then
     if (( compact )); then bind 'set show-mode-in-prompt off' 2>/dev/null || :
@@ -208,12 +209,18 @@ _render_prompt() {
     _prompt_compact=$compact
   fi
   if (( compact )); then PS1='\$ '; return 0; fi
-  _cells "$_exit_status"; fail_cells=$REPLY
+  # English month abbreviations without changing the interactive locale.
+  # Bash 3.2 (macOS) falls back to the standard date utility.
+  if (( BASH_VERSINFO[0] >= 4 )) && LC_ALL=C printf -v _prompt_time '%(%d %b %H:%M)T' -1 2>/dev/null; then
+    _prompt_time=${_prompt_time^^}
+  else
+    _prompt_time=$(LC_ALL=C date '+%d %b %H:%M' | LC_ALL=C tr '[:lower:]' '[:upper:]')
+  fi
   # Keep the clock and failure visible even when the hostname does not fit.
-  _fit_text "$host" "$((width-16-fail_cells))"; _prompt_host=$_fitted
+  _fit_text "$host" "$((width-20-fail_cells))"; _prompt_host=$_fitted
   PS1='\[\e[1;34m\]┏━━ \[\e[0m\]'
   [[ -n $_prompt_host ]] && PS1+='${_prompt_host} · '
-  PS1+='\t\[\e[31m\]${_exit_status}\[\e[0m\]\n'
+  PS1+='${_prompt_time}\[\e[31m\]${_exit_status}\[\e[0m\]\n'
   budget=$((width-5)); (( budget > 40 )) && budget=40
   _fit_text "$value" "$budget" path; _prompt_path=$_fitted
   _cells "$_prompt_path"; path_cells=$REPLY
